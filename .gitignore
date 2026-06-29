@@ -1,0 +1,32 @@
+# deps
+node_modules/
+.pnpm-store/
+
+# build
+dist/
+.next/
+out/
+.turbo/
+*.tsbuildinfo
+
+# rust / soroban (future)
+target/
+**/*.wasm
+
+# env / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# editor / os
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*

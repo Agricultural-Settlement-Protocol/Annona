@@ -1,0 +1,4 @@
+{
+  "extends": "@annona/config/tsconfig/nextjs.json",
+  "include": ["src"]
+}

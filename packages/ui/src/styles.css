@@ -1,0 +1,2 @@
+/* Shared UI styles. Import a Tailwind v4 source from the consuming app. */
+@import "tailwindcss";

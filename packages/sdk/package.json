@@ -1,0 +1,26 @@
+{
+  "name": "@annona/sdk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "biome lint src",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@annona/core": "workspace:*"
+  },
+  "peerDependencies": {
+    "@stellar/stellar-sdk": "^13.0.0"
+  },
+  "devDependencies": {
+    "@annona/config": "workspace:*",
+    "@stellar/stellar-sdk": "^13.0.0",
+    "typescript": "^5.6.3"
+  }
+}
