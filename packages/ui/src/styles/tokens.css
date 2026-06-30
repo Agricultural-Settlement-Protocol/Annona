@@ -1,0 +1,151 @@
+/**
+ * Annona design tokens (Tailwind v4).
+ * Derived from assets/logo-color-reference.svg. See docs/DESIGN_GUIDE.md.
+ * Import AFTER `@import "tailwindcss";` in the consuming app's globals.css.
+ *
+ * Semantic tokens are runtime CSS vars (theme-switchable). Brand scales are
+ * static. `@theme inline` exposes both as Tailwind utilities
+ * (bg-primary, text-foreground, bg-verdant-600, rounded-lg, font-sans, ...).
+ */
+
+/* ── Semantic tokens: light ── */
+:root {
+  --background: #f7faf3;
+  --surface: #ffffff;
+  --surface-muted: #f6f7f4;
+  --foreground: #212320;
+  --muted-foreground: #737c6a;
+  --border: #d7dbd2;
+
+  --primary: #5f8130; /* verdant-600 (agriculture / credit) */
+  --primary-foreground: #ffffff;
+  --accent: #1f7a86; /* aqua-600 (settlement / on-chain) */
+  --accent-foreground: #ffffff;
+  --ring: #45b2bd; /* aqua-400 */
+
+  --success: #10b981; /* Lunas */
+  --success-foreground: #ffffff;
+  --warning: #d97706;
+  --warning-foreground: #ffffff;
+  --danger: #dc2626;
+  --danger-foreground: #ffffff;
+}
+
+/* ── Semantic tokens: dark ── */
+.dark {
+  --background: #141611;
+  --surface: #1c1f19;
+  --surface-muted: #23271f;
+  --foreground: #eceee9;
+  --muted-foreground: #939c8a;
+  --border: #313629;
+
+  --primary: #95ba56; /* verdant-400 */
+  --primary-foreground: #18230f;
+  --accent: #74cdd5; /* aqua-300 */
+  --accent-foreground: #0e2a30;
+  --ring: #45b2bd;
+
+  --success: #34d399;
+  --success-foreground: #052e22;
+  --warning: #f59e0b;
+  --warning-foreground: #2a1a02;
+  --danger: #f87171;
+  --danger-foreground: #2a0a0a;
+}
+
+@theme inline {
+  /* semantic */
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-foreground: var(--foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+
+  /* brand scale: verdant (agriculture) */
+  --color-verdant-50: #f3f8ec;
+  --color-verdant-100: #e3f0d2;
+  --color-verdant-200: #cce0a9;
+  --color-verdant-300: #b0cd7e;
+  --color-verdant-400: #95ba56;
+  --color-verdant-500: #79a23b;
+  --color-verdant-600: #5f8130;
+  --color-verdant-700: #4a6528;
+  --color-verdant-800: #3b4f24;
+  --color-verdant-900: #2f4020;
+  --color-verdant-950: #18230f;
+
+  /* brand scale: aqua (settlement / on-chain) */
+  --color-aqua-50: #eafafb;
+  --color-aqua-100: #cdf0f2;
+  --color-aqua-200: #a7e2e7;
+  --color-aqua-300: #74cdd5;
+  --color-aqua-400: #45b2bd;
+  --color-aqua-500: #2898a5;
+  --color-aqua-600: #1f7a86;
+  --color-aqua-700: #1f626c;
+  --color-aqua-800: #204e56;
+  --color-aqua-900: #1e4149;
+  --color-aqua-950: #0e2a30;
+
+  /* warm neutral: ink */
+  --color-ink-50: #f6f7f4;
+  --color-ink-100: #eceee9;
+  --color-ink-200: #d7dbd2;
+  --color-ink-300: #b8bfb0;
+  --color-ink-400: #939c8a;
+  --color-ink-500: #737c6a;
+  --color-ink-600: #5a6253;
+  --color-ink-700: #474e42;
+  --color-ink-800: #353a31;
+  --color-ink-900: #262b22;
+  --color-ink-950: #181b15;
+
+  /* fonts (wired via next/font in app layout) */
+  --font-sans: var(--font-sans-jakarta), ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-mono: var(--font-mono-jetbrains), ui-monospace, "SF Mono", monospace;
+
+  /* radius (rounded, matches wordmark) */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-2xl: 28px;
+
+  /* soft, green-tinted elevation */
+  --shadow-sm: 0 1px 2px rgba(33, 35, 32, 0.06);
+  --shadow-md: 0 4px 12px rgba(33, 35, 32, 0.08);
+  --shadow-lg: 0 12px 32px rgba(33, 35, 32, 0.1);
+}
+
+/* ── Signature textures (see DESIGN_GUIDE section 2) ── */
+.annona-mesh {
+  background-color: #eaf4ef;
+  background-image: radial-gradient(at 8% 6%, #c4d4a5 0px, transparent 55%),
+    radial-gradient(at 95% 92%, #7ac8d2 0px, transparent 55%),
+    radial-gradient(at 92% 8%, #f2f9f2 0px, transparent 45%),
+    radial-gradient(at 6% 94%, #edf7f6 0px, transparent 45%),
+    radial-gradient(at 50% 50%, #cce7de 0px, transparent 60%);
+}
+
+.annona-scanlines {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(33, 35, 32, 0.035) 0px,
+    rgba(33, 35, 32, 0.035) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+}

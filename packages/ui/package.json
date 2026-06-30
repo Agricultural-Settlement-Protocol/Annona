@@ -5,7 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./styles.css": "./src/styles.css"
+    "./tokens.css": "./src/styles/tokens.css"
   },
   "scripts": {
     "lint": "biome lint src",
@@ -16,7 +16,9 @@
     "react-dom": "^19.0.0"
   },
   "dependencies": {
+    "@annona/core": "workspace:*",
     "clsx": "^2.1.1",
+    "lucide-react": "^0.469.0",
     "tailwind-merge": "^2.5.4"
   },
   "devDependencies": {
