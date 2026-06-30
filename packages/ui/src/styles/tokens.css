@@ -3,48 +3,60 @@
  * Derived from assets/logo-color-reference.svg. See docs/DESIGN_GUIDE.md.
  * Import AFTER `@import "tailwindcss";` in the consuming app's globals.css.
  *
- * Semantic tokens are runtime CSS vars (theme-switchable). Brand scales are
- * static. `@theme inline` exposes both as Tailwind utilities
- * (bg-primary, text-foreground, bg-verdant-600, rounded-lg, font-sans, ...).
+ * Two-tone brand: a VIVID tone (fills, badges, gradients, large text) and an
+ * AA-safe TEXT tone (small text, buttons). The signature is the brand GRADIENT
+ * (emerald to teal, the logo axis). Lead with it; never lead with flat olive.
  */
 
 /* ── Semantic tokens: light ── */
 :root {
   --background: #f7faf3;
   --surface: #ffffff;
-  --surface-muted: #f6f7f4;
-  --foreground: #212320;
-  --muted-foreground: #737c6a;
-  --border: #d7dbd2;
+  --surface-muted: #f3f6ef;
+  --foreground: #1b1f1a;
+  --muted-foreground: #6b7464;
+  --border: #dde3d6;
 
-  --primary: #5f8130; /* verdant-600 (agriculture / credit) */
+  /* primary = agriculture / credit (vivid emerald) */
+  --primary: #0c7a48; /* AA-safe on white for buttons/text */
+  --primary-vivid: #14b866; /* fills, badges, large emphasis */
   --primary-foreground: #ffffff;
-  --accent: #1f7a86; /* aqua-600 (settlement / on-chain) */
-  --accent-foreground: #ffffff;
-  --ring: #45b2bd; /* aqua-400 */
 
-  --success: #10b981; /* Lunas */
+  /* accent = settlement / on-chain (luminous teal) */
+  --accent: #0c6a78; /* AA-safe */
+  --accent-vivid: #10b3c4; /* fills, on-chain emphasis */
+  --accent-foreground: #ffffff;
+
+  --ring: #20b8c6;
+
+  --success: #10b981;
   --success-foreground: #ffffff;
-  --warning: #d97706;
+  --warning: #e08600;
   --warning-foreground: #ffffff;
-  --danger: #dc2626;
+  --danger: #e23b3b;
   --danger-foreground: #ffffff;
+
+  /* signature brand gradient = the logo axis (emerald to teal to cyan) */
+  --brand-gradient: linear-gradient(100deg, #14b866 0%, #0fa68f 48%, #10b3c4 100%);
+  --brand-gradient-soft: linear-gradient(100deg, #e9fbf0 0%, #e6f9fb 100%);
 }
 
 /* ── Semantic tokens: dark ── */
 .dark {
-  --background: #141611;
-  --surface: #1c1f19;
-  --surface-muted: #23271f;
-  --foreground: #eceee9;
-  --muted-foreground: #939c8a;
-  --border: #313629;
+  --background: #0f1410;
+  --surface: #18201a;
+  --surface-muted: #1f2a22;
+  --foreground: #eaf0e8;
+  --muted-foreground: #93a08c;
+  --border: #2c3a2f;
 
-  --primary: #95ba56; /* verdant-400 */
-  --primary-foreground: #18230f;
-  --accent: #74cdd5; /* aqua-300 */
-  --accent-foreground: #0e2a30;
-  --ring: #45b2bd;
+  --primary: #2fd07e; /* lighter on dark */
+  --primary-vivid: #2fd07e;
+  --primary-foreground: #04200f;
+  --accent: #2bcad9;
+  --accent-vivid: #2bcad9;
+  --accent-foreground: #022a30;
+  --ring: #2bcad9;
 
   --success: #34d399;
   --success-foreground: #052e22;
@@ -52,6 +64,9 @@
   --warning-foreground: #2a1a02;
   --danger: #f87171;
   --danger-foreground: #2a0a0a;
+
+  --brand-gradient: linear-gradient(100deg, #2fd07e 0%, #1fc0a6 48%, #2bcad9 100%);
+  --brand-gradient-soft: linear-gradient(100deg, #16271c 0%, #102a2e 100%);
 }
 
 @theme inline {
@@ -63,8 +78,10 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
   --color-primary: var(--primary);
+  --color-primary-vivid: var(--primary-vivid);
   --color-primary-foreground: var(--primary-foreground);
   --color-accent: var(--accent);
+  --color-accent-vivid: var(--accent-vivid);
   --color-accent-foreground: var(--accent-foreground);
   --color-ring: var(--ring);
   --color-success: var(--success);
@@ -74,47 +91,48 @@
   --color-danger: var(--danger);
   --color-danger-foreground: var(--danger-foreground);
 
-  /* brand scale: verdant (agriculture) */
-  --color-verdant-50: #f3f8ec;
-  --color-verdant-100: #e3f0d2;
-  --color-verdant-200: #cce0a9;
-  --color-verdant-300: #b0cd7e;
-  --color-verdant-400: #95ba56;
-  --color-verdant-500: #79a23b;
-  --color-verdant-600: #5f8130;
-  --color-verdant-700: #4a6528;
-  --color-verdant-800: #3b4f24;
-  --color-verdant-900: #2f4020;
-  --color-verdant-950: #18230f;
+  /* brand scale: verdant (vivid emerald, agriculture) */
+  --color-verdant-50: #ecfdf1;
+  --color-verdant-100: #d2f9de;
+  --color-verdant-200: #a8f0c2;
+  --color-verdant-300: #70e2a0;
+  --color-verdant-400: #2fd07e;
+  --color-verdant-500: #14b866;
+  --color-verdant-600: #0e9456;
+  --color-verdant-700: #0c7a48;
+  --color-verdant-800: #0c6038;
+  --color-verdant-900: #0b4d2e;
+  --color-verdant-950: #03281a;
 
-  /* brand scale: aqua (settlement / on-chain) */
-  --color-aqua-50: #eafafb;
-  --color-aqua-100: #cdf0f2;
-  --color-aqua-200: #a7e2e7;
-  --color-aqua-300: #74cdd5;
-  --color-aqua-400: #45b2bd;
-  --color-aqua-500: #2898a5;
-  --color-aqua-600: #1f7a86;
-  --color-aqua-700: #1f626c;
-  --color-aqua-800: #204e56;
-  --color-aqua-900: #1e4149;
-  --color-aqua-950: #0e2a30;
+  /* brand scale: aqua (luminous teal, settlement / on-chain) */
+  --color-aqua-50: #e7fafc;
+  --color-aqua-100: #c3f2f6;
+  --color-aqua-200: #8fe6ec;
+  --color-aqua-300: #4fd5e0;
+  --color-aqua-400: #20bccb;
+  --color-aqua-500: #10b3c4;
+  --color-aqua-600: #0a8d9c;
+  --color-aqua-700: #0c6a78;
+  --color-aqua-800: #0d555f;
+  --color-aqua-900: #0c454d;
+  --color-aqua-950: #022a30;
 
   /* warm neutral: ink */
-  --color-ink-50: #f6f7f4;
-  --color-ink-100: #eceee9;
-  --color-ink-200: #d7dbd2;
-  --color-ink-300: #b8bfb0;
-  --color-ink-400: #939c8a;
-  --color-ink-500: #737c6a;
-  --color-ink-600: #5a6253;
-  --color-ink-700: #474e42;
-  --color-ink-800: #353a31;
-  --color-ink-900: #262b22;
-  --color-ink-950: #181b15;
+  --color-ink-50: #f5f7f3;
+  --color-ink-100: #e9ede5;
+  --color-ink-200: #dde3d6;
+  --color-ink-300: #bcc4b3;
+  --color-ink-400: #939e8a;
+  --color-ink-500: #6b7464;
+  --color-ink-600: #545d4e;
+  --color-ink-700: #424a3d;
+  --color-ink-800: #333a30;
+  --color-ink-900: #232820;
+  --color-ink-950: #141811;
 
   /* fonts (wired via next/font in app layout) */
   --font-sans: var(--font-sans-jakarta), ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-display: var(--font-display-fraunces), Georgia, "Times New Roman", serif;
   --font-mono: var(--font-mono-jetbrains), ui-monospace, "SF Mono", monospace;
 
   /* radius (rounded, matches wordmark) */
@@ -125,27 +143,39 @@
   --radius-2xl: 28px;
 
   /* soft, green-tinted elevation */
-  --shadow-sm: 0 1px 2px rgba(33, 35, 32, 0.06);
-  --shadow-md: 0 4px 12px rgba(33, 35, 32, 0.08);
-  --shadow-lg: 0 12px 32px rgba(33, 35, 32, 0.1);
+  --shadow-sm: 0 1px 2px rgba(20, 30, 20, 0.06);
+  --shadow-md: 0 6px 20px rgba(20, 40, 28, 0.08);
+  --shadow-lg: 0 18px 44px rgba(20, 40, 28, 0.12);
+  --shadow-glow: 0 8px 30px rgba(16, 179, 196, 0.28);
+}
+
+/* ── Brand gradient utilities ── */
+.annona-gradient {
+  background-image: var(--brand-gradient);
+}
+.annona-gradient-text {
+  background-image: var(--brand-gradient);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
 }
 
 /* ── Signature textures (see DESIGN_GUIDE section 2) ── */
 .annona-mesh {
-  background-color: #eaf4ef;
-  background-image: radial-gradient(at 8% 6%, #c4d4a5 0px, transparent 55%),
-    radial-gradient(at 95% 92%, #7ac8d2 0px, transparent 55%),
-    radial-gradient(at 92% 8%, #f2f9f2 0px, transparent 45%),
-    radial-gradient(at 6% 94%, #edf7f6 0px, transparent 45%),
-    radial-gradient(at 50% 50%, #cce7de 0px, transparent 60%);
+  background-color: #eef7f1;
+  background-image: radial-gradient(at 6% 4%, #bfe6b8 0px, transparent 50%),
+    radial-gradient(at 96% 92%, #7fdde0 0px, transparent 52%),
+    radial-gradient(at 90% 6%, #f3fbf3 0px, transparent 42%),
+    radial-gradient(at 8% 96%, #e3f7f3 0px, transparent 44%),
+    radial-gradient(at 52% 48%, #d4f3df 0px, transparent 58%);
 }
 
 .annona-scanlines {
   background-image: repeating-linear-gradient(
     to bottom,
-    rgba(33, 35, 32, 0.035) 0px,
-    rgba(33, 35, 32, 0.035) 1px,
+    rgba(20, 30, 20, 0.03) 0px,
+    rgba(20, 30, 20, 0.03) 1px,
     transparent 1px,
-    transparent 4px
+    transparent 5px
   );
 }

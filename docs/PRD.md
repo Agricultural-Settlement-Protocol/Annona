@@ -295,6 +295,14 @@ Three interfaces + AI. Each screen: **purpose · components · data source · ac
 ### 8.4 Cross-cutting
 Bahasa default + EN toggle · tx hash + explorer link on every chain action · consistent color-coded statuses · simplified Freighter connect, pre-seeded demo accounts · designed loading/empty/error states.
 
+### 8.5 Design system & component library
+Every screen is built from one shared system so the product feels coherent and ships fast. Full spec in [`docs/DESIGN_GUIDE.md`](./DESIGN_GUIDE.md); living reference renders at `/design`.
+
+- **Brand:** vivid emerald (agri/credit) + luminous teal (settlement/on-chain), warm ink, signature emerald-to-teal **gradient**. Chain-link mark traces the logo. Fraunces (serif, editorial) + Plus Jakarta Sans (UI) + JetBrains Mono (data).
+- **Component library (`@annona/ui`):** `Button` (incl. gradient), `Card`, `Badge`, `StatusBadge` (maps 1:1 to contract `Status`), `StatCard`, `RupiahAmount`, `TxHashLink`, `ProgressBar`, `ReputationBadge`, `Alert`, `Input`, `Skeleton`, `EmptyState`, `MeshBackground`/`Scanlines`, `Section`, `Logo`/`LogoMark`, plus the classical/landing set (`Eyebrow`, `WheatMark`, `WheatDivider`, `SealEmblem`, `GradientText`).
+- **Editorial layer (landing only):** Greco-Roman motifs (Annona = Roman grain goddess) kept as refined line art + serif, never costume. See DESIGN_GUIDE 7b/7c.
+- **Cross-cutting enforced by components:** money only via `RupiahAmount`, status only via `StatusBadge`, on-chain only via `TxHashLink`, no em dashes, AA contrast, 44px touch targets, token-driven (dark-mode + rebrand free).
+
 ---
 
 ## 9. Settlement Mechanism (product view)

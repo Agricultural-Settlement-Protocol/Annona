@@ -1,40 +1,37 @@
 import { cn } from "./cn.js";
 
-/** The Annona chain-link mark, drawn in SVG so it inherits currentColor and
- *  scales crisply. Two interlocking links = the settlement bond between
- *  farmer and cooperative. Pair with the wordmark in apps/web/public/brand. */
+/**
+ * The Annona mark: two interlocking chain links on a diagonal, with a few
+ * organic dash accents, tracing assets/logo-no-bg.svg. The chain = the
+ * settlement bond between farmer and cooperative. Inherits currentColor.
+ */
 export function LogoMark({ size = 28, className }: { size?: number; className?: string }) {
   return (
     <svg
       width={size}
       height={size}
-      viewBox="0 0 48 48"
+      viewBox="0 0 32 32"
       fill="none"
       role="img"
       aria-label="Annona"
       className={className}
     >
-      <path
-        d="M19 16.5a8.5 8.5 0 0 0 0 15M29 16.5a8.5 8.5 0 0 1 0 15"
-        stroke="currentColor"
-        strokeWidth="3.4"
-        strokeLinecap="round"
-      />
-      <path d="M16.5 24h15" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" />
-      <circle
-        cx="24"
-        cy="24"
-        r="20.5"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeDasharray="4 5"
-        opacity="0.4"
-      />
+      {/* two interlocking links (diagonal, bottom-left to top-right) */}
+      <g stroke="currentColor" strokeWidth="2.9" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M13.7 18.3a4.4 4.4 0 0 1 0-6.2l2.2-2.2a4.4 4.4 0 0 1 6.2 6.2l-1.5 1.5" />
+        <path d="M18.3 13.7a4.4 4.4 0 0 1 0 6.2l-2.2 2.2a4.4 4.4 0 0 1-6.2-6.2l1.5-1.5" />
+      </g>
+      {/* organic dash accents (the hand-drawn ticks in the mark) */}
+      <g stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" opacity="0.85">
+        <path d="M9.2 9.4l1.4 1.4" />
+        <path d="M7.6 16.6l2 0.2" />
+        <path d="M12.4 23.2l1.8-1" />
+      </g>
     </svg>
   );
 }
 
-/** Lockup: mark + wordmark text. Wordmark uses the brand sans. */
+/** Lockup: mark + wordmark. Wordmark uses the brand sans. */
 export function Logo({
   size = 28,
   className,

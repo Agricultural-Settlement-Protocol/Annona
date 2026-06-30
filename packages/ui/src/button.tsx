@@ -1,14 +1,18 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "./cn.js";
 
-type Variant = "primary" | "accent" | "outline" | "ghost" | "danger";
+type Variant = "gradient" | "primary" | "accent" | "outline" | "ghost" | "danger";
 type Size = "sm" | "md" | "lg";
 
 const VARIANTS: Record<Variant, string> = {
+  // gradient = the signature hero CTA (emerald to teal). Lead with this.
+  gradient:
+    "annona-gradient text-white shadow-[var(--shadow-glow)] hover:brightness-105 active:brightness-95",
   // primary = agriculture/credit; accent = on-chain/settlement (see DESIGN_GUIDE)
-  primary: "bg-primary text-primary-foreground hover:bg-verdant-500 shadow-sm",
-  accent: "bg-accent text-accent-foreground hover:bg-aqua-500 shadow-sm",
-  outline: "border border-border bg-surface text-foreground hover:bg-surface-muted",
+  primary: "bg-primary text-primary-foreground hover:bg-verdant-800 shadow-sm",
+  accent: "bg-accent text-accent-foreground hover:bg-aqua-800 shadow-sm",
+  outline:
+    "border border-border bg-surface text-foreground hover:bg-surface-muted hover:border-verdant-300",
   ghost: "text-foreground hover:bg-surface-muted",
   danger: "bg-danger text-danger-foreground hover:opacity-90 shadow-sm",
 };

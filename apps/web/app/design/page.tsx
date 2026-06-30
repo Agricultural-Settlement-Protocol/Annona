@@ -8,6 +8,8 @@ import {
   CardFooter,
   CardHeader,
   EmptyState,
+  Eyebrow,
+  GradientText,
   Input,
   Logo,
   LogoMark,
@@ -15,11 +17,14 @@ import {
   ProgressBar,
   ReputationBadge,
   RupiahAmount,
+  SealEmblem,
   Section,
   Skeleton,
   StatCard,
   StatusBadge,
   TxHashLink,
+  WheatDivider,
+  WheatMark,
 } from "@annona/ui";
 import { Sprout, Wheat } from "lucide-react";
 
@@ -118,6 +123,52 @@ export default function DesignSystem() {
           </div>
         </Section>
 
+        {/* CLASSICAL / GRECO-ROMAN */}
+        <Section
+          title="Klasik (Greco-Roman)"
+          description="Annona = dewi gandum Romawi. Lapisan editorial untuk landing: serif display, gandum, segel koin, gradient."
+        >
+          <div className="overflow-hidden rounded-2xl border border-border">
+            <div className="relative annona-mesh px-8 py-12">
+              <div className="annona-scanlines pointer-events-none absolute inset-0" aria-hidden />
+              <div className="relative grid items-center gap-8 lg:grid-cols-[1.2fr_0.8fr]">
+                <div>
+                  <Eyebrow lines={false}>Dewi Annona · Lumbung Romawi</Eyebrow>
+                  <h2 className="mt-4 font-display text-5xl font-semibold leading-[1.05] tracking-tight text-foreground">
+                    Panen yang <GradientText>adil</GradientText>, tercatat abadi.
+                  </h2>
+                  <p className="mt-4 max-w-md text-ink-700">
+                    Serif Fraunces untuk gravitas klasik, dipadu Plus Jakarta Sans untuk UI. Motif
+                    gandum dan segel koin sebagai aksen, bukan tempelan.
+                  </p>
+                  <div className="mt-6 flex flex-wrap gap-3">
+                    <Button variant="gradient" size="lg">
+                      Tombol gradient
+                    </Button>
+                    <Button variant="outline" size="lg">
+                      Sekunder
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex justify-center">
+                  <SealEmblem size={168} />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="mt-6 flex flex-wrap items-center gap-8">
+            <div className="flex items-center gap-2 text-verdant-600">
+              <WheatMark size={28} />
+              <WheatMark size={22} />
+              <WheatMark size={18} />
+            </div>
+            <p className="font-display text-2xl italic text-foreground">
+              Fraunces italic, untuk kutipan dan aksen editorial.
+            </p>
+          </div>
+          <WheatDivider className="mt-6" />
+        </Section>
+
         {/* COLOR */}
         <Section title="Verdant (agriculture / credit)" description="Primary. 200 ≈ logo sage.">
           <div className="grid grid-cols-4 gap-3 sm:grid-cols-6 lg:grid-cols-11">
@@ -159,7 +210,11 @@ export default function DesignSystem() {
           description="Plus Jakarta Sans (brand) + JetBrains Mono (data)."
         >
           <div className="space-y-3">
-            <p className="text-5xl font-bold tracking-tight">Display 700</p>
+            <p className="font-display text-5xl font-semibold tracking-tight">
+              Fraunces display, untuk hero
+            </p>
+            <p className="font-display text-3xl italic text-ink-700">Fraunces italic, editorial</p>
+            <p className="text-5xl font-bold tracking-tight">Jakarta Sans 700</p>
             <p className="text-4xl font-bold tracking-tight">Heading 1</p>
             <p className="text-2xl font-semibold">Heading 2</p>
             <p className="text-lg">Body large, untuk tampilan petani.</p>
@@ -173,7 +228,10 @@ export default function DesignSystem() {
         {/* COMPONENTS */}
         <Section title="Buttons">
           <div className="flex flex-wrap items-center gap-3">
-            <Button leftIcon={<Sprout size={16} />}>Primary</Button>
+            <Button variant="gradient" leftIcon={<Sprout size={16} />}>
+              Gradient (hero)
+            </Button>
+            <Button>Primary</Button>
             <Button variant="accent">Accent (on-chain)</Button>
             <Button variant="outline">Outline</Button>
             <Button variant="ghost">Ghost</Button>

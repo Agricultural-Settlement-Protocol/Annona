@@ -47,26 +47,41 @@ So when a user sees **teal**, it means "this is on-chain / settled / verifiable.
 
 Two brand hues plus a warm neutral. Background tints come straight from the logo; mid and dark steps are tuned for **WCAG AA** text/control contrast (pastels are background-only, never text on white).
 
-**Verdant (green) — primary / agriculture**
-```
-50  #F3F8EC   100 #E3F0D2   200 #CCE0A9   300 #B0CD7E   400 #95BA56
-500 #79A23B   600 #5F8130   700 #4A6528   800 #3B4F24   900 #2F4020   950 #18230F
-```
-- 200 ≈ the logo sage. Use 50/100 for fills, 600/700 for text + primary buttons on light.
+> **v2 color note (vivid, not olive).** The first pass used a desaturated yellow-green (olive `#5F8130`) and a dark dull teal. It read flat and "normie." v2 shifts the hue to a **vivid emerald** and a **luminous teal**, and makes the **brand gradient the hero primitive**. The pastel logo is bright and airy; the brand colors now match that energy while staying AA-safe via a two-tone system.
 
-**Aqua (teal) — accent / settlement**
+**Two-tone system (important).** Each brand hue ships two working tones:
+- a **VIVID** tone (the 400–500 step) for fills, badges, gradients, large text, icons (needs ≥ 3:1),
+- an **AA-safe TEXT** tone (the 700 step) for small text and solid buttons (≥ 4.5:1).
+Lead visuals with the **brand gradient**; use the AA-safe tone for solid buttons; use vivid for everything large/decorative. Never lead with a flat mid-green fill.
+
+**Verdant (vivid emerald) — primary / agriculture**
 ```
-50  #EAFAFB   100 #CDF0F2   200 #A7E2E7   300 #74CDD5   400 #45B2BD
-500 #2898A5   600 #1F7A86   700 #1F626C   800 #204E56   900 #1E4149   950 #0E2A30
+50  #ECFDF1   100 #D2F9DE   200 #A8F0C2   300 #70E2A0   400 #2FD07E
+500 #14B866   600 #0E9456   700 #0C7A48   800 #0C6038   900 #0B4D2E   950 #03281A
 ```
-- 200 ≈ logo aqua, 300 ≈ logo deep cyan. Use 600/700 for on-chain links, tx chips, settle actions.
+- 400/500 = vivid (fills, badges, gradient). 700 `#0C7A48` = AA-safe primary (buttons, text on white).
+
+**Aqua (luminous teal) — accent / settlement**
+```
+50  #E7FAFC   100 #C3F2F6   200 #8FE6EC   300 #4FD5E0   400 #20BCCB
+500 #10B3C4   600 #0A8D9C   700 #0C6A78   800 #0D555F   900 #0C454D   950 #022A30
+```
+- 400/500 = vivid (on-chain emphasis, gradient end). 700 `#0C6A78` = AA-safe accent (tx links, settle buttons).
 
 **Ink (warm neutral) — text, borders, surfaces**
 ```
-50  #F6F7F4   100 #ECEEE9   200 #D7DBD2   300 #B8BFB0   400 #939C8A
-500 #737C6A   600 #5A6253   700 #474E42   800 #353A31   900 #262B22   950 #181B15
+50  #F5F7F3   100 #E9EDE5   200 #DDE3D6   300 #BCC4B3   400 #939E8A
+500 #6B7464   600 #545D4E   700 #424A3D   800 #333A30   900 #232820   950 #141811
 ```
-- Slight green warmth so neutrals never feel cold next to the brand. Body text = ink-900 / the literal mark ink `#212320`.
+- Slight green warmth so neutrals never feel cold next to the brand. Body text = `#1B1F1A` (foreground).
+
+### 1.3b The brand gradient (the signature)
+The single most important primitive. It is the literal logo axis (emerald to teal to cyan). Use on the hero, the primary CTA, key stat figures, the reputation ring, and gradient text. This is what removes the "pale / dull / AI-slop" feel.
+```css
+--brand-gradient: linear-gradient(100deg, #14B866 0%, #0FA68F 48%, #10B3C4 100%);
+/* utilities: .annona-gradient (bg), .annona-gradient-text (clip to text) */
+```
+Button variant `gradient` uses it with a soft aqua glow shadow. Do not overuse on dense data screens; it is a hero/emphasis device.
 
 ### 1.4 Semantic tokens (light)
 
@@ -78,11 +93,14 @@ Two brand hues plus a warm neutral. Background tints come straight from the logo
 | `--foreground` | `#212320` | primary text (the mark ink) |
 | `--muted-foreground` | `ink-500 #737C6A` | secondary text, hints |
 | `--border` | `ink-200 #D7DBD2` | hairlines, dividers |
-| `--primary` | `verdant-600 #5F8130` | primary buttons, agri emphasis |
+| `--primary` | `verdant-700 #0C7A48` | primary buttons, agri text (AA-safe) |
+| `--primary-vivid` | `verdant-500 #14B866` | fills, badges, large emphasis |
 | `--primary-foreground` | `#FFFFFF` | text on primary |
-| `--accent` | `aqua-600 #1F7A86` | on-chain actions, links, tx |
+| `--accent` | `aqua-700 #0C6A78` | on-chain links, settle (AA-safe) |
+| `--accent-vivid` | `aqua-500 #10B3C4` | on-chain fills, emphasis |
 | `--accent-foreground` | `#FFFFFF` | text on accent |
-| `--ring` | `aqua-400 #45B2BD` | focus ring |
+| `--ring` | `aqua-400 #20B8C6` | focus ring |
+| `--brand-gradient` | emerald→teal→cyan | hero, CTA, key figures |
 
 ### 1.5 Status colors (align with contract lifecycle)
 
@@ -171,9 +189,12 @@ Layer scanlines over the mesh on the landing page only. Keep opacity ≤ 0.04 so
 
 | Role | Font | Why |
 |---|---|---|
-| **Display + Body** | **Plus Jakarta Sans** | Geometric, rounded, friendly. Designed by an Indonesian foundry (Tokotype) for Jakarta's city brand. Perfect Bahasa support, matches the rounded wordmark, reads as modern-trustworthy. Free on Google Fonts. |
-| **Mono / data** | **JetBrains Mono** | Tx hashes, Stellar addresses, contract ids, code. Clear `0/O`, `1/l` distinction. |
-| **Numbers** | Plus Jakarta Sans with `font-feature-settings: "tnum"` (tabular-nums) | Rupiah amounts and volumes align in columns. No separate font. |
+| **Display / editorial** | **Fraunces** (serif) | High-contrast "old style" serif with classical gravitas. Carries the *Annona* Roman-grain-goddess story on the landing + big numbers. Use for hero headlines, the loop step numerals (I-IV), pull quotes (italic), marketing only. Free on Google Fonts. |
+| **UI + Body** | **Plus Jakarta Sans** | Geometric, rounded, friendly. Indonesian foundry (Tokotype), made for Jakarta's city brand. Perfect Bahasa, matches the rounded wordmark. All dashboards + product UI. |
+| **Mono / data** | **JetBrains Mono** | Tx hashes, Stellar addresses, contract ids. Clear `0/O`, `1/l`. |
+| **Numbers** | Jakarta (UI) / Fraunces (hero) with `tnum` (tabular) | Rupiah + volumes align in columns. Hero figures may use Fraunces for impact. |
+
+**Pairing rule:** serif Fraunces is the *editorial accent* (landing, marketing, hero figures). Product dashboards stay all-sans (Jakarta) for clarity and speed. Never set body paragraphs or dense tables in the serif. Wired as `--font-display` / `--font-sans` / `--font-mono` via `next/font`.
 
 Fallbacks: `"Plus Jakarta Sans", ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif` and `"JetBrains Mono", ui-monospace, "SF Mono", monospace`.
 
@@ -257,6 +278,28 @@ Cross-cutting rules:
 
 ---
 
+## 7b. The classical (Greco-Roman) layer
+
+*Annona* is the Roman goddess of the grain supply (depicted with a grain measure + cornucopia, overseeing fair distribution). We lean into that for brand depth, but **editorially, never as costume.** No marble textures, no fake columns, no toga clip-art. Instead: refined line motifs + a serif voice in the brand colors.
+
+Components in `@annona/ui` (landing + marketing only):
+- **`Eyebrow`** — inscription-style label: small-caps, wide tracking (`0.22em`), optional flanking hairlines. Like a carved Roman label.
+- **`WheatMark`** / **`WheatDivider`** — wheat sprig line glyph + fluted section divider. Echoes the grain supply.
+- **`SealEmblem`** — a coin/seal: the chain mark inside a ring with curved inscription (`ANNONA PROTOCOL` + `MMXXVI`). Echoes Annona on Roman *aes* coinage.
+- **`GradientText`** — brand-gradient clipped to text, for hero key words.
+- Display set in **Fraunces** (serif) with the gradient on emphasis words.
+
+Rule: these live on the landing and marketing surfaces. Dashboards stay clean sans + tokens. See the dedicated "Klasik (Greco-Roman)" block on `/design`.
+
+## 7c. Anti-slop principles (do not skip)
+
+The first pass "screamed AI slop." What fixes that, concretely:
+- **A real opinion, not defaults.** A specific palette (vivid emerald + luminous teal), a specific type pairing (Fraunces + Jakarta), a specific motif system (chain + wheat + seal). Generic = slop.
+- **Asymmetry + editorial rhythm.** The landing hero is two-column, off-balance, with an inscription eyebrow and a live settlement card, not a centered headline over three identical cards.
+- **One signature primitive.** The brand gradient, used deliberately. It ties every surface together.
+- **Brand-specific iconography.** The chain mark traces the real logo; wheat + seal come from the Annona story. No stock crypto icons.
+- **Restraint.** Two brand hues + status colors. Generous whitespace. Soft tinted shadows. No neon, no glassmorphism, no drop-shadow soup.
+
 ## 8. Page archetypes
 - **Landing:** full mesh + scanlines hero, big display type, the protocol story. The only place with the loud treatment.
 - **Coop dashboard:** calm cream background, white cards, dense-but-friendly, big hero stats, green/teal accents. No mesh behind data.
@@ -288,16 +331,18 @@ Cross-cutting rules:
 ## 11. Quick reference (copy-paste)
 
 ```
-PRIMARY (agri)     verdant-600 #5F8130   on light text/buttons
-ACCENT (on-chain)  aqua-600    #1F7A86   tx, settle, links
-INK (text)         #212320
-BACKGROUND         #F7FAF3
-SUCCESS (Lunas)    #10B981
-WARNING            #D97706
-DANGER             #DC2626
-FONT sans          Plus Jakarta Sans
-FONT mono          JetBrains Mono
-RADIUS card        14px   BUTTON 10px   PILL full
+PRIMARY (agri, AA)    verdant-700 #0C7A48   solid buttons, small text
+PRIMARY vivid         verdant-500 #14B866   fills, badges, large
+ACCENT (on-chain, AA) aqua-700    #0C6A78   tx links, settle
+ACCENT vivid          aqua-500    #10B3C4   on-chain emphasis
+BRAND GRADIENT        #14B866 -> #0FA68F -> #10B3C4   (hero, CTA, figures)
+INK (text)            #1B1F1A
+BACKGROUND            #F7FAF3
+SUCCESS (Lunas)       #10B981   WARNING #E08600   DANGER #E23B3B
+FONT display          Fraunces (serif, landing only)
+FONT sans             Plus Jakarta Sans (UI)
+FONT mono             JetBrains Mono
+RADIUS card 14px  BUTTON 10px  PILL full
 ```
 
 *Living, code-backed version renders at `/design`. Tokens: `packages/ui/src/styles/tokens.css`.*

@@ -16,3 +16,10 @@ export { EmptyState } from "./empty-state.js";
 export { MeshBackground, Scanlines } from "./mesh-background.js";
 export { Logo, LogoMark } from "./logo.js";
 export { Section } from "./section.js";
+export {
+  WheatMark,
+  Eyebrow,
+  WheatDivider,
+  SealEmblem,
+  GradientText,
+} from "./classical.js";

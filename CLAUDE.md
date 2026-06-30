@@ -59,6 +59,16 @@ When the assistant (or an owner) makes a mistake, hits a non-obvious gotcha, or 
 
 <!-- Add new entries below this line. Do not delete past entries; supersede with a newer one if needed. -->
 
+### 2026-06-30 — Design: avoid AI slop, trace the real brand
+- **What:** First UI pass "screamed AI slop." Three root causes: (1) the logo mark was invented (an arrow-in-circle) instead of tracing the real asset (two interlocking chain links); (2) brand colors were a desaturated olive `#5F8130` + dull dark teal, which read flat/pale/normie; (3) generic centered-hero-over-three-cards layout with no brand-specific motif or opinion.
+- **Fix:** (1) Always open and VIEW the real brand asset (extract embedded raster from the SVG, sample hex with `sharp`, crop the mark to study its geometry) and trace it, do not invent. (2) Vivid hue beats darkness: shifted to vivid emerald + luminous teal, added a two-tone system (vivid 400-500 for fills/large, AA-safe 700 for text/buttons) and made the emerald-to-teal brand GRADIENT the signature primitive. (3) Added a real opinion: Fraunces serif + Plus Jakarta pairing, an editorial Greco-Roman layer (Annona = Roman grain goddess: chain + wheat + seal motifs), asymmetric hero.
+- **Rule:** Before designing, view the actual assets and sample real values. Lead with one signature primitive (here the gradient). Vivid + specific + asymmetric + brand-story motifs = not slop. Olive/desaturated mid-tones + centered defaults = slop. Keep the classical layer editorial (line motifs, serif), never costume (no marble/columns/toga).
+
+### 2026-06-30 — Tailwind v4 + monorepo gotchas
+- **What:** (a) Dynamically built class names (`bg-verdant-${s}`) are NOT detected by Tailwind v4's static scanner, so swatches rendered unstyled. (b) Next webpack could not resolve `.js` import specifiers pointing at `.ts` workspace source. (c) `prefix` is a reserved HTML attribute, clashes when used as a component prop name.
+- **Fix:** (a) Use inline `style={{backgroundColor: hex}}` for dynamic color demos, or safelist literal classes. (b) Add `config.resolve.extensionAlias` (`.js` -> `.ts/.tsx`) in `next.config.ts`. (c) Renamed the prop to `leading`. Also: shared `library.json` must not set `rootDir` (resolves relative to the config file, not the consumer); pin pnpm build approvals in root `package.json` `pnpm.onlyBuiltDependencies`.
+- **Rule:** For Tailwind v4 token demos use inline style; keep `@source` pointing at every consumed package's `src`. Never name a prop `prefix`/`color`/other DOM-reserved attrs.
+
 ### 2026-06-30 — Repo bootstrap conventions
 - **What:** Initial scaffold; no mistakes yet, seeding the log with baseline rules so they are not relearned.
 - **Fix:** Use pnpm (not npm/yarn), `workspace:*` for internal deps, Biome (not ESLint+Prettier).
