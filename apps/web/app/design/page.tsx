@@ -10,6 +10,7 @@ import {
   EmptyState,
   Eyebrow,
   GradientText,
+  Highlight,
   Input,
   Logo,
   LogoMark,
@@ -33,43 +34,43 @@ export const metadata = { title: "Design System, Annona" };
 // Hex maps mirror packages/ui/src/styles/tokens.css. Inline style avoids
 // Tailwind's static-class scanner missing dynamically-built class names.
 const VERDANT: [string, string][] = [
-  ["50", "#f3f8ec"],
-  ["100", "#e3f0d2"],
-  ["200", "#cce0a9"],
-  ["300", "#b0cd7e"],
-  ["400", "#95ba56"],
-  ["500", "#79a23b"],
-  ["600", "#5f8130"],
-  ["700", "#4a6528"],
-  ["800", "#3b4f24"],
-  ["900", "#2f4020"],
-  ["950", "#18230f"],
+  ["50", "#ecfdf1"],
+  ["100", "#d2f9de"],
+  ["200", "#a8f0c2"],
+  ["300", "#70e2a0"],
+  ["400", "#2fd07e"],
+  ["500", "#14b866"],
+  ["600", "#0e9456"],
+  ["700", "#0c7a48"],
+  ["800", "#0c6038"],
+  ["900", "#0b4d2e"],
+  ["950", "#03281a"],
 ];
 const AQUA: [string, string][] = [
-  ["50", "#eafafb"],
-  ["100", "#cdf0f2"],
-  ["200", "#a7e2e7"],
-  ["300", "#74cdd5"],
-  ["400", "#45b2bd"],
-  ["500", "#2898a5"],
-  ["600", "#1f7a86"],
-  ["700", "#1f626c"],
-  ["800", "#204e56"],
-  ["900", "#1e4149"],
-  ["950", "#0e2a30"],
+  ["50", "#e7fafc"],
+  ["100", "#c3f2f6"],
+  ["200", "#8fe6ec"],
+  ["300", "#4fd5e0"],
+  ["400", "#20bccb"],
+  ["500", "#10b3c4"],
+  ["600", "#0a8d9c"],
+  ["700", "#0c6a78"],
+  ["800", "#0d555f"],
+  ["900", "#0c454d"],
+  ["950", "#022a30"],
 ];
 const INK: [string, string][] = [
-  ["50", "#f6f7f4"],
-  ["100", "#eceee9"],
-  ["200", "#d7dbd2"],
-  ["300", "#b8bfb0"],
-  ["400", "#939c8a"],
-  ["500", "#737c6a"],
-  ["600", "#5a6253"],
-  ["700", "#474e42"],
-  ["800", "#353a31"],
-  ["900", "#262b22"],
-  ["950", "#181b15"],
+  ["50", "#f5f7f3"],
+  ["100", "#e9ede5"],
+  ["200", "#dde3d6"],
+  ["300", "#bcc4b3"],
+  ["400", "#939e8a"],
+  ["500", "#6b7464"],
+  ["600", "#545d4e"],
+  ["700", "#424a3d"],
+  ["800", "#333a30"],
+  ["900", "#232820"],
+  ["950", "#141811"],
 ];
 const STATUSES: Status[] = [
   "Created",
@@ -133,7 +134,7 @@ export default function DesignSystem() {
               <div className="annona-scanlines pointer-events-none absolute inset-0" aria-hidden />
               <div className="relative grid items-center gap-8 lg:grid-cols-[1.2fr_0.8fr]">
                 <div>
-                  <Eyebrow lines={false}>Dewi Annona · Lumbung Romawi</Eyebrow>
+                  <Eyebrow lines={false}>Lapisan editorial</Eyebrow>
                   <h2 className="mt-4 font-display text-5xl font-semibold leading-[1.05] tracking-tight text-foreground">
                     Panen yang <GradientText>adil</GradientText>, tercatat abadi.
                   </h2>
@@ -195,12 +196,12 @@ export default function DesignSystem() {
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
             <Swatch name="background" hex="#f7faf3" />
             <Swatch name="surface" hex="#ffffff" />
-            <Swatch name="primary" hex="#5f8130" />
-            <Swatch name="accent" hex="#1f7a86" />
+            <Swatch name="primary" hex="#0c7a48" />
+            <Swatch name="accent" hex="#0c6a78" />
             <Swatch name="success" hex="#10b981" />
-            <Swatch name="warning" hex="#d97706" />
-            <Swatch name="danger" hex="#dc2626" />
-            <Swatch name="border" hex="#d7dbd2" />
+            <Swatch name="warning" hex="#e08600" />
+            <Swatch name="danger" hex="#e23b3b" />
+            <Swatch name="border" hex="#dde3d6" />
           </div>
         </Section>
 
@@ -223,6 +224,18 @@ export default function DesignSystem() {
             <p className="font-mono text-sm">GABC...TX9 mono untuk hash dan alamat</p>
             <p className="text-3xl font-bold tabular-nums">1.234.567 (tabular-nums)</p>
           </div>
+        </Section>
+
+        {/* HIGHLIGHT */}
+        <Section
+          title="Highlight (marker)"
+          description="Penekanan alternatif selain gradient, supaya teks tidak monoton."
+        >
+          <p className="max-w-2xl font-display text-2xl leading-relaxed text-foreground">
+            Pupuk sekarang, bayarnya pas panen. Semuanya <Highlight>tercatat rapi</Highlight>, tanpa
+            ada yang <Highlight color="aqua">dirugikan</Highlight> atau{" "}
+            <Highlight color="amber">terlewat</Highlight>.
+          </p>
         </Section>
 
         {/* COMPONENTS */}

@@ -266,7 +266,13 @@ Prefer borders + `shadow-sm` for most cards; reserve `lg` for modals/popovers.
 
 ## 7. Component standards (implemented in `@annona/ui`)
 
-Core library (see `/design`): `Logo`, `Button`, `Card`, `StatCard`, `Badge`, `StatusBadge`, `RupiahAmount`, `TxHashLink`, `ReputationBadge`, `ProgressBar`, `Alert`, `Input`, `Skeleton`, `EmptyState`, `MeshBackground`, `Scanlines`, `Section`.
+Core library (see `/design`): `Logo`, `Button` (incl. `gradient`), `Card`, `StatCard`, `Badge`, `StatusBadge`, `RupiahAmount`, `TxHashLink`, `ReputationBadge`, `ProgressBar`, `Alert`, `Input`, `Skeleton`, `EmptyState`, `MeshBackground`, `Scanlines`, `Section`, `Highlight`, plus classical: `Eyebrow`, `WheatMark`, `WheatDivider`, `SealEmblem`, `GradientText`.
+
+App-level (landing, `apps/web/components`): `FloatingNav`, `CustomCursor`, `Reveal`/`RevealGroup`/`RevealItem` (scroll reveals), `CountUp`, `SettlementChart` (dependency-free SVG chart).
+
+**Emphasis, two ways (do not be monotone):** use the **brand gradient** for the single hero moment, and the **`Highlight` marker** (verdant / aqua / amber) for inline emphasis in body copy. Do not gradient every heading; alternate with marker + plain weight.
+
+**Motion + cursor:** landing uses `motion` (Framer) reveals (once, in-view, 8-16px travel, ease `[0.22,1,0.36,1]`) wrapped in `MotionConfig reducedMotion="user"`. The `CustomCursor` (dot + trailing ring) runs on fine-pointer desktop only, single rAF, transform-only; auto-skips on touch + reduced-motion. Floating navbar detaches + blurs on scroll.
 
 Cross-cutting rules:
 - Every on-chain action surfaces a **tx hash + explorer link** via `TxHashLink` (teal).

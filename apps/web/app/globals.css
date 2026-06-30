@@ -14,3 +14,11 @@ body {
 * {
   border-color: var(--border);
 }
+
+/* Custom cursor: hide the native one only on fine-pointer devices that opted in. */
+html.annona-cursor-on,
+html.annona-cursor-on a,
+html.annona-cursor-on button,
+html.annona-cursor-on [data-cursor="hover"] {
+  cursor: none;
+}

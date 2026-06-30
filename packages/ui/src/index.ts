@@ -23,3 +23,4 @@ export {
   SealEmblem,
   GradientText,
 } from "./classical.js";
+export { Highlight } from "./highlight.js";
