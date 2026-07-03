@@ -117,9 +117,11 @@ function Hero() {
             transition={{ duration: 0.6, delay: 0.22, ease: EASE }}
             className="mt-8 flex flex-wrap items-center gap-3"
           >
-            <Button variant="gradient" size="lg" rightIcon={<ArrowRight size={18} />}>
-              Coba untuk koperasi
-            </Button>
+            <Link href="/kmp">
+              <Button variant="gradient" size="lg" rightIcon={<ArrowRight size={18} />}>
+                Coba untuk koperasi
+              </Button>
+            </Link>
             <a href="#cara">
               <Button variant="outline" size="lg">
                 Lihat cara kerjanya
@@ -161,8 +163,16 @@ function Hero() {
               <Row label="Setoran panen" value="2.600 kg gabah" />
               <Row label="Harga HPP" value={`${formatRupiah(rupiah(6_500))} / kg`} />
               <Row label="Nilai panen" value={formatRupiah(rupiah(16_900_000))} />
-              <Row label="Biaya tangani koperasi (5%)" value={`- ${formatRupiah(rupiah(845_000))}`} muted />
-              <Row label="Potong utang saprotan" value={`- ${formatRupiah(rupiah(2_200_000))}`} muted />
+              <Row
+                label="Biaya tangani koperasi (5%)"
+                value={`- ${formatRupiah(rupiah(845_000))}`}
+                muted
+              />
+              <Row
+                label="Potong utang saprotan"
+                value={`- ${formatRupiah(rupiah(2_200_000))}`}
+                muted
+              />
             </div>
             <div className="mt-5 flex items-center justify-between border-t border-border pt-5">
               <span className="text-sm font-semibold text-foreground">Diterima petani</span>
