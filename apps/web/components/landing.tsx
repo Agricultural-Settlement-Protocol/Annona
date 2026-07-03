@@ -13,16 +13,20 @@ import {
 } from "@annona/ui";
 import {
   ArrowRight,
+  ArrowUpRight,
   BadgeCheck,
   Boxes,
   FileCheck2,
+  Github,
   Layers,
   Lock,
   MessageSquareWarning,
   ReceiptText,
   ScrollText,
+  Send,
   Sprout,
   TrendingUp,
+  Twitter,
 } from "lucide-react";
 import { MotionConfig, motion } from "motion/react";
 import Link from "next/link";
@@ -157,12 +161,13 @@ function Hero() {
               <Row label="Setoran panen" value="2.600 kg gabah" />
               <Row label="Harga HPP" value={`${formatRupiah(650_000n)} / kg`} />
               <Row label="Nilai panen" value={formatRupiah(1_690_000_000n)} />
-              <Row label="Potong utang pupuk" value={`- ${formatRupiah(200_000_000n)}`} muted />
+              <Row label="Biaya tangani koperasi (5%)" value={`- ${formatRupiah(84_500_000n)}`} muted />
+              <Row label="Potong utang saprotan" value={`- ${formatRupiah(220_000_000n)}`} muted />
             </div>
             <div className="mt-5 flex items-center justify-between border-t border-border pt-5">
               <span className="text-sm font-semibold text-foreground">Diterima petani</span>
               <span className="font-display text-2xl font-bold tabular-nums text-verdant-700">
-                {formatRupiah(1_490_000_000n)}
+                {formatRupiah(1_385_500_000n)}
               </span>
             </div>
             <div className="mt-4 flex items-center justify-between">
@@ -515,14 +520,81 @@ function CtaBand() {
 /* ───────────────────────── Footer ───────────────────────── */
 function Footer() {
   const cols = [
-    { title: "Produk", links: ["Cara kerja", "Untuk koperasi", "Untuk petani", "Design system"] },
-    { title: "Protokol", links: ["Roadmap", "Smart contract", "SDK", "Open source"] },
-    { title: "Tentang", links: ["Stellar Hackathon", "Kontak", "Kebijakan privasi"] },
+    {
+      title: "Produk",
+      links: [
+        { label: "Cara kerja", href: "#cara" },
+        { label: "Dampak", href: "#angka" },
+        { label: "Roadmap", href: "#alur" },
+        { label: "Design system", href: "/design" },
+      ],
+    },
+    {
+      title: "Protokol",
+      links: [
+        { label: "Smart contract", href: "/design" },
+        { label: "SDK", href: "/design" },
+        { label: "Dokumentasi", href: "/design" },
+        { label: "Open source", href: "https://github.com/annona-protocol" },
+      ],
+    },
+    {
+      title: "Tentang",
+      links: [
+        { label: "APAC Stellar Hackathon", href: "https://stellar.org" },
+        { label: "Kontak", href: "mailto:hello@annona.finance" },
+        { label: "Kebijakan privasi", href: "/privacy" },
+      ],
+    },
   ];
+  const socials = [
+    { icon: Twitter, label: "X / Twitter", href: "https://x.com/annonaprotocol" },
+    { icon: Github, label: "GitHub", href: "https://github.com/annona-protocol" },
+    { icon: Send, label: "Telegram", href: "https://t.me/annonaprotocol" },
+  ];
+
   return (
     <footer className="relative overflow-hidden border-t border-border bg-surface">
-      <div className="mx-auto max-w-6xl px-6 pt-16">
-        <div className="grid gap-10 pb-12 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
+      <div
+        className="annona-gradient pointer-events-none absolute inset-x-0 top-0 h-px opacity-60"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute -left-32 bottom-0 h-64 w-64 rounded-full bg-verdant-300/10 blur-3xl"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute -right-32 bottom-0 h-64 w-64 rounded-full bg-aqua-300/10 blur-3xl"
+        aria-hidden
+      />
+
+      <div className="relative mx-auto max-w-6xl px-6 pt-16">
+        {/* status + CTA strip */}
+        <div className="flex flex-col gap-6 rounded-2xl border border-border bg-surface/80 p-6 backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <span className="inline-flex items-center gap-2 rounded-full border border-verdant-200 bg-verdant-50 px-3 py-1 text-xs font-medium text-verdant-700">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-verdant-500 opacity-75" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-verdant-500" />
+              </span>
+              Testnet aktif di Stellar
+            </span>
+            <p className="mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground">
+              Ingin coba Annona untuk koperasi Anda, atau lihat kontraknya langsung? Kami balas
+              cepat.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Button variant="gradient" rightIcon={<ArrowRight size={16} />}>
+              Coba untuk koperasi
+            </Button>
+            <Link href="/design">
+              <Button variant="outline">Lihat design system</Button>
+            </Link>
+          </div>
+        </div>
+
+        <div className="grid gap-10 py-12 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
           <div>
             <Logo size={24} gradient />
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted-foreground">
@@ -532,16 +604,35 @@ function Footer() {
             <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">
               <Layers size={13} className="text-verdant-600" /> Dibangun di atas Stellar
             </div>
+            <div className="mt-5 flex items-center gap-2">
+              {socials.map((s) => (
+                <a
+                  key={s.label}
+                  href={s.href}
+                  aria-label={s.label}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-verdant-300 hover:text-verdant-700"
+                >
+                  <s.icon size={15} />
+                </a>
+              ))}
+            </div>
           </div>
           {cols.map((c) => (
             <div key={c.title}>
               <p className="text-sm font-semibold text-foreground">{c.title}</p>
               <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
                 {c.links.map((l) => (
-                  <li key={l}>
-                    <span className="cursor-pointer transition-colors hover:text-foreground">
-                      {l}
-                    </span>
+                  <li key={l.label}>
+                    <a
+                      href={l.href}
+                      className="group inline-flex items-center gap-1 transition-colors hover:text-foreground"
+                    >
+                      {l.label}
+                      <ArrowUpRight
+                        size={12}
+                        className="opacity-0 transition-opacity group-hover:opacity-100"
+                      />
+                    </a>
                   </li>
                 ))}
               </ul>
