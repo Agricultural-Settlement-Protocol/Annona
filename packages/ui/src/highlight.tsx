@@ -4,7 +4,14 @@ import { cn } from "./cn.js";
 /**
  * Marker-style highlight behind inline text (like a hand-drawn highlighter).
  * An alternative emphasis to the brand gradient, so copy does not feel
- * monotone. Multi-line safe via box-decoration-break.
+ * monotone.
+ *
+ * The background lives directly on the text span (not an absolutely
+ * positioned overlay sibling) with `box-decoration-break: clone`, so the
+ * browser paints one correctly-sized pill per visual line. An absolute
+ * overlay inside an `inline` parent only measures the *first* line's box in
+ * some engines, or the full bounding rect spanning every line in others,
+ * which puts the marker in the wrong place the moment the phrase wraps.
  */
 type HighlightColor = "verdant" | "aqua" | "amber";
 
@@ -24,16 +31,15 @@ export function Highlight({
   className?: string;
 }) {
   return (
-    <span className={cn("relative inline", className)}>
-      <span
-        aria-hidden
-        className={cn(
-          "absolute inset-x-[-0.15em] bottom-[0.05em] top-[0.18em] -z-0 -rotate-[0.6deg] rounded-[0.3em]",
-          COLORS[color],
-        )}
-        style={{ boxDecorationBreak: "clone", WebkitBoxDecorationBreak: "clone" }}
-      />
-      <span className="relative z-10">{children}</span>
+    <span
+      className={cn(
+        "-mx-[0.2em] rounded-[0.25em] px-[0.2em] py-[0.02em]",
+        "[box-decoration-break:clone] [-webkit-box-decoration-break:clone]",
+        COLORS[color],
+        className,
+      )}
+    >
+      {children}
     </span>
   );
 }

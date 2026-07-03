@@ -1,7 +1,10 @@
+import "dotenv/config";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { agreementsRoute } from "./routes/agreements.js";
+import { farmersRoute } from "./routes/farmers.js";
 import { healthRoute } from "./routes/health.js";
+import { referenceRoute } from "./routes/reference.js";
 
 /**
  * Annona API (abstraction layer).
@@ -15,6 +18,8 @@ const app = new Hono();
 
 app.route("/health", healthRoute);
 app.route("/agreements", agreementsRoute);
+app.route("/farmers", farmersRoute);
+app.route("/reference", referenceRoute);
 
 app.get("/", (c) => c.json({ name: "annona-api", status: "ok" }));
 

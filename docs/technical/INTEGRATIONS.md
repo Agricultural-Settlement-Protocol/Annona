@@ -25,9 +25,9 @@
 ## 2. Freighter (wallet) — MVP
 
 - **What:** SDF's browser-extension wallet, Soroban-ready, supports `signAuthEntry` (smart-wallet / C-account flows).
-- **Why:** coop + farmer demo accounts sign `create_agreement` / `record_delivery` / `settle`. Showing a real wallet signature = "real transactions" proof to judges.
+- **Why:** **three** signing parties now sign — **KMP** (`create_agreement` / `accept_supply` / `record_delivery` / `settle` / `mark_residu_remitted`), **Agrinas** (`dispatch_supply` / `confirm_remittance` / `flag_remittance_dispute`), and the **farmer** (receives dIDR). Showing real multi-party wallet signatures = strong "real transactions + no single party controls it" proof to judges.
 - **Access:** `@stellar/freighter-api` (npm, free). `isConnected()`, `getAddress()`, `signTransaction()`, `signAuthEntry()`.
-- **MVP use:** connect button in `apps/web`; pre-seeded testnet accounts for demo so judges aren't waiting on faucets.
+- **MVP use:** connect button in `apps/web`; **three pre-seeded testnet accounts** (Agrinas operator, KMP, farmer) by `scripts/seed.ts` so judges aren't waiting on faucets and the double-confirmation gates can be demoed live.
 
 ## 3. Stellar SDK + RPC/Horizon — MVP
 
@@ -68,7 +68,7 @@
 - **What:** Google's fast/cheap LLM for the auditor Q&A over read-models.
 - **Why:** lets non-technical petinggi query data in plain Bahasa ("KDMP mana yang paling banyak utang?").
 - **Access:** `@google/genai` + API key. Free tier exists; paid is cheap at hackathon volume.
-- **Grounding:** read-only, fed only indexer read-models; every number links to a source agreement/event (no hallucinated figures). Swappable for Claude Haiku via a provider interface.
+- **Grounding:** read-only, fed only indexer read-models; every number links to a source agreement/event (no hallucinated figures). **Role-scoped** — the Agrinas view queries residu/dispatch/commercial models; the Government view queries macro production/reputation/flags. Swappable for Claude Haiku via a provider interface.
 - **Scope:** first thing to cut if time-constrained (it's web2, not Stellar).
 
 ## 9. Government / agricultural data — MVP (seed data)

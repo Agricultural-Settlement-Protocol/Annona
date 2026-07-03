@@ -1,16 +1,23 @@
 import type { Commodity } from "./agreement.js";
 import type { FlagReason } from "./status.js";
 
-/** Contract event names. Mirrors the event topics in SMART-CONTRACT.md section 7.
+/** Contract event names. Mirrors the event topics in SMART-CONTRACT.md section 7
+ *  (v3.0, PMK 15/2026: double-confirmation + residu reconciliation events added).
  *  The indexer keys every event by (txHash, eventIndex) for idempotency. */
 export type AnnonaEventType =
   | "AgreementCreated"
+  | "SupplyDispatched"
+  | "SupplyAccepted"
   | "DeliveryRecorded"
   | "HarvestReceiptMinted"
   | "Settled"
   | "Flagged"
   | "ForceMajeure"
-  | "ReputationUpdated";
+  | "ResiduRemitted"
+  | "RemittanceCleared"
+  | "RemittanceDisputed"
+  | "ReputationUpdated"
+  | "CoopReputationUpdated";
 
 export interface EventEnvelope<T> {
   type: AnnonaEventType;
@@ -25,11 +32,27 @@ export interface AgreementCreatedData {
   id: bigint;
   farmer: string;
   coop: string;
+  agrinas: string;
   commodity: Commodity;
+  basePriceAgrinas: bigint;
+  saprotanMarkupBps: number;
   inputDebt: bigint;
+  hppHandlingFeeBps: number;
   expectedVolG: bigint;
   hppPerKg: bigint;
   toleranceBps: number;
+}
+
+export interface SupplyDispatchedData {
+  id: bigint;
+  agrinas: string;
+  coop: string;
+}
+
+export interface SupplyAcceptedData {
+  id: bigint;
+  coop: string;
+  inputDebt: bigint; // now an active liability
 }
 
 export interface DeliveryRecordedData {
@@ -40,11 +63,15 @@ export interface DeliveryRecordedData {
   deliveredTotalG: bigint;
 }
 
+/** Settled (v3.0, three-way split). */
 export interface SettledData {
   id: bigint;
   farmer: string;
   gross: bigint;
+  handlingCut: bigint;
   debtNetted: bigint;
+  principalToAgrinas: bigint;
+  coopMargin: bigint;
   netPaid: bigint;
   settledVolG: bigint;
 }
@@ -59,10 +86,38 @@ export interface ForceMajeureData {
   reason: string;
 }
 
+export interface ResiduRemittedData {
+  id: bigint;
+  coop: string;
+  amount: bigint;
+  refHash: string;
+}
+
+export interface RemittanceClearedData {
+  id: bigint;
+  coop: string;
+  principal: bigint;
+  agrinas: string;
+}
+
+export interface RemittanceDisputedData {
+  id: bigint;
+  coop: string;
+  reason: string;
+}
+
 export interface ReputationUpdatedData {
   farmer: string;
   deliveries: number;
   onTime: number;
   totalSettledG: bigint;
   flags: number;
+}
+
+export interface CoopReputationUpdatedData {
+  coop: string;
+  settlements: number;
+  totalResiduCleared: bigint;
+  disputes: number;
+  frozen: boolean;
 }

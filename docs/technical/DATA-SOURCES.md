@@ -77,6 +77,8 @@
 
 **Input catalog seed** (from KDMP brief, validated): pupuk subsidi (Urea, NPK Phonska — PT Pupuk Indonesia) & non-subsidi (Phonska Plus, ZA, ZK, Phosgreen); pupuk organik; benih (padi Inpari, jagung hibrida, cabai, bawang); agrokimia (insektisida/fungisida/herbisida/rodentisida); alsintan (traktor, transplanter, combine harvester, RMU).
 
+**Master Saprotan Catalog = Agrinas-owned data (not external).** In the v3.0 multi-party model, `base_price_agrinas` (the principal cost) is **Agrinas master data**, managed on Screen M (Base Price Control Matrix) per operational region — NOT scraped from a public feed. The `INPUT_CATALOG` / `SAPROTAN_CATALOG` seed above stands in for Agrinas's catalog in the demo. The other two price levers are **business inputs, not data sources**: `saprotan_markup_percent` (KMP-set per contract, covers per-village logistics/labor) and `hpp_handling_fee_percent` (KMP handling cut at settlement). Only `hpp_per_kg` and reference market prices come from the external sources above.
+
 ---
 
 ## 6. Regulatory data (RWA path)

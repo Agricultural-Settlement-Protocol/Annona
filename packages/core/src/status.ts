@@ -1,11 +1,19 @@
-/** Agreement lifecycle. Mirrors the Soroban `Status` enum. */
+/** Agreement lifecycle. Mirrors the Soroban `Status` enum (v3.0, PMK 15/2026).
+ *  Created -> SupplyDispatched (Agrinas gate) -> Active (KMP gate) -> delivery -> settle. */
 export type Status =
   | "Created"
+  | "SupplyDispatched"
+  | "Active"
   | "PartiallyDelivered"
   | "Delivered"
   | "Settled"
   | "Flagged"
   | "ForceMajeure";
+
+/** Residu (Agrinas principal held in KMP cash) reconciliation lifecycle.
+ *  Mirrors the Soroban `ResiduStatus` enum. Never on-chain money movement,
+ *  only the anchored record of an off-chain bank remittance. */
+export type ResiduStatus = "Pending" | "Remitted" | "Cleared" | "Disputed";
 
 /** Under-delivery sub-reason. Mirrors the Soroban `FlagReason` enum.
  *  Contract indicates; humans decide. `Suspected` is never an auto-accusation. */
