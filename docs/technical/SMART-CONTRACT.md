@@ -26,6 +26,25 @@ Generic, commodity-agnostic, lifecycle-driven, composable. Amounts are `i128` in
 
 **Why the chain earns its place here:** the residu (Agrinas's principal sitting inside KMP's cash) is precisely the multi-party, no-trust accounting the state's moral-hazard concern targets. On-chain split-allocation + dual-confirmation makes it impossible for one party to silently rewrite who is owed what. Everything else stays Postgres.
 
+### 1b. On-chain vs off-chain data (and why)
+
+**On-chain (this contract, §3):** `Agreement` (all fields — parties, the four price variables, volumes, `hpp_per_kg`, status, flag, the three-way split accruals, `residu_status`), `HarvestReceipt` (one per delivery, immutable), `Reputation` (farmer), `CoopReputation` (KMP). Nothing here is a lookup table — every field is either money/volume that moves as part of settlement, a status a human needs to trust wasn't rewritten, or a counter that has to be tamper-proof to mean anything as reputation.
+
+**Off-chain (Postgres/Supabase, `apps/api/src/db/schema.ts`), and why each stays off-chain:**
+
+| Table | What | Why NOT on-chain |
+|---|---|---|
+| `commodity` | GABAH/JAGUNG code, unit, current HPP decree version | Static label lookup. No settlement math reads it directly; it's descriptive, not a trust boundary. |
+| `saprotan_catalog` | Agrinas's editable price list, `base_price_agrinas` per region | The *table* is mutable reference data Agrinas updates anytime. What must be tamper-proof is the price a specific agreement locked in, and that **is** on-chain: `base_price_agrinas` is snapshotted into `Agreement` at `create_agreement` and frozen from then on. The catalog itself is just where that snapshot came from. |
+| `price_ref` | HPP + market reference prices, multiple sources, dated | Same pattern as the catalog: `hpp_per_kg` snapshots into `Agreement` (that's the actual settlement anchor, tamper-proof). The reference table is a browsable/comparison feed, no trust property attaches to it. |
+| `yield_table` | BPS/KATAM avg yield t/ha, feeds `expected_vol_g` | `expected_vol_g` is explicitly a transparent **estimate**, never a settlement input (CLAUDE.md golden rule 4: "never AI prediction," never gates money). No reason to pay Soroban storage rent for a number that never triggers a transfer. |
+| `event_log` | Local copy of every emitted contract event | This *is* on-chain already, as the actual events (§7) — this table is the indexer's queryable mirror for dashboard joins/aggregates, not a second source of truth. Rebuildable by replaying events from genesis. |
+| `indexer_cursor` | Last processed ledger number | Pure indexer bookkeeping ("where did I leave off"). Has no meaning as a contract concept at all. |
+
+**The general rule (CLAUDE.md golden rule 2):** chain only earns its place for (a) tamper-evident settlement record, (b) programmatic auto-netting/split, (c) composable reputation/receipts. None of the six tables above are money movement or multi-party trust — they're reference data or rebuildable caches. Putting them on-chain would be paying gas for "blockchain because blockchain," the anti-pattern this protocol explicitly avoids.
+
+**One exception worth calling out — `ktp_hash` lives in BOTH places on purpose, not by omission.** The raw KTP (`farmer.ktp_raw`) is PII and never leaves Postgres. But the *hash* of it is stored twice: once off-chain (`farmer.ktp_hash`, for reference) and once on-chain (`Agreement.ktp_hash: BytesN<32>`, anchored at `create_agreement`). This isn't "off-chain data on-chain" — a hash carries no PII, and the whole point is that anyone can re-hash the off-chain raw KTP and compare it to the on-chain value to prove the off-chain record wasn't swapped out from under the chain. That's the ERD's integrity rule, and it's the one place where the same fact deliberately exists on both sides of the boundary.
+
 ---
 
 ## 2. Lifecycle (state machine — double-layer confirmation)
