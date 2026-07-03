@@ -1,11 +1,23 @@
 /** Money + volume helpers. Money is bigint in smallest unit (rupiah-cents).
  *  Volume is bigint grams on-chain. */
 
-/** dIDR decimals. 2 = rupiah-cents. Decided at token init. */
-export const DIDR_DECIMALS = 2;
+/** dIDR decimals. dIDR is a SAC wrapping a CLASSIC Stellar asset, which is
+ *  fixed at 7 decimals — a classic-asset SAC cannot be 2. (A 2-decimal token
+ *  would require a hand-rolled SEP-41, which the spec avoids.) The contract is
+ *  decimal-agnostic; this constant only drives formatting here. Reversible to 2
+ *  if the token approach ever changes. See SMART-CONTRACT.md section 5/10. */
+export const DIDR_DECIMALS = 7;
 
 const SMALLEST_PER_RUPIAH = 10n ** BigInt(DIDR_DECIMALS);
 const GRAMS_PER_KG = 1000n;
+
+/** Whole rupiah -> smallest unit, scaled by the current `DIDR_DECIMALS`.
+ *  Use this instead of hand-writing smallest-unit literals (e.g. `200_000_000n`)
+ *  in demo/seed/UI code — hardcoded literals silently go stale if the token's
+ *  decimals ever change (as they did: 2 -> 7, see SMART-CONTRACT.md section 5). */
+export function rupiah(whole: number): bigint {
+  return BigInt(whole) * SMALLEST_PER_RUPIAH;
+}
 
 const BPS_DENOM = 10_000n;
 

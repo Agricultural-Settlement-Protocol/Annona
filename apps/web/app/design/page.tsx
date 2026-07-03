@@ -1,5 +1,5 @@
 import type { ResiduStatus, Status } from "@annona/core";
-import { computeSplitSettlement, deriveInputDebt } from "@annona/core";
+import { computeSplitSettlement, deriveInputDebt, rupiah } from "@annona/core";
 import {
   Alert,
   Badge,
@@ -89,14 +89,14 @@ const RESIDU_STATUSES: ResiduStatus[] = ["Pending", "Remitted", "Cleared", "Disp
 
 // Worked example mirrors SMART-CONTRACT.md §5: base Rp2.000.000 + 10% markup,
 // 5% handling, 2.600 kg gabah @ Rp6.500/kg.
-const inputDebt = deriveInputDebt(200_000_000n, 1000);
+const inputDebt = deriveInputDebt(rupiah(2_000_000), 1000);
 const splitExample = computeSplitSettlement({
   deliveredVolG: 2_600_000n,
   settledVolG: 0n,
-  hppPerKg: 650_000n,
+  hppPerKg: rupiah(6_500),
   remainingDebt: inputDebt,
   hppHandlingFeeBps: 500,
-  basePriceAgrinas: 200_000_000n,
+  basePriceAgrinas: rupiah(2_000_000),
   inputDebt,
 });
 
@@ -278,7 +278,7 @@ export default function DesignSystem() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
             <StatCard
               label="Utang Berjalan"
-              value={<RupiahAmount smallest={240_000_000n} />}
+              value={<RupiahAmount smallest={rupiah(2_400_000)} />}
               icon={<Wheat size={18} />}
             />
             <StatCard label="Perjanjian Aktif" value="128" />
@@ -336,8 +336,8 @@ export default function DesignSystem() {
 
         <Section title="Money + on-chain">
           <div className="flex flex-wrap items-center gap-6">
-            <RupiahAmount smallest={1_490_000_000n} className="text-2xl" tone="positive" />
-            <RupiahAmount smallest={200_000_000n} tone="negative" />
+            <RupiahAmount smallest={rupiah(13_855_000)} className="text-2xl" tone="positive" />
+            <RupiahAmount smallest={rupiah(2_200_000)} tone="negative" />
             <TxHashLink hash="a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4" />
           </div>
         </Section>
@@ -353,7 +353,7 @@ export default function DesignSystem() {
               <CardContent>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Utang input</span>
-                  <RupiahAmount smallest={200_000_000n} />
+                  <RupiahAmount smallest={rupiah(2_200_000)} />
                 </div>
                 <ProgressBar className="mt-3" label="Progres setor" value={2600} max={2750} />
               </CardContent>

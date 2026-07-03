@@ -1,0 +1,34 @@
+# Cargo workspace for the Annona Soroban contracts.
+# NOT part of the pnpm/turbo workspace — Rust is wired only through this file
+# and the Stellar CLI. The dIDR settlement asset is a SAC (Stellar Asset
+# Contract) wrapping a classic asset, not a custom crate, so it lives in
+# scripts/ (see scripts/deploy-didr.ts) rather than here.
+[workspace]
+resolver = "2"
+members = ["offtake-registry"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+authors = ["Annona Protocol"]
+
+[workspace.dependencies]
+soroban-sdk = "26.1.0"
+
+# Release profile is mandatory for the 64KB WASM limit (per the Stellar
+# smart-contracts skill). overflow-checks is a backstop under our explicit
+# checked_* math.
+[profile.release]
+opt-level = "z"
+overflow-checks = true
+debug = 0
+strip = "symbols"
+debug-assertions = false
+panic = "abort"
+codegen-units = 1
+lto = true
+
+[profile.release-with-logs]
+inherits = "release"
+debug-assertions = true

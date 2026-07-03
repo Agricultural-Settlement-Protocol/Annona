@@ -19,10 +19,10 @@
 
 | Tool | Version | Why |
 |---|---|---|
-| **Rust** | stable (`1.81+`) | Soroban contract language. |
-| **soroban-sdk** | `22.x` (latest) | Soroban contract SDK. Targets `wasm32-unknown-unknown`. |
+| **Rust** | stable (`1.84+`) | Soroban contract language. |
+| **soroban-sdk** | `26.1.0` | Soroban contract SDK. Uses `#[contractevent]` for events and a `__constructor` for one-time init (atomic at deploy, no init front-running window). |
 | **Stellar CLI** (`stellar`) | latest | Build, deploy, invoke contracts; manage testnet identities/keys. (`stellar contract build/deploy/invoke`). |
-| **Target** | `wasm32-unknown-unknown` | WASM compile target. |
+| **Target** | `wasm32v1-none` | WASM compile target. soroban-sdk 26 + Rust 1.82+ requires `wasm32v1-none` (rustup target add wasm32v1-none); the old `wasm32-unknown-unknown` is rejected by the SDK build script. `stellar contract build` selects it automatically. |
 | **Network** | Stellar **Testnet** (MVP) → Mainnet (post) | Soroban RPC + Horizon testnet endpoints. |
 
 ## 3. Frontend (apps/web)
@@ -79,7 +79,7 @@
 | Secrets | `.env` + Vercel/Railway env; never commit keys. |
 
 ## 8. Version pinning checklist (do at init)
-- [ ] `Cargo.toml` → pin `soroban-sdk = "22.x"`
+- [x] `contracts/Cargo.toml` → pinned `soroban-sdk = "26.1.0"` (workspace dep)
 - [ ] `package.json` (root) → pin Turborepo, pnpm via `packageManager` field
 - [ ] `@stellar/stellar-sdk` → pin `13.x`
 - [ ] Next 15 / React 19 / Tailwind v4 confirmed compatible (Tailwind v4 needs the new PostCSS-less setup)

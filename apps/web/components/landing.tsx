@@ -1,6 +1,6 @@
 "use client";
 
-import { formatRupiah } from "@annona/core";
+import { formatRupiah, rupiah } from "@annona/core";
 import {
   Button,
   GradientText,
@@ -159,15 +159,15 @@ function Hero() {
             </div>
             <div className="mt-5 space-y-3 text-sm">
               <Row label="Setoran panen" value="2.600 kg gabah" />
-              <Row label="Harga HPP" value={`${formatRupiah(650_000n)} / kg`} />
-              <Row label="Nilai panen" value={formatRupiah(1_690_000_000n)} />
-              <Row label="Biaya tangani koperasi (5%)" value={`- ${formatRupiah(84_500_000n)}`} muted />
-              <Row label="Potong utang saprotan" value={`- ${formatRupiah(220_000_000n)}`} muted />
+              <Row label="Harga HPP" value={`${formatRupiah(rupiah(6_500))} / kg`} />
+              <Row label="Nilai panen" value={formatRupiah(rupiah(16_900_000))} />
+              <Row label="Biaya tangani koperasi (5%)" value={`- ${formatRupiah(rupiah(845_000))}`} muted />
+              <Row label="Potong utang saprotan" value={`- ${formatRupiah(rupiah(2_200_000))}`} muted />
             </div>
             <div className="mt-5 flex items-center justify-between border-t border-border pt-5">
               <span className="text-sm font-semibold text-foreground">Diterima petani</span>
               <span className="font-display text-2xl font-bold tabular-nums text-verdant-700">
-                {formatRupiah(1_385_500_000n)}
+                {formatRupiah(rupiah(13_855_000))}
               </span>
             </div>
             <div className="mt-4 flex items-center justify-between">
