@@ -145,8 +145,10 @@ pub struct OfftakeRegistry;
 
 #[contractimpl]
 impl OfftakeRegistry {
-    /// one-time: set admin + settlement token (didr-token) address
-    pub fn init(env: Env, admin: Address, token: Address);
+    /// one-time: set admin + settlement token (didr-token) address.
+    /// Implemented as `__constructor` (runs atomically at deploy, Protocol 22+),
+    /// which cannot re-run — so no reinitialization guard is needed.
+    pub fn __constructor(env: Env, admin: Address, token: Address);
 
     /// coop creates the yarnen agreement; requires coop auth.
     /// stores expected volume, HPP anchor, tolerance; status = Created.
@@ -162,10 +164,17 @@ impl OfftakeRegistry {
     pub fn record_delivery(env: Env, coop: Address, id: u64, volume_g: i128, grade: Symbol);
 
     /// settle the delivered-but-unsettled volume:
-    ///   gross = (delivered_vol_g - settled_vol_g)/1000 * hpp_per_kg
+    ///   gross = (delivered_vol_g - settled_vol_g) * hpp_per_kg / 1000
+    ///     (multiply BEFORE /1000 to preserve sub-kg precision)
     ///   debt netted FIRST: net = max(0, gross - remaining_debt)
-    /// transfers net (dIDR) to farmer, updates settled_vol_g + reputation,
-    /// emits Settled. Callable repeatedly → staged settlement.
+    /// transfers net (dIDR) from the pre-funded contract to farmer via the
+    /// token address set at deploy (NEVER caller-supplied), updates
+    /// settled_vol_g + reputation, emits Settled. Callable repeatedly → staged
+    /// settlement. Auth: caller must be the agreement's coop OR the admin (the
+    /// Path A service key); require_auth() alone is not enough. The agreement
+    /// closes to `Settled` only once the full expected harvest is in (status ==
+    /// Delivered, the >= 80% band) and fully paid; below that band settle pays
+    /// out but leaves the agreement open for further deliveries.
     pub fn settle(env: Env, caller: Address, id: u64);
 
     /// coop records crop failure / disaster; status = ForceMajeure.
@@ -202,7 +211,7 @@ pub trait PriceProvider {
 - Delivery 2: 1,600 kg → gross 10,400,000 → net = 10,400,000 − 0 = **10,400,000** paid
 - Total paid 14,900,000 — identical to single settlement. Debt cleared first protects the coop.
 
-> Decimal handling: `hpp_per_kg` and amounts in dIDR smallest unit. dIDR decimals decided at token init (recommend 2 = rupiah-cents, or 0 for whole rupiah). Volume in grams (`/1000` for kg).
+> Decimal handling: `hpp_per_kg` and amounts are in dIDR smallest unit; volume in grams (`/1000` for kg). The contract itself is **decimal-agnostic** — it moves raw `i128` units and never interprets decimals. **Reality check:** dIDR is a SAC wrapping a *classic* Stellar asset, which is fixed at **7 decimals** — you cannot mint a classic-asset SAC at 2 decimals. The earlier "recommend 2" only applies to a hand-rolled SEP-41 token, which we deliberately avoid. So the deployed unit scale is 7 (Rp1 = 10,000,000 units); `packages/core` money helpers own that scale. The tests use whole-rupiah numbers for readability and are unaffected.
 
 ---
 
@@ -218,7 +227,15 @@ Computed in `record_delivery` against cumulative `delivered_vol_g` vs `expected_
 | < 40%, no force-majeure | `Flagged` | `Suspected` (possible side-selling — **review only, never an on-chain accusation**) |
 | crop failure recorded | `ForceMajeure` | `None`, no reputation penalty |
 
-Thresholds are contract constants (or per-agreement `tolerance_bps` for the warning band). `Suspected` is an indicator; the human officer/auditor resolves it in the dashboard.
+Thresholds are contract constants, computed with integer basis points (`ratio_bps = delivered * 10000 / expected`; floors 9800 / 8000 / 4000) to avoid floats, kept in lockstep with `packages/core/src/status.ts` FLAG_THRESHOLDS. `tolerance_bps` is stored on the agreement but reserved (the warning floor stays a fixed 8000 constant to guarantee that lockstep). `Suspected` is an indicator; the human officer/auditor resolves it in the dashboard.
+
+**Implementation notes (as built):**
+- The 40%–80% band maps to `PartiallyDelivered` (not `Flagged`); `Flagged` is reserved for the `< 40%` `Suspected` case.
+- Flags are recomputed from CUMULATIVE delivered on every delivery, so they **heal upward** (e.g. 50% then +45% total = 95% → `Delivered`/`Warning`).
+- The `Flagged` event + the `reputation.flags` counter both fire only for the review-worthy bands (`PartialDelivery` / `Suspected`), never for a mild `Warning` — so a healed agreement stops emitting flag badges and the event stream never disagrees with the counter.
+- Terminal `Settled` is reached only when status == `Delivered` (≥ 80%) at settle time. A permanently under-delivered (`Flagged`) agreement is settled for what was delivered but stays open; its only other close path is `mark_force_majeure`. (This preserves the staged-settlement worked example over the simplified state diagram's `Flagged → Settled` edge.)
+- Write fns bind the signer to the agreement: `record_delivery` / `mark_force_majeure` require `caller == agreement.coop` (→ `Unauthorized` otherwise); `settle` allows `coop` OR `admin`.
+- Edge: a `Delivered`-band agreement whose gross still cannot cover the debt (`net == 0`) closes as `Settled` with `remaining_debt > 0`, which slightly contradicts "Settled = debt cleared." Economically it should not occur (harvest value exceeds input credit by design) and is untested; left as-is for MVP.
 
 ---
 
@@ -267,16 +284,17 @@ Soroban host handles signature verification + replay protection. Freighter signs
 - Demo IDR settlement asset on **testnet**.
 - Implement as a **SAC** (Stellar Asset Contract) wrapping an issued asset → ~97% less CPU / ~98% less RAM / ~47% lower fees than a hand-rolled token, and SEP-41-compatible out of the box (composability points).
 - Admin (coop treasury demo account) mints dIDR to pre-fund settlement; `settle()` calls `token.transfer(contract → farmer)`.
-- Decimals: decide at init (recommend 2).
+- **No Rust crate.** Because it is a classic-asset SAC, there is nothing to hand-roll — it is issued + wrapped + minted entirely via the Stellar CLI in `scripts/deploy.sh`. There is no `contracts/didr-token/` crate.
+- Decimals: **7** (fixed by the underlying classic asset; see the decimals note in section 5).
 
 ---
 
 ## 11. Testing & deploy
 
-- **Unit tests** (`soroban_sdk::testutils`): happy path, partial settlement, each flag band, force-majeure, debt-exceeds-gross edge (net floors at 0), auth failures.
-- **Integration:** deploy to testnet via Stellar CLI; `scripts/seed.ts` creates 10 farmers + agreements; run full loop; assert events indexed.
-- **Deploy:** `stellar contract build` → `stellar contract deploy` (testnet) → `init(admin, didr_token)`. Commit WASM hash + contract id to repo.
-- **TTL:** extend instance + accessed persistent entry TTLs at the top of every public fn.
+- **Unit tests** (`soroban_sdk::testutils`): ✅ 25 tests green in `contracts/offtake-registry/src/test.rs` — constructor, both settlement worked examples (single + staged), every flag band, flag healing, force-majeure, debt-exceeds-gross floor-at-0, `NothingToSettle`, auth binding (wrong coop / stranger / admin-allowed), TTL extension, and the i128 overflow guard. Run with `cd contracts && cargo test`.
+- **Integration:** deploy to testnet via `scripts/deploy.sh`; `scripts/seed.ts` (annona-seed skill) creates 10 farmers + agreements; run full loop; assert events indexed.
+- **Deploy:** `scripts/fund-testnet.sh` (identities) → `scripts/deploy.sh` = `stellar contract build` → deploy dIDR SAC → `stellar contract deploy` registry with `__constructor(admin, didr_sac)` → pre-fund → writes `scripts/artifacts.testnet.json` (contract ids + WASM hash). WASM is ~40 KB (limit 64 KB).
+- **TTL:** extend instance + accessed persistent entry TTLs at the top of every public fn (constants in `storage.rs`).
 
 ---
 

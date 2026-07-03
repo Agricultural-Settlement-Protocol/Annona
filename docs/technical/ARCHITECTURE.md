@@ -84,12 +84,19 @@ annona/
 │   ├── core/                   # shared TS types (Agreement, Status, events) — single source
 │   └── config/                 # tsconfig, biome, tailwind preset
 │
-├── contracts/                  # Rust / Soroban
+├── contracts/                  # Rust / Soroban (own Cargo workspace, not pnpm)
 │   ├── offtake-registry/       # the protocol core (see SMART-CONTRACT.md)
-│   │   ├── src/lib.rs
+│   │   ├── src/
+│   │   │   ├── lib.rs          # contract entrypoints (__constructor + public fns)
+│   │   │   ├── types.rs        # Agreement/Status/... (mirror packages/core)
+│   │   │   ├── storage.rs      # typed storage + TTL helpers
+│   │   │   ├── settlement.rs   # pure gross/net/debt + flag classification
+│   │   │   ├── events.rs       # #[contractevent] definitions
+│   │   │   ├── errors.rs       # ContractError
+│   │   │   └── test.rs         # 25 unit tests
 │   │   └── Cargo.toml
-│   ├── didr-token/             # dIDR via SAC wrapper / SEP-41 (testnet demo asset)
-│   └── Cargo.toml              # workspace
+│   └── Cargo.toml              # workspace (one member; release profile)
+│   # dIDR is a classic-asset SAC — NO crate; issued+wrapped via scripts/deploy.sh
 │
 ├── docs/                       # this PRD + technical/
 ├── scripts/                    # deploy.sh, seed.ts (10 demo farmers), fund-testnet.sh
