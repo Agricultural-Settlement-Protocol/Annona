@@ -688,6 +688,42 @@ export const MOCK_AGREEMENTS: MockAgreement[] = [
     createdAt: "2026-03-12",
     expectedHarvestDate: "2026-06-28",
   }),
+  // 11 — Budi, next season: CREATED draft, feeds the bulk request queue.
+  makeAgreement({
+    n: 11,
+    farmerId: "frm-001",
+    commodityCode: "GABAH",
+    basePrincipal: rupiah(1_880_000),
+    expectedVolKg: 2_650,
+    deliveredKg: 0,
+    settledKg: 0,
+    status: "Created",
+    inputs: [
+      { catalogId: "cat-urea", qty: 2, basePriceAgrinas: rupiah(560_000) },
+      { catalogId: "cat-npk", qty: 1, basePriceAgrinas: rupiah(640_000) },
+      { catalogId: "cat-inpari", qty: 1, basePriceAgrinas: rupiah(120_000) },
+    ],
+    createdAt: "2026-07-02",
+    expectedHarvestDate: "2026-10-25",
+  }),
+  // 12 — Agus, next season: CREATED draft, feeds the bulk request queue.
+  makeAgreement({
+    n: 12,
+    farmerId: "frm-009",
+    commodityCode: "GABAH",
+    basePrincipal: rupiah(3_040_000),
+    expectedVolKg: 8_400,
+    deliveredKg: 0,
+    settledKg: 0,
+    status: "Created",
+    inputs: [
+      { catalogId: "cat-urea", qty: 3, basePriceAgrinas: rupiah(560_000) },
+      { catalogId: "cat-npk", qty: 2, basePriceAgrinas: rupiah(640_000) },
+      { catalogId: "cat-pest", qty: 1, basePriceAgrinas: rupiah(95_000) },
+    ],
+    createdAt: "2026-07-03",
+    expectedHarvestDate: "2026-10-28",
+  }),
 ];
 
 // ─── Deliveries (ERD: DELIVERY) ─────────────────────────────────────────────
@@ -1017,7 +1053,7 @@ export const MOCK_STOCK: MockStockRow[] = [
     inQty: "19.150 kg",
     outQty: "16.400 kg",
     balance: "2.750 kg",
-    note: "Diteruskan ke Bulog bertahap",
+    note: "Diteruskan ke gudang Agrinas bertahap",
   },
   {
     id: "stk-5",
@@ -1026,7 +1062,7 @@ export const MOCK_STOCK: MockStockRow[] = [
     inQty: "4.580 kg",
     outQty: "4.580 kg",
     balance: "0",
-    note: "Terkirim penuh ke Bulog",
+    note: "Terkirim penuh ke gudang Agrinas",
   },
 ];
 
@@ -1112,3 +1148,110 @@ export function formatKg(kg: number): string {
 }
 
 export const shortAddr = (addr: string) => `${addr.slice(0, 4)}...${addr.slice(-4)}`;
+
+/** Latest recorded delivery of an agreement (actual grade/moisture source).
+ *  Before the first delivery, grade/moisture on the agreement are ESTIMATES. */
+export function latestDeliveryOfAgreement(agreementId: string): MockDelivery | undefined {
+  const rows = deliveriesOfAgreement(agreementId);
+  return rows.length ? rows[rows.length - 1] : undefined;
+}
+
+// ─── Supply request queue (mv_bulk_request_queue equivalents, Screen: Permintaan) ──
+
+export type SupplyRequestStatus = "Draft" | "Terkirim" | "Dikirim" | "Diterima";
+
+export interface SupplyRequestRow {
+  agreement: MockAgreement;
+  farmer: MockFarmer;
+  /** Draft = Created not yet submitted to Agrinas; Terkirim = submitted, waiting
+   *  dispatch; Dikirim = SupplyDispatched; Diterima = accepted (Active or later). */
+  status: SupplyRequestStatus;
+}
+
+/** Agreements relevant to the saprotan request pipeline. Created rows start as
+ *  Draft; the page's local state flips them to Terkirim after the bulk submit. */
+export function supplyRequestRows(): SupplyRequestRow[] {
+  const relevant: Status[] = ["Created", "SupplyDispatched", "Active", "PartiallyDelivered"];
+  return MOCK_AGREEMENTS.filter((a) => relevant.includes(a.status))
+    .map((a): SupplyRequestRow | null => {
+      const farmer = getFarmer(a.farmerId);
+      if (!farmer) return null;
+      const status: SupplyRequestStatus =
+        a.status === "Created" ? "Draft" : a.status === "SupplyDispatched" ? "Dikirim" : "Diterima";
+      return { agreement: a, farmer, status };
+    })
+    .filter((r): r is SupplyRequestRow => r !== null);
+}
+
+/** Aggregate saprotan quantities + principal across agreements (the bulk
+ *  request Agrinas reads regionally). */
+export function aggregateSaprotanNeeds(agreements: MockAgreement[]) {
+  const byItem = new Map<string, { item: MockCatalogItem; qty: number; principal: bigint }>();
+  for (const a of agreements) {
+    for (const line of a.inputs) {
+      const item = getCatalogItem(line.catalogId);
+      if (!item) continue;
+      const cur = byItem.get(item.id) ?? { item, qty: 0, principal: 0n };
+      cur.qty += line.qty;
+      cur.principal += BigInt(line.qty) * line.basePriceAgrinas;
+      byItem.set(item.id, cur);
+    }
+  }
+  return [...byItem.values()];
+}
+
+// ─── Payment history (Screen: Pembayaran) ───────────────────────────────────
+
+export interface PaymentHistoryRow {
+  settlement: MockSettlement;
+  agreement: MockAgreement;
+  farmer: MockFarmer;
+  /** actual measurement from the delivery the payment covers (latest at settle) */
+  grade: string;
+  moistureBps: number;
+}
+
+export function paymentHistoryRows(): PaymentHistoryRow[] {
+  return MOCK_SETTLEMENTS.map((s) => {
+    const agreement = getAgreement(s.agreementId);
+    const farmer = agreement ? getFarmer(agreement.farmerId) : undefined;
+    if (!agreement || !farmer) return null;
+    const delivery = latestDeliveryOfAgreement(s.agreementId);
+    return {
+      settlement: s,
+      agreement,
+      farmer,
+      grade: delivery?.grade ?? agreement.grade,
+      moistureBps: delivery?.moistureBps ?? agreement.moistureBps,
+    };
+  })
+    .filter((r): r is PaymentHistoryRow => r !== null)
+    .sort((a, b) => (a.settlement.settledAt < b.settlement.settledAt ? 1 : -1));
+}
+
+// ─── Delivery history (Screen: Setor Panen) ─────────────────────────────────
+
+export interface DeliveryHistoryRow {
+  delivery: MockDelivery;
+  agreement: MockAgreement;
+  farmer: MockFarmer;
+  /** has this delivered volume been paid out yet? (staged settlement aware) */
+  paid: boolean;
+}
+
+export function deliveryHistoryRows(): DeliveryHistoryRow[] {
+  return MOCK_DELIVERIES.map((d) => {
+    const agreement = getAgreement(d.agreementId);
+    const farmer = agreement ? getFarmer(agreement.farmerId) : undefined;
+    if (!agreement || !farmer) return null;
+    // paid if the agreement's settled volume already covers this delivery's
+    // cumulative position (sum of volumes up to and including this seq)
+    const cumulativeKg = deliveriesOfAgreement(d.agreementId)
+      .filter((x) => x.seq <= d.seq)
+      .reduce((sum, x) => sum + x.volumeKg, 0);
+    const paid = Number(agreement.settledVolG / 1000n) >= cumulativeKg;
+    return { delivery: d, agreement, farmer, paid };
+  })
+    .filter((r): r is DeliveryHistoryRow => r !== null)
+    .sort((a, b) => (a.delivery.deliveredAt < b.delivery.deliveredAt ? 1 : -1));
+}

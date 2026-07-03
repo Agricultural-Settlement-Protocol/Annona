@@ -17,6 +17,7 @@ import {
 } from "@/lib/mock-data";
 import {
   Alert,
+  Badge,
   Button,
   Card,
   CardContent,
@@ -43,6 +44,7 @@ import {
   Percent,
   Scale,
   Tag,
+  User,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -88,6 +90,14 @@ export default function AgreementDetailPage() {
 
   const deliveredKg = Number(agreement.deliveredVolG / 1000n);
   const settledKg = Number(agreement.settledVolG / 1000n);
+
+  // Grade and kadar air: show estimate badge before first delivery, actual badge after.
+  // agreement.grade/moistureBps = default at creation time (SOP estimate).
+  // latest delivery's grade/moistureBps = physical measurement.
+  const latestDelivery = deliveries.length > 0 ? deliveries[deliveries.length - 1] : undefined;
+  const hasDelivery = deliveries.length > 0;
+  const gradeDisplay = latestDelivery?.grade ?? agreement.grade;
+  const moistureDisplay = latestDelivery?.moistureBps ?? agreement.moistureBps;
 
   return (
     <div className="space-y-6">
@@ -161,11 +171,10 @@ export default function AgreementDetailPage() {
               </span>
             </InfoRow>
             <div className="pt-1">
-              <Link
-                href={farmer ? `/kmp/petani/${farmer.id}` : "/kmp/petani"}
-                className="text-sm font-medium text-accent hover:underline"
-              >
-                Lihat profil petani
+              <Link href={farmer ? `/kmp/petani?fokus=${farmer.id}` : "/kmp/petani"}>
+                <Button variant="outline" size="sm" leftIcon={<User size={14} />}>
+                  Lihat profil petani
+                </Button>
               </Link>
             </div>
           </CardContent>
@@ -181,8 +190,41 @@ export default function AgreementDetailPage() {
             <InfoRow label="Komoditas">
               {agreement.commodityCode === "GABAH" ? "Gabah Kering Panen" : "Jagung Pipilan Kering"}
             </InfoRow>
-            <InfoRow label="Grade Awal">{agreement.grade}</InfoRow>
-            <InfoRow label="Kadar Air">{(agreement.moistureBps / 100).toFixed(1)}%</InfoRow>
+
+            {/* Grade: Perkiraan sebelum setoran pertama, Aktual setelahnya */}
+            <InfoRow label="Grade">
+              <span className="flex flex-col gap-1">
+                <span className="flex items-center gap-2">
+                  <span className="font-semibold">Grade {gradeDisplay}</span>
+                  <Badge tone={hasDelivery ? "verdant" : "neutral"}>
+                    {hasDelivery ? "Aktual" : "Perkiraan"}
+                  </Badge>
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {hasDelivery
+                    ? "Hasil pengukuran setoran terakhir"
+                    : "Nilai perkiraan sesuai SOP, diukur saat setoran panen"}
+                </span>
+              </span>
+            </InfoRow>
+
+            {/* Kadar Air: sama, Perkiraan sebelum setoran, Aktual setelahnya */}
+            <InfoRow label="Kadar Air">
+              <span className="flex flex-col gap-1">
+                <span className="flex items-center gap-2">
+                  <span>{(moistureDisplay / 100).toFixed(1)}%</span>
+                  <Badge tone={hasDelivery ? "verdant" : "neutral"}>
+                    {hasDelivery ? "Aktual" : "Perkiraan"}
+                  </Badge>
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {hasDelivery
+                    ? "Hasil pengukuran setoran terakhir"
+                    : "Nilai perkiraan sesuai SOP, diukur saat setoran panen"}
+                </span>
+              </span>
+            </InfoRow>
+
             <InfoRow label="Harga Pokok Agrinas">
               <RupiahAmount smallest={agreement.basePriceAgrinas} />
               <span className="ml-1 text-xs text-muted-foreground">(pokok saprotan)</span>

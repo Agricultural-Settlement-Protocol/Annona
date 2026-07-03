@@ -3,6 +3,10 @@
 // Screen B — Petani (Farmer Registry) (PRD §8.1).
 // Searchable table of registered farmers with expandable detail rows and inline registration.
 // "use client" here because the table is interactive (search, row expand, register form).
+//
+// Deep-link focus: ?fokus=frm-xxx auto-expands and scrolls to that farmer's row.
+// useSearchParams is isolated inside PetaniPageInner, wrapped in <Suspense> so the
+// production build does not fail (Next.js App Router requirement).
 
 import { PageHeader } from "@/components/kmp/page-header";
 import { RegistryRegisterPanel } from "@/components/kmp/registry-register-panel";
@@ -22,11 +26,14 @@ import {
   Input,
   ReputationBadge,
   RupiahAmount,
+  Skeleton,
   StatusBadge,
+  cn,
 } from "@annona/ui";
 import { ChevronDown, ChevronUp, Search, UserPlus, Wallet } from "lucide-react";
 import Link from "next/link";
-import { Fragment, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Fragment, Suspense, useEffect, useMemo, useRef, useState } from "react";
 
 // Statuses that count toward "running debt" per farmer
 const DEBT_STATUSES: Status[] = ["Active", "PartiallyDelivered", "Delivered", "Flagged"];
@@ -46,7 +53,22 @@ function farmerActiveAgreementCount(farmerId: string): number {
   ).length;
 }
 
-export default function PetaniPage() {
+/** Skeleton shown while the Suspense boundary resolves useSearchParams. */
+function PetaniPageSkeleton() {
+  return (
+    <div className="space-y-4">
+      <Skeleton className="h-10 w-64" />
+      <Skeleton className="h-9 w-72" />
+      <Skeleton className="h-96 w-full rounded-xl" />
+    </div>
+  );
+}
+
+/** Inner component reads useSearchParams — must be inside Suspense. */
+function PetaniPageInner() {
+  const searchParams = useSearchParams();
+  const fokusId = searchParams.get("fokus") ?? null;
+
   const [search, setSearch] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showRegister, setShowRegister] = useState(false);
@@ -62,6 +84,23 @@ export default function PetaniPage() {
       (f) => f.name.toLowerCase().includes(q) || f.kecamatan.toLowerCase().includes(q),
     );
   }, [allFarmers, search]);
+
+  // Auto-expand the focused farmer row when fokusId arrives.
+  useEffect(() => {
+    if (fokusId) setExpandedId(fokusId);
+  }, [fokusId]);
+
+  // Scroll to the focused row after expand renders.
+  // Uses a data attribute on the Tr so no ref forwarding is needed.
+  // Timeout gives React one tick to paint the expanded row before scrolling.
+  useEffect(() => {
+    if (!fokusId) return;
+    const timer = setTimeout(() => {
+      const el = document.querySelector(`[data-farmer-id="${fokusId}"]`);
+      if (el) el.scrollIntoView({ block: "center", behavior: "smooth" });
+    }, 80);
+    return () => clearTimeout(timer);
+  }, [fokusId]);
 
   function toggleRow(id: string) {
     setExpandedId((prev) => (prev === id ? null : id));
@@ -152,12 +191,20 @@ export default function PetaniPage() {
                 const activeCount = farmerActiveAgreementCount(farmer.id);
                 const debt = farmerRunningDebt(farmer.id);
                 const isExpanded = expandedId === farmer.id;
+                const isFocused = fokusId === farmer.id;
                 const farmerAgreements = agreementsOfFarmer(farmer.id);
 
                 return (
                   <Fragment key={farmer.id}>
-                    {/* Main row */}
-                    <Tr className="cursor-pointer select-none" onClick={() => toggleRow(farmer.id)}>
+                    {/* Main row — data-farmer-id for scroll targeting; ring highlight when focused */}
+                    <Tr
+                      className={cn(
+                        "cursor-pointer select-none",
+                        isFocused && "ring-2 ring-inset ring-verdant-300",
+                      )}
+                      data-farmer-id={farmer.id}
+                      onClick={() => toggleRow(farmer.id)}
+                    >
                       <Td className="font-medium">{farmer.name}</Td>
                       <Td className="text-muted-foreground">{farmer.kecamatan}</Td>
                       <Td>{farmer.plotAreaHa.toFixed(2)}</Td>
@@ -298,5 +345,15 @@ export default function PetaniPage() {
         {filtered.length} dari {allFarmers.length} petani ditampilkan.
       </p>
     </div>
+  );
+}
+
+/** Screen B — Farmer Registry. Suspense boundary isolates useSearchParams so
+ *  the production build does not throw a missing-boundary error. */
+export default function PetaniPage() {
+  return (
+    <Suspense fallback={<PetaniPageSkeleton />}>
+      <PetaniPageInner />
+    </Suspense>
   );
 }

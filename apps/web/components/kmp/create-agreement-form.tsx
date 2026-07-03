@@ -4,8 +4,9 @@
 // Two-column layout: form steps left, sticky summary ledger right.
 // All money via RupiahAmount/formatRupiah. No em dashes. No hardcoded hex.
 
-import { TBody, THead, Table, TableFrame, Td, Th, Tr } from "@/components/kmp/table";
+import { SearchSelect, type SearchSelectItem } from "@/components/kmp/search-select";
 import { useMockTx } from "@/components/kmp/use-mock-tx";
+import { ScrollArea } from "@/components/scroll-area";
 import {
   MOCK_CATALOG,
   MOCK_FARMERS,
@@ -24,8 +25,9 @@ import {
   ReputationBadge,
   RupiahAmount,
   TxHashLink,
+  cn,
 } from "@annona/ui";
-import { Info, Lock, Minus, Plus, RotateCcw, Wheat } from "lucide-react";
+import { Info, Lock, Minus, Plus, RotateCcw, Search, Wheat } from "lucide-react";
 import { useMemo, useState } from "react";
 
 // Catalog item category labels in Bahasa
@@ -38,10 +40,13 @@ const CATEGORY_LABEL: Record<string, string> = {
 
 export function CreateAgreementForm() {
   // Step 1: Farmer
-  const [farmerId, setFarmerId] = useState("");
+  const [farmerId, setFarmerId] = useState<string | null>(null);
 
   // Step 2: Catalog cart (catalogId -> qty; qty 0 means not selected)
   const [cart, setCart] = useState<Record<string, number>>({});
+
+  // Catalog filter
+  const [catalogSearch, setCatalogSearch] = useState("");
 
   // Step 3: Markup and fees
   const [markupPct, setMarkupPct] = useState(10);
@@ -57,6 +62,28 @@ export function CreateAgreementForm() {
     () => MOCK_FARMERS.find((f) => f.id === farmerId) ?? null,
     [farmerId],
   );
+
+  // SearchSelect items: one per farmer, with reputation badge as extra
+  const farmerItems: SearchSelectItem[] = useMemo(
+    () =>
+      MOCK_FARMERS.map((f) => ({
+        id: f.id,
+        label: f.name,
+        sublabel: `${f.kecamatan} · ${f.plotAreaHa} ha`,
+        keywords: `${f.defaultCommodityCode === "GABAH" ? "gabah padi" : "jagung"} ${f.kecamatan}`,
+        extra: <ReputationBadge tier={f.repTier} />,
+      })),
+    [],
+  );
+
+  // Catalog filtered by search
+  const filteredCatalog = useMemo(() => {
+    const q = catalogSearch.trim().toLowerCase();
+    if (!q) return MOCK_CATALOG;
+    return MOCK_CATALOG.filter((cat) =>
+      `${cat.name} ${cat.code} ${cat.category} ${CATEGORY_LABEL[cat.category] ?? ""}`.toLowerCase().includes(q),
+    );
+  }, [catalogSearch]);
 
   // When the farmer changes, use their default commodity
   const commodityCode = selectedFarmer?.defaultCommodityCode ?? "GABAH";
@@ -101,7 +128,7 @@ export function CreateAgreementForm() {
     [selectedFarmer, yieldRow],
   );
 
-  const canSubmit = !!farmerId && basePrincipal > 0n && txState === "idle";
+  const canSubmit = farmerId !== null && basePrincipal > 0n && txState === "idle";
   const isLoading = txState === "signing" || txState === "submitting";
 
   // ─── Cart helpers ──────────────────────────────────────────────────────────
@@ -118,8 +145,9 @@ export function CreateAgreementForm() {
   }
 
   function handleReset() {
-    setFarmerId("");
+    setFarmerId(null);
     setCart({});
+    setCatalogSearch("");
     setMarkupPct(10);
     setHandlingPct(5);
     setTolerancePct(20);
@@ -165,27 +193,21 @@ export function CreateAgreementForm() {
           <CardContent className="space-y-3">
             <div>
               <label
-                htmlFor="farmer-select"
+                htmlFor="farmer-select-trigger"
                 className="mb-1.5 block text-sm font-medium text-foreground"
               >
                 Petani
               </label>
-              <select
-                id="farmer-select"
+              <SearchSelect
+                items={farmerItems}
                 value={farmerId}
-                onChange={(e) => {
-                  setFarmerId(e.target.value);
-                  setCart({}); // reset catalog when farmer changes
+                onChange={(id) => {
+                  setFarmerId(id);
+                  setCart({});
                 }}
-                className="h-11 w-full rounded-md border border-border bg-surface px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                <option value="">Pilih petani...</option>
-                {MOCK_FARMERS.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {f.name} ({f.kecamatan})
-                  </option>
-                ))}
-              </select>
+                placeholder="Pilih petani..."
+                searchPlaceholder="Cari nama, kecamatan, atau komoditas..."
+              />
             </div>
 
             {selectedFarmer ? (
@@ -210,56 +232,63 @@ export function CreateAgreementForm() {
             description="Centang barang yang akan diberikan, lalu atur jumlahnya."
           />
           <CardContent className="p-0 pt-0">
-            <TableFrame className="rounded-none border-0 shadow-none">
-              <Table>
-                <THead>
-                  <Th className="w-10" />
-                  <Th>Nama Barang</Th>
-                  <Th>Kategori</Th>
-                  <Th>
-                    <span className="flex items-center gap-1">
-                      <Lock size={11} className="shrink-0 text-muted-foreground" />
-                      Harga Pokok Agrinas
-                    </span>
-                  </Th>
-                  <Th className="w-28">Jumlah</Th>
-                  <Th className="text-right">Total Baris</Th>
-                </THead>
-                <TBody>
-                  {MOCK_CATALOG.map((cat) => {
+            {/* Catalog search filter */}
+            <div className="border-b border-border px-4 py-3">
+              <Input
+                name="catalog-search"
+                placeholder="Cari barang, kode, atau kategori..."
+                leading={<Search size={15} />}
+                value={catalogSearch}
+                onChange={(e) => setCatalogSearch(e.target.value)}
+              />
+            </div>
+
+            <p className="flex items-center gap-1 px-5 pb-2 text-xs text-muted-foreground">
+              <Lock size={11} className="shrink-0" />
+              Harga pokok ditetapkan Agrinas, tidak dapat diubah KMP.
+            </p>
+
+            {/* Fixed-height catalog list with custom slider. No horizontal
+                scroll: rows stack responsively instead of a wide table. */}
+            <ScrollArea maxHeight={340} className="border-t border-border" viewportClassName="px-3">
+              <ul className="divide-y divide-border">
+                {filteredCatalog.length === 0 ? (
+                  <li className="py-6 text-center text-sm text-muted-foreground">
+                    Tidak ada barang yang cocok dengan pencarian.
+                  </li>
+                ) : (
+                  filteredCatalog.map((cat) => {
                     const qty = cart[cat.id] ?? 0;
                     const checked = qty > 0;
                     const lineTotal = cat.basePriceAgrinas * BigInt(qty);
                     return (
-                      <Tr key={cat.id} className={checked ? "bg-verdant-50/40" : ""}>
-                        <Td>
-                          <input
-                            type="checkbox"
-                            id={`cat-${cat.id}`}
-                            checked={checked}
-                            onChange={(e) => toggleItem(cat.id, e.target.checked)}
-                            className="h-4 w-4 cursor-pointer rounded border-border accent-primary"
-                          />
-                        </Td>
-                        <Td>
-                          <label
-                            htmlFor={`cat-${cat.id}`}
-                            className="cursor-pointer font-medium text-foreground"
-                          >
+                      <li
+                        key={cat.id}
+                        className={cn(
+                          "flex items-center gap-3 rounded-md px-2 py-3",
+                          checked && "bg-verdant-50/40",
+                        )}
+                      >
+                        <input
+                          type="checkbox"
+                          id={`cat-${cat.id}`}
+                          checked={checked}
+                          onChange={(e) => toggleItem(cat.id, e.target.checked)}
+                          className="h-4 w-4 shrink-0 cursor-pointer rounded border-border accent-primary"
+                        />
+                        <label htmlFor={`cat-${cat.id}`} className="min-w-0 flex-1 cursor-pointer">
+                          <span className="block truncate font-medium text-foreground">
                             {cat.name}
-                          </label>
-                          <p className="text-xs text-muted-foreground">{cat.unitLabel}</p>
-                        </Td>
-                        <Td className="text-muted-foreground">
-                          {CATEGORY_LABEL[cat.category] ?? cat.category}
-                        </Td>
-                        <Td>
-                          <RupiahAmount smallest={cat.basePriceAgrinas} />
-                          <p className="mt-0.5 text-xs text-muted-foreground">
-                            per {cat.unitLabel}
-                          </p>
-                        </Td>
-                        <Td>
+                          </span>
+                          <span className="block text-xs text-muted-foreground">
+                            {CATEGORY_LABEL[cat.category] ?? cat.category}, {cat.unitLabel}
+                          </span>
+                          <span className="mt-0.5 block text-xs text-muted-foreground">
+                            <RupiahAmount smallest={cat.basePriceAgrinas} className="text-xs" /> per{" "}
+                            {cat.unitLabel}
+                          </span>
+                        </label>
+                        <div className="flex shrink-0 flex-col items-end gap-1.5">
                           {checked ? (
                             <div className="flex items-center gap-1.5">
                               <button
@@ -283,22 +312,24 @@ export function CreateAgreementForm() {
                               </button>
                             </div>
                           ) : (
-                            <span className="text-sm text-muted-foreground">0</span>
+                            <button
+                              type="button"
+                              onClick={() => toggleItem(cat.id, true)}
+                              className="rounded-md border border-border px-2.5 py-1 text-xs font-medium text-ink-600 transition-colors hover:bg-surface-muted"
+                            >
+                              Tambah
+                            </button>
                           )}
-                        </Td>
-                        <Td className="text-right">
                           {checked && qty > 0 ? (
-                            <RupiahAmount smallest={lineTotal} />
-                          ) : (
-                            <span className="text-muted-foreground">Rp0</span>
-                          )}
-                        </Td>
-                      </Tr>
+                            <RupiahAmount smallest={lineTotal} className="text-sm" />
+                          ) : null}
+                        </div>
+                      </li>
                     );
-                  })}
-                </TBody>
-              </Table>
-            </TableFrame>
+                  })
+                )}
+              </ul>
+            </ScrollArea>
 
             {/* Running total */}
             <div className="flex items-center justify-between border-t border-border bg-surface-muted/30 px-5 py-3">
@@ -495,7 +526,7 @@ export function CreateAgreementForm() {
             Buat Perjanjian
           </Button>
 
-          {!farmerId ? (
+          {farmerId === null ? (
             <p className="text-center text-xs text-muted-foreground">
               Pilih petani terlebih dahulu.
             </p>

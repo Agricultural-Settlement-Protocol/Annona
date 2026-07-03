@@ -1,5 +1,6 @@
 import { ActivityFeed } from "@/components/kmp/activity-feed";
 import { PageHeader } from "@/components/kmp/page-header";
+import { ScrollArea } from "@/components/scroll-area";
 import {
   MOCK_ACTIVITY,
   MOCK_COOP,
@@ -53,12 +54,14 @@ export default function KmpHomePage() {
         actions={
           <>
             <Link href="/kmp/petani">
-              <Button variant="outline" leftIcon={<UserPlus size={16} />}>
+              <Button variant="outline" size="md" leftIcon={<UserPlus size={16} />}>
                 Daftarkan Petani
               </Button>
             </Link>
             <Link href="/kmp/perjanjian/baru">
-              <Button leftIcon={<FilePlus2 size={16} />}>Buat Perjanjian</Button>
+              <Button variant="primary" size="md" leftIcon={<FilePlus2 size={16} />}>
+                Buat Perjanjian
+              </Button>
             </Link>
           </>
         }
@@ -220,16 +223,22 @@ export default function KmpHomePage() {
           </Card>
         </div>
 
-        {/* Activity feed */}
-        <Card className="lg:col-span-2">
-          <CardHeader
-            title="Aktivitas Terbaru"
-            description="Setiap baris adalah transaksi nyata di Stellar."
-          />
-          <CardContent>
-            <ActivityFeed items={MOCK_ACTIVITY} />
-          </CardContent>
-        </Card>
+        {/* Activity feed. The relative/absolute pair pins the card's height to
+            the LEFT column (harvest + inbound cards); the feed scrolls inside
+            instead of stretching the row. */}
+        <div className="relative min-h-96 lg:col-span-2">
+          <Card className="flex h-full flex-col lg:absolute lg:inset-0">
+            <CardHeader
+              title="Aktivitas Terbaru"
+              description="Setiap baris adalah transaksi nyata di Stellar."
+            />
+            <CardContent className="min-h-0 flex-1 p-0">
+              <ScrollArea viewportClassName="h-full px-5 pt-2" className="h-full">
+                <ActivityFeed items={MOCK_ACTIVITY} />
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

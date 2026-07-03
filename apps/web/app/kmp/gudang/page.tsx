@@ -15,11 +15,28 @@ import {
   Card,
   CardContent,
   CardHeader,
+  Input,
   RupiahAmount,
+  StatCard,
   TxHashLink,
 } from "@annona/ui";
-import { CheckCircle2, Database, Link as LinkIcon, Truck, Warehouse } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import {
+  ArrowUpFromLine,
+  CheckCircle2,
+  Database,
+  Link as LinkIcon,
+  Package,
+  Search,
+  Truck,
+  Warehouse,
+} from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+/** Parse a string like "19.150 kg" or "4.580 kg" to a number (ID locale: dots = thousands). */
+function parseKgQty(qty: string): number {
+  const clean = qty.replace(/\./g, "").replace(/[^0-9]/g, "");
+  return clean ? Number(clean) : 0;
+}
 
 /** Single inbound-supply card for one SupplyDispatched agreement.
  *  Handles its own accept flow independently of sibling cards. */
@@ -163,12 +180,52 @@ export default function GudangPage() {
   const saprotanStock = MOCK_STOCK.filter((s) => s.category === "saprotan");
   const hasilPanenStock = MOCK_STOCK.filter((s) => s.category === "hasil-panen");
 
+  // Summary totals for the stat strip
+  const totalPanenDiterima = hasilPanenStock.reduce((sum, s) => sum + parseKgQty(s.inQty), 0);
+  const totalDiteruskan = hasilPanenStock.reduce((sum, s) => sum + parseKgQty(s.outQty), 0);
+
+  // Stock table search
+  const [stockSearch, setStockSearch] = useState("");
+  const filteredSaprotan = useMemo(() => {
+    const q = stockSearch.toLowerCase().trim();
+    if (!q) return saprotanStock;
+    return saprotanStock.filter((s) => s.itemName.toLowerCase().includes(q));
+  }, [saprotanStock, stockSearch]);
+  const filteredHasil = useMemo(() => {
+    const q = stockSearch.toLowerCase().trim();
+    if (!q) return hasilPanenStock;
+    return hasilPanenStock.filter((s) => s.itemName.toLowerCase().includes(q));
+  }, [hasilPanenStock, stockSearch]);
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Gudang dan Pasokan"
         description="Kiriman saprotan masuk (on-chain) dan stok fisik gudang (catatan lokal)."
       />
+
+      {/* Summary stat strip */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard
+          label="Kargo Menunggu"
+          value={String(inbound.length)}
+          hint="Kiriman saprotan dari Agrinas menunggu konfirmasi penerimaan"
+          icon={<Truck size={18} />}
+          tone={inbound.length > 0 ? "warn" : "good"}
+        />
+        <StatCard
+          label="Panen Diterima"
+          value={`${totalPanenDiterima.toLocaleString("id-ID")} kg`}
+          hint="Total hasil panen yang diterima di gudang"
+          icon={<Package size={18} />}
+        />
+        <StatCard
+          label="Diteruskan ke Gudang Agrinas"
+          value={`${totalDiteruskan.toLocaleString("id-ID")} kg`}
+          hint="Total yang sudah dikirim ke gudang Agrinas"
+          icon={<ArrowUpFromLine size={18} />}
+        />
+      </div>
 
       {/* Zone 1: On-chain inbound supply */}
       <Card>
@@ -228,6 +285,18 @@ export default function GudangPage() {
             </Alert>
           </div>
 
+          {/* Stock search */}
+          <div className="mx-5">
+            <Input
+              name="stock-search"
+              placeholder="Cari nama barang..."
+              leading={<Search size={15} />}
+              value={stockSearch}
+              onChange={(e) => setStockSearch(e.target.value)}
+              className="max-w-xs"
+            />
+          </div>
+
           {/* Saprotan stock */}
           <div>
             <div className="flex items-center gap-2 border-b border-border bg-surface-muted px-5 py-3">
@@ -245,25 +314,35 @@ export default function GudangPage() {
                   <Th>Catatan</Th>
                 </THead>
                 <TBody>
-                  {saprotanStock.map((s) => (
-                    <Tr key={s.id}>
-                      <Td className="font-medium">{s.itemName}</Td>
-                      <Td className="text-right tabular-nums text-muted-foreground">{s.inQty}</Td>
-                      <Td className="text-right tabular-nums text-muted-foreground">{s.outQty}</Td>
-                      <Td className="text-right tabular-nums">
-                        <span
-                          className={
-                            s.balance === "0"
-                              ? "text-muted-foreground"
-                              : "font-semibold text-verdant-700"
-                          }
-                        >
-                          {s.balance}
-                        </span>
+                  {filteredSaprotan.length > 0 ? (
+                    filteredSaprotan.map((s) => (
+                      <Tr key={s.id}>
+                        <Td className="font-medium">{s.itemName}</Td>
+                        <Td className="text-right tabular-nums text-muted-foreground">{s.inQty}</Td>
+                        <Td className="text-right tabular-nums text-muted-foreground">
+                          {s.outQty}
+                        </Td>
+                        <Td className="text-right tabular-nums">
+                          <span
+                            className={
+                              s.balance === "0"
+                                ? "text-muted-foreground"
+                                : "font-semibold text-verdant-700"
+                            }
+                          >
+                            {s.balance}
+                          </span>
+                        </Td>
+                        <Td className="text-muted-foreground">{s.note}</Td>
+                      </Tr>
+                    ))
+                  ) : (
+                    <Tr>
+                      <Td colSpan={5} className="py-6 text-center text-muted-foreground">
+                        Tidak ada barang saprotan yang cocok.
                       </Td>
-                      <Td className="text-muted-foreground">{s.note}</Td>
                     </Tr>
-                  ))}
+                  )}
                 </TBody>
               </Table>
             </TableFrame>
@@ -274,7 +353,7 @@ export default function GudangPage() {
             <div className="flex items-center gap-2 border-b border-border bg-surface-muted px-5 py-3">
               <Warehouse size={15} className="text-aqua-600" />
               <span className="text-sm font-semibold text-foreground">Hasil Panen</span>
-              <Badge tone="aqua">Diteruskan ke Bulog</Badge>
+              <Badge tone="aqua">Diteruskan ke Gudang Agrinas</Badge>
             </div>
             <TableFrame className="border-0 shadow-none">
               <Table>
@@ -286,25 +365,35 @@ export default function GudangPage() {
                   <Th>Catatan</Th>
                 </THead>
                 <TBody>
-                  {hasilPanenStock.map((s) => (
-                    <Tr key={s.id}>
-                      <Td className="font-medium">{s.itemName}</Td>
-                      <Td className="text-right tabular-nums text-muted-foreground">{s.inQty}</Td>
-                      <Td className="text-right tabular-nums text-muted-foreground">{s.outQty}</Td>
-                      <Td className="text-right tabular-nums">
-                        <span
-                          className={
-                            s.balance === "0"
-                              ? "text-muted-foreground"
-                              : "font-semibold text-aqua-700"
-                          }
-                        >
-                          {s.balance}
-                        </span>
+                  {filteredHasil.length > 0 ? (
+                    filteredHasil.map((s) => (
+                      <Tr key={s.id}>
+                        <Td className="font-medium">{s.itemName}</Td>
+                        <Td className="text-right tabular-nums text-muted-foreground">{s.inQty}</Td>
+                        <Td className="text-right tabular-nums text-muted-foreground">
+                          {s.outQty}
+                        </Td>
+                        <Td className="text-right tabular-nums">
+                          <span
+                            className={
+                              s.balance === "0"
+                                ? "text-muted-foreground"
+                                : "font-semibold text-aqua-700"
+                            }
+                          >
+                            {s.balance}
+                          </span>
+                        </Td>
+                        <Td className="text-muted-foreground">{s.note}</Td>
+                      </Tr>
+                    ))
+                  ) : (
+                    <Tr>
+                      <Td colSpan={5} className="py-6 text-center text-muted-foreground">
+                        Tidak ada hasil panen yang cocok.
                       </Td>
-                      <Td className="text-muted-foreground">{s.note}</Td>
                     </Tr>
-                  ))}
+                  )}
                 </TBody>
               </Table>
             </TableFrame>
@@ -315,7 +404,7 @@ export default function GudangPage() {
                 <div key={s.id} className="rounded-lg border border-border bg-surface p-3">
                   <p className="font-medium text-foreground">{s.itemName}</p>
                   <p className="text-xs text-muted-foreground">
-                    Diterima: {s.inQty}. Diteruskan ke Bulog: {s.outQty}
+                    Diterima: {s.inQty}. Diteruskan ke Gudang Agrinas: {s.outQty}
                   </p>
                   <p className="mt-1 text-xs font-semibold text-aqua-700">
                     Sisa di gudang: {s.balance}
