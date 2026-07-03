@@ -30,7 +30,9 @@ Built for the **APAC Stellar Hackathon 2026** (submit 15 Jul), then the **Stella
 3. **Never claim "autonomous settlement" or "blockchain pays the farmer."** Crypto is illegal as payment in Indonesia. Correct framing is **"tamper-proof settlement record."** See `ARCHITECTURE.md` section 5 (three settlement paths).
 4. **The yield estimate is a transparent formula, never "AI prediction."** `expected_vol = area × yield/ha`, with the BPS/KATAM source shown.
 5. **Shared types live in `packages/core`.** Contract event shapes, `Agreement`, `Status`, and similar. `web`, `api`, `sdk` import from there and never redefine. Prevents drift between contract and dashboards.
-6. **Settlement nets debt first.** `net = max(0, gross - remaining_debt)`. Debt cleared before the farmer sees positive cashflow. Protects the coop.
+6. **Settlement is a three-way split, debt netted first.** `net_to_farmer = max(0, (gross - handling_cut) - input_debt)`. The collected debt splits into **Agrinas principal residu** + **KMP margin** (on-chain, separately tracked). Debt cleared before the farmer sees positive cashflow. Protects the coop AND Agrinas's principal. See `SMART-CONTRACT.md` §5.
+6b. **Residu principal is Agrinas's money, not KMP's.** KMP holds it in pre-funded cash until remitted; the on-chain split-allocation + `confirm_remittance` reconciliation is the anti-moral-hazard guarantee. Never let the docs/UI imply KMP owns the residu principal.
+6c. **Three parties, two gates.** Agrinas (operator) ↔ KMP (koperasi) ↔ Farmer, + read-only Government. `dispatch_supply` (Agrinas) then `accept_supply` (KMP) must both fire before debt is active. "KMP" is the primary term; KDMP is the flagship instance.
 7. **Flags indicate, humans decide.** `Suspected` and similar are never automatic accusations. The officer/auditor resolves.
 
 ---
@@ -58,6 +60,11 @@ When the assistant (or an owner) makes a mistake, hits a non-obvious gotcha, or 
 ```
 
 <!-- Add new entries below this line. Do not delete past entries; supersede with a newer one if needed. -->
+
+### 2026-07-03 — v3.0 pivot: multi-party model (PMK 15/2026)
+- **What:** Docs were two-party (coop ↔ farmer, single auditor). New research (PMK 15/2026) makes it three commercial parties + a regulator: Agrinas (operator: master catalog `base_price_agrinas`, logistics dispatch, residu reconciliation), KMP (koperasi: pre-funded on-site cash agent), Farmer, and read-only Government. Adds a double-confirmation lifecycle (`Created → SupplyDispatched → Active → Delivered → Settled`), a three-way split settlement (farmer net / Agrinas principal residu / KMP margin), residu reconciliation, and coop reputation.
+- **Fix:** Rewrote SMART-CONTRACT (types/fns/events/math/auth), ERD (Agrinas + catalog + residu + coop reputation), ARCHITECTURE (party model §0, stack, data flow, settlement), PRD (personas, core loop, F2/F2.1/F3/F4/F4.1/F6/F7/F8, screens A–M, settlement, demo). Dashboards = 3 shells: KMP / Oversight (RBAC Agrinas+Gov) / Farmer — Agrinas is a ROLE, not a separate app. New settlement math changes hero payout Rp14.9M → Rp13.855M (base 2M + 10% markup, 5% handling, 2,600kg gabah).
+- **Rule:** Settlement price has four locked variables now: `base_price_agrinas` (principal, Agrinas-set), `saprotan_markup_bps` (KMP), derived `input_debt`, `hpp_handling_fee_bps` (KMP). Residu principal ≠ KMP money. Three signing wallets in demo. When editing docs, contract spec is source of truth; ERD + others mirror it — edit contract first, propagate.
 
 ### 2026-06-30 — Design: avoid AI slop, trace the real brand
 - **What:** First UI pass "screamed AI slop." Three root causes: (1) the logo mark was invented (an arrow-in-circle) instead of tracing the real asset (two interlocking chain links); (2) brand colors were a desaturated olive `#5F8130` + dull dark teal, which read flat/pale/normie; (3) generic centered-hero-over-three-cards layout with no brand-specific motif or opinion.
@@ -148,7 +155,7 @@ Package manager is **pnpm** (workspaces). Node **22** (`.nvmrc`). Use `pnpm --fi
 
 ## Status
 
-- ✅ Docs (PRD + technical/) complete.
+- ✅ Docs (PRD + technical/) complete — **v3.0 multi-party model (PMK 15/2026)**.
 - ✅ Turborepo scaffold (apps + packages).
-- ⬜ Soroban contract (`contracts/`) not yet scaffolded.
-- ⬜ Indexer, dashboards, SDK to build.
+- ⬜ Soroban contract (`contracts/`) not yet scaffolded — build to v3.0 spec (double-confirmation + three-way split + residu).
+- ⬜ Indexer, dashboards (KMP / Oversight-RBAC / Farmer), SDK to build.

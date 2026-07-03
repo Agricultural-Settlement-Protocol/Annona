@@ -108,13 +108,17 @@ Map 1:1 to `Status` / `FlagReason` in `@annona/core` so the same meaning shows e
 
 | State | Token | Color | Meaning |
 |---|---|---|---|
-| Created | `slate` | ink-100 / ink-700 | agreement made, nothing delivered |
+| Created (Draft/Pesanan) | `slate` | ink-100 / ink-700 | agreement drafted = collective Surat Pesanan; debt not yet active |
+| SupplyDispatched | `indigo` | indigo-100 / indigo-700 | Agrinas released logistics; goods in transit, price frozen |
+| Active (Disbursed) | `aqua-strong` | aqua-200 / aqua-800 | KMP accepted supply; input_debt now a live liability |
 | PartiallyDelivered | `aqua` | aqua-100 / aqua-700 | some harvest in |
 | Delivered | `verdant` | verdant-100 / verdant-700 | full harvest in |
-| **Settled (Lunas)** | `success` | `#10B981` emerald-500 / emerald-700 | paid + debt cleared (the happy state) |
+| **Settled (Lunas)** | `success` | `#10B981` emerald-500 / emerald-700 | paid + debt cleared, split allocated (the happy state) |
 | Flagged (Warning) | `warning` | `#D97706` amber-600 | under expectation, review |
 | Flagged (Suspected) | `danger` | `#DC2626` red-600 | far under, possible side-selling (review only) |
 | ForceMajeure | `danger-soft` | red-100 / red-700 | crop failure, no penalty |
+
+**Residu status** (own badge set, on Agrinas Screen I): `Pending` `slate` · `Remitted` `aqua` (bank proof in, awaiting Agrinas) · `Cleared` `success` (verified) · `Disputed` `danger` (coop reputation frozen, review only). Map 1:1 to `ResiduStatus` in `@annona/core`.
 
 > Settled is intentionally a clean **emerald** (slightly cooler than brand verdant) so "Lunas" pops as the success moment without being confused with the agri-green of an active agreement.
 
@@ -309,7 +313,7 @@ The first pass "screamed AI slop." What fixes that, concretely:
 ## 8. Page archetypes
 - **Landing:** full mesh + scanlines hero, big display type, the protocol story. The only place with the loud treatment.
 - **Coop dashboard:** calm cream background, white cards, dense-but-friendly, big hero stats, green/teal accents. No mesh behind data.
-- **Auditor dashboard:** densest; tables, leaderboard, can use dark mode. Teal for on-chain columns.
+- **Oversight dashboard (RBAC Agrinas + Government):** densest; tables, residu ledger, leaderboard, can use dark mode. Teal for on-chain columns.
 - **Farmer view:** mobile-first, `body-lg`, huge numbers, one action per screen, lots of whitespace, occasional mesh on success.
 
 ---
