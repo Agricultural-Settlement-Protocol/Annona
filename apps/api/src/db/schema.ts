@@ -48,12 +48,7 @@ export const flagReason = pgEnum("flag_reason", [
   "Suspected",
 ]);
 
-export const residuStatus = pgEnum("residu_status", [
-  "Pending",
-  "Remitted",
-  "Cleared",
-  "Disputed",
-]);
+export const residuStatus = pgEnum("residu_status", ["Pending", "Remitted", "Cleared", "Disputed"]);
 
 /* ────────────────────────── parties ────────────────────────── */
 
@@ -116,10 +111,7 @@ export const farmer = pgTable(
     geo: jsonb("geo"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [
-    index("farmer_coop_id_idx").on(t.coopId),
-    index("farmer_ktp_hash_idx").on(t.ktpHash),
-  ],
+  (t) => [index("farmer_coop_id_idx").on(t.coopId), index("farmer_ktp_hash_idx").on(t.ktpHash)],
 );
 
 /* ────────────────────────── reference data ────────────────────────── */
@@ -385,7 +377,9 @@ export const coopReputationCache = pgTable("coop_reputation_cache", {
     .references(() => coop.id),
   agreements: integer("agreements").notNull().default(0),
   settlements: integer("settlements").notNull().default(0),
-  totalResiduPrincipal: bigint("total_residu_principal", { mode: "bigint" }).notNull().default(sql`0`),
+  totalResiduPrincipal: bigint("total_residu_principal", { mode: "bigint" })
+    .notNull()
+    .default(sql`0`),
   totalResiduCleared: bigint("total_residu_cleared", { mode: "bigint" }).notNull().default(sql`0`),
   disputes: integer("disputes").notNull().default(0),
   /** dispute freeze indicator — humans resolve, never an auto-accusation */

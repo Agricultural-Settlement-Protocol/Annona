@@ -27,7 +27,10 @@ export const farmersRoute = new Hono()
     const q = c.req.query("q");
     const db = getDb();
     const items = q
-      ? await db.select(PUBLIC_COLS).from(schema.farmer).where(ilike(schema.farmer.name, `%${q}%`))
+      ? await db
+          .select(PUBLIC_COLS)
+          .from(schema.farmer)
+          .where(ilike(schema.farmer.name, `%${q}%`))
       : await db.select(PUBLIC_COLS).from(schema.farmer);
     return c.json({ items: json(items) });
   })
