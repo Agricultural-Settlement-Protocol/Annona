@@ -6,7 +6,7 @@
   font-family: var(--font-manrope, "Manrope", sans-serif);
   background-color: #fcf9f8;
   color: #1a1a1a;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* ── Color utilities ── */
