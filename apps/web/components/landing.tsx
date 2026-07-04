@@ -10,12 +10,7 @@ import { CountUp } from "./count-up.js";
 import { CustomCursor } from "./cursor.js";
 import { SettlementChart } from "./settlement-chart.js";
 import { IMG } from "./urbangreen/images";
-import {
-  BarChartIcon,
-  DiagonalArrowIcon,
-  GlobeIcon,
-  SparkleIcon,
-} from "./urbangreen/icons";
+import { BarChartIcon, DiagonalArrowIcon, GlobeIcon, SparkleIcon } from "./urbangreen/icons";
 
 export function Landing() {
   return (
@@ -160,9 +155,7 @@ function Hero() {
           <div className="flex items-center gap-2">
             <LogoMark size={40} gradient />
           </div>
-          <span className="text-sm font-medium text-gray-700">
-            Annona Protocol
-          </span>
+          <span className="text-sm font-medium text-gray-700">Annona Protocol</span>
         </div>
         {/* Team Card (Koperasi Mitra) */}
         <div
@@ -228,7 +221,19 @@ function Hero() {
       </aside>
 
       {/* Center/Right Content */}
-      <section className="flex-grow flex flex-col pt-4 md:pt-12 md:justify-between">
+      <section className="flex-grow flex flex-col pt-4 md:pt-12 md:justify-between relative">
+        {/* Grid Background */}
+        <div
+          className="absolute inset-0 pointer-events-none -z-10"
+          style={{
+            backgroundImage: `linear-gradient(to right, #E6EBE0 1px, transparent 1px), linear-gradient(to bottom, #E6EBE0 1px, transparent 1px)`,
+            backgroundSize: "4rem 4rem",
+            maskImage: "radial-gradient(ellipse 80% 50% at 50% 30%, black 20%, transparent 80%)",
+            WebkitMaskImage:
+              "radial-gradient(ellipse 80% 50% at 50% 30%, black 20%, transparent 80%)",
+          }}
+        />
+
         {/* Hero Headline */}
         <div className="max-w-4xl mx-auto md:ml-0 mb-16 px-4 md:px-12 text-center md:text-left">
           <h1 className="text-4xl md:text-6xl font-medium tracking-tight text-gray-900 leading-tight">
@@ -242,10 +247,9 @@ function Hero() {
             </span>
           </h1>
           <p className="mt-6 text-gray-700 text-lg leading-relaxed max-w-xl">
-            Koperasi memberi benih dan pupuk lebih dulu. Saat panen dibeli,
-            utang petani otomatis terpotong dan sisanya langsung jadi haknya.
-            Annona mencatat semuanya dalam satu buku yang tidak bisa diubah
-            siapa pun.
+            Koperasi memberi benih dan pupuk lebih dulu. Saat panen dibeli, utang petani otomatis
+            terpotong dan sisanya langsung jadi haknya. Annona mencatat semuanya dalam satu buku
+            yang tidak bisa diubah siapa pun.
           </p>
         </div>
 
@@ -303,39 +307,27 @@ function Hero() {
             <div className="mt-5 space-y-2.5 text-sm text-gray-800">
               <div className="flex justify-between">
                 <span className="text-gray-500">Setoran panen</span>
-                <span className="font-medium text-gray-900">
-                  2.600 kg gabah
-                </span>
+                <span className="font-medium text-gray-900">2.600 kg gabah</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Harga HPP</span>
-                <span className="font-medium text-gray-900">
-                  {formatRupiah(rupiah(6500))} / kg
-                </span>
+                <span className="font-medium text-gray-900">{formatRupiah(rupiah(6500))} / kg</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Nilai panen</span>
-                <span className="font-medium text-gray-900">
-                  {formatRupiah(rupiah(16900000))}
-                </span>
+                <span className="font-medium text-gray-900">{formatRupiah(rupiah(16900000))}</span>
               </div>
               <div className="flex justify-between text-xs text-gray-500">
                 <span>Biaya koperasi (5%)</span>
-                <span className="font-medium">
-                  - {formatRupiah(rupiah(845000))}
-                </span>
+                <span className="font-medium">- {formatRupiah(rupiah(845000))}</span>
               </div>
               <div className="flex justify-between text-xs text-gray-500">
                 <span>Potong utang saprotan</span>
-                <span className="font-medium">
-                  - {formatRupiah(rupiah(2200000))}
-                </span>
+                <span className="font-medium">- {formatRupiah(rupiah(2200000))}</span>
               </div>
             </div>
             <div className="mt-4 flex items-center justify-between border-t border-gray-200 pt-4">
-              <span className="text-sm font-semibold text-gray-900">
-                Diterima petani
-              </span>
+              <span className="text-sm font-semibold text-gray-900">Diterima petani</span>
               <span className="text-xl font-bold tabular-nums text-emerald-800">
                 {formatRupiah(rupiah(13855000))}
               </span>
@@ -411,10 +403,7 @@ function ScrollingMarquee() {
           ))}
           {/* Repeat once for infinite scrolling loop */}
           {items.map((item, idx) => (
-            <div
-              key={`${item}-dup-${idx}`}
-              className="inline-flex items-center"
-            >
+            <div key={`${item}-dup-${idx}`} className="inline-flex items-center">
               <span className="mx-8">{item}</span>
               <Image
                 alt="Leaf separator"
@@ -513,14 +502,12 @@ function Problem() {
                   Catatan Tercecer
                 </h3>
                 <div className="flex items-baseline gap-2 mb-4">
-                  <span className="text-5xl font-bold text-primary-dark">
-                    3+
-                  </span>
+                  <span className="text-5xl font-bold text-primary-dark">3+</span>
                   <span className="text-xl text-gray-500">Sumber Data</span>
                 </div>
                 <p className="text-gray-700 text-lg leading-relaxed">
-                  Utang pupuk di buku, hasil panen di Excel, kesepakatan di chat
-                  WA. Tidak ada satu sumber data yang dipercaya bersama.
+                  Utang pupuk di buku, hasil panen di Excel, kesepakatan di chat WA. Tidak ada satu
+                  sumber data yang dipercaya bersama.
                 </p>
               </div>
             </div>
@@ -533,12 +520,10 @@ function Problem() {
                 <h3 className="text-4xl md:text-5xl font-medium text-gray-900 mb-2 leading-tight">
                   Rawan Selisih
                 </h3>
-                <p className="text-xl font-medium text-gray-800 mb-2">
-                  Risiko Kebocoran Data
-                </p>
+                <p className="text-xl font-medium text-gray-800 mb-2">Risiko Kebocoran Data</p>
                 <p className="text-gray-700 text-base leading-relaxed">
-                  Selisih antara timbangan panen dan utang saprotan mudah
-                  terjadi di lapangan. Susah dibuktikan dan memicu sengketa.
+                  Selisih antara timbangan panen dan utang saprotan mudah terjadi di lapangan. Susah
+                  dibuktikan dan memicu sengketa.
                 </p>
               </div>
               <div
@@ -552,17 +537,15 @@ function Problem() {
               style={{ borderRadius: "2rem" }}
             >
               <p className="text-lg font-medium italic leading-relaxed mb-4">
-                &ldquo;Tanpa bukti transaksi yang jelas dan tepercaya, lembaga
-                keuangan ragu untuk menyalurkan permodalan ke koperasi.&rdquo;
+                &ldquo;Tanpa bukti transaksi yang jelas dan tepercaya, lembaga keuangan ragu untuk
+                menyalurkan permodalan ke koperasi.&rdquo;
               </p>
               <div className="flex items-center gap-3">
                 <div
                   className="w-10 h-10 rounded-full"
                   style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
                 />
-                <span className="text-sm font-semibold">
-                  Tantangan Permodalan
-                </span>
+                <span className="text-sm font-semibold">Tantangan Permodalan</span>
               </div>
             </div>
           </div>
@@ -572,16 +555,113 @@ function Problem() {
   );
 }
 
+/* Illustration Components */
+function SmartContractIllustration() {
+  return (
+    <div className="absolute -top-16 right-4 pointer-events-none">
+      <svg width="140" height="140" viewBox="0 0 140 140" fill="none" className="overflow-visible">
+        {/* Pulse rings */}
+        <motion.circle
+          cx="70"
+          cy="70"
+          r="40"
+          fill="none"
+          stroke="rgba(16, 185, 129, 0.4)"
+          strokeWidth="2"
+          animate={{ scale: [0.8, 1.4], opacity: [0.6, 0] }}
+          transition={{ duration: 3, repeat: Infinity, ease: "easeOut" }}
+        />
+        <motion.circle
+          cx="70"
+          cy="70"
+          r="40"
+          fill="none"
+          stroke="rgba(16, 185, 129, 0.4)"
+          strokeWidth="2"
+          animate={{ scale: [0.8, 1.4], opacity: [0.6, 0] }}
+          transition={{ duration: 3, repeat: Infinity, ease: "easeOut", delay: 1.5 }}
+        />
+
+        {/* Central Hexagon / Ledger Block */}
+        <motion.g
+          animate={{ y: [0, -6, 0] }}
+          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <path
+            d="M70 34 L100 52 L100 86 L70 104 L40 86 L40 52 Z"
+            fill="rgba(6, 78, 59, 0.95)"
+            stroke="#10b981"
+            strokeWidth="2"
+          />
+          {/* Holographic inner lines representing code/ledger */}
+          <motion.rect
+            x="55"
+            y="58"
+            width="30"
+            height="3"
+            rx="1.5"
+            fill="#6ee7b7"
+            animate={{ opacity: [0.4, 1, 0.4] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          />
+          <motion.rect
+            x="55"
+            y="68"
+            width="20"
+            height="3"
+            rx="1.5"
+            fill="#34d399"
+            animate={{ opacity: [0.4, 1, 0.4] }}
+            transition={{ duration: 2, delay: 0.5, repeat: Infinity }}
+          />
+          <motion.rect
+            x="55"
+            y="78"
+            width="26"
+            height="3"
+            rx="1.5"
+            fill="#6ee7b7"
+            animate={{ opacity: [0.4, 1, 0.4] }}
+            transition={{ duration: 2, delay: 1, repeat: Infinity }}
+          />
+        </motion.g>
+
+        {/* Floating Shield/Lock */}
+        <motion.g
+          animate={{ y: [0, 4, 0], scale: [1, 1.05, 1] }}
+          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+        >
+          {/* Lock body */}
+          <rect
+            x="80"
+            y="80"
+            width="24"
+            height="18"
+            rx="5"
+            fill="#a7f3d0"
+            stroke="#047857"
+            strokeWidth="2"
+          />
+          {/* Lock shackle */}
+          <path
+            d="M85 80 v-5 c0 -3.8 3.2 -7 7 -7 s7 3.2 7 7 v5"
+            stroke="#a7f3d0"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+          />
+          {/* Keyhole */}
+          <circle cx="92" cy="87" r="2.5" fill="#047857" />
+          <path d="M91 89 h2 v3 h-2 z" fill="#047857" />
+        </motion.g>
+      </svg>
+    </div>
+  );
+}
+
 /* Step Illustrations */
 function Step1Illustration() {
   return (
-    <svg
-      width="180"
-      height="120"
-      viewBox="0 0 180 120"
-      fill="none"
-      className="overflow-visible"
-    >
+    <svg width="180" height="120" viewBox="0 0 180 120" fill="none" className="overflow-visible">
       {/* Grid background */}
       <motion.path
         d="M20 20 h140 M20 50 h140 M20 80 h140 M40 10 v100 M90 10 v100 M140 10 v100"
@@ -673,13 +753,7 @@ function Step1Illustration() {
 
 function Step2Illustration() {
   return (
-    <svg
-      width="180"
-      height="120"
-      viewBox="0 0 180 120"
-      fill="none"
-      className="overflow-visible"
-    >
+    <svg width="180" height="120" viewBox="0 0 180 120" fill="none" className="overflow-visible">
       {/* Sprout and bag */}
       <motion.g
         animate={{ y: [0, -6, 0] }}
@@ -704,14 +778,7 @@ function Step2Illustration() {
         {/* Sprout motif on bag */}
         <path d="M57 70 c0 -8 8 -8 8 -8 s0 8 -8 8" fill="#14b866" />
         <path d="M57 70 c0 -8 -8 -8 -8 -8 s0 8 8 8" fill="#14b866" />
-        <line
-          x1="57"
-          y1="62"
-          x2="57"
-          y2="76"
-          stroke="#0c7a48"
-          strokeWidth="2"
-        />
+        <line x1="57" y1="62" x2="57" y2="76" stroke="#0c7a48" strokeWidth="2" />
         {/* Label line */}
         <motion.rect
           x="45"
@@ -772,21 +839,10 @@ function Step2Illustration() {
 
 function Step3Illustration() {
   return (
-    <svg
-      width="180"
-      height="120"
-      viewBox="0 0 180 120"
-      fill="none"
-      className="overflow-visible"
-    >
+    <svg width="180" height="120" viewBox="0 0 180 120" fill="none" className="overflow-visible">
       {/* Stand for scales */}
       <path d="M90 90 v-35" stroke="#dde3d6" strokeWidth="4" />
-      <path
-        d="M75 90 h30"
-        stroke="#dde3d6"
-        strokeWidth="4"
-        strokeLinecap="round"
-      />
+      <path d="M75 90 h30" stroke="#dde3d6" strokeWidth="4" strokeLinecap="round" />
 
       {/* Pivot point */}
       <circle cx="90" cy="55" r="3" fill="#939e8a" />
@@ -802,30 +858,11 @@ function Step3Illustration() {
         style={{ originX: "90px", originY: "55px" }}
       >
         {/* Beam */}
-        <line
-          x1="40"
-          y1="55"
-          x2="140"
-          y2="55"
-          stroke="#939e8a"
-          strokeWidth="3"
-        />
+        <line x1="40" y1="55" x2="140" y2="55" stroke="#939e8a" strokeWidth="3" />
 
         {/* Left pan strings and pan */}
-        <path
-          d="M40 55 L30 75 h20 Z"
-          stroke="#939e8a"
-          strokeWidth="1"
-          fill="none"
-        />
-        <line
-          x1="30"
-          y1="75"
-          x2="50"
-          y2="75"
-          stroke="#939e8a"
-          strokeWidth="2.5"
-        />
+        <path d="M40 55 L30 75 h20 Z" stroke="#939e8a" strokeWidth="1" fill="none" />
+        <line x1="30" y1="75" x2="50" y2="75" stroke="#939e8a" strokeWidth="2.5" />
 
         {/* Rice Sack in left pan */}
         <g transform="translate(10, 32)">
@@ -847,20 +884,8 @@ function Step3Illustration() {
         </g>
 
         {/* Right pan strings and pan */}
-        <path
-          d="M140 55 L130 75 h20 Z"
-          stroke="#939e8a"
-          strokeWidth="1"
-          fill="none"
-        />
-        <line
-          x1="130"
-          y1="75"
-          x2="150"
-          y2="75"
-          stroke="#939e8a"
-          strokeWidth="2.5"
-        />
+        <path d="M140 55 L130 75 h20 Z" stroke="#939e8a" strokeWidth="1" fill="none" />
+        <line x1="130" y1="75" x2="150" y2="75" stroke="#939e8a" strokeWidth="2.5" />
 
         {/* Weight in right pan */}
         <g transform="translate(118, 55)">
@@ -946,13 +971,7 @@ function Step3Illustration() {
 
 function Step4Illustration({ isDark }: { isDark?: boolean }) {
   return (
-    <svg
-      width="180"
-      height="120"
-      viewBox="0 0 180 120"
-      fill="none"
-      className="overflow-visible"
-    >
+    <svg width="180" height="120" viewBox="0 0 180 120" fill="none" className="overflow-visible">
       {/* Central Node */}
       <motion.g
         animate={{ scale: [1, 1.05, 1] }}
@@ -1181,110 +1200,154 @@ function HowItWorks() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 md:pt-4 md:pb-12">
-          {steps.map((s, idx) => {
-            const isDark = idx === 3;
-            const isGreen = idx === 1;
-
-            // Offset alignment for staggered wave effect
-            const transformClass = idx % 2 === 0 ? "" : "md:translate-y-12";
-
-            // Varying background and text
-            let cardBgClass = "bg-white border border-gray-200 text-gray-900";
-            let badgeClass = "bg-gray-100 text-gray-500";
-            let bodyTextClass = "text-gray-700";
-            let numColorClass = "text-verdant-950/[0.04]";
-            const cardStyle: React.CSSProperties = {
-              borderRadius: "3rem",
-            };
-
-            if (isGreen) {
-              cardBgClass = "bg-[#E2F1E1] text-gray-900";
-              badgeClass = "bg-white text-emerald-800";
-              bodyTextClass = "text-gray-800";
-              numColorClass = "text-emerald-950/[0.04]";
-            } else if (isDark) {
-              cardBgClass = "bg-primary-dark text-white";
-              badgeClass = "bg-white/20 text-emerald-200";
-              bodyTextClass = "text-emerald-100/90";
-              numColorClass = "text-white/[0.05]";
-            }
-
-            // Asymmetric border-radius
-            if (idx === 0) cardStyle.borderRadius = "3rem 1rem 3rem 3rem";
-            else if (idx === 1) cardStyle.borderRadius = "1rem 3rem 3rem 3rem";
-            else if (idx === 2) cardStyle.borderRadius = "3rem 3rem 1rem 3rem";
-            else if (idx === 3) cardStyle.borderRadius = "3rem 3rem 3rem 1rem";
-
-            return (
-              <motion.div
-                key={s.n}
-                className={`${cardBgClass} p-10 md:p-12 shadow-sm relative overflow-hidden group hover:shadow-md transition-all ${transformClass}`}
-                style={cardStyle}
-                initial={{ opacity: 0, y: 40, filter: "blur(10px)" }}
-                whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                viewport={{ once: true, margin: "-100px" }}
-                whileHover="hover"
-                variants={{
-                  hover: { y: -8, scale: 1.02 },
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 md:pt-4 md:pb-12">
+          {/* Left Side: Large Visual Card (Different version of Kendala Lapangan layout) */}
+          <div className="lg:col-span-5 relative">
+            <div
+              className="relative overflow-hidden bg-primary-dark w-full h-full min-h-[400px]"
+              style={{
+                borderRadius: "2rem",
+                borderTopRightRadius: "6rem",
+              }}
+            >
+              <Image
+                alt="Dashboard illustration"
+                className="object-cover opacity-80"
+                src={IMG.dashboard}
+                fill
+                sizes="(max-width: 1024px) 100vw, 40vw"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-primary-dark via-primary-dark/40 to-transparent" />
+              <div
+                className="absolute bottom-8 left-8 right-8 rounded-2xl p-6 shadow-sm z-10"
+                style={{
+                  background: "rgba(255,255,255,0.1)",
+                  backdropFilter: "blur(12px)",
+                  border: "1px solid rgba(255,255,255,0.2)",
                 }}
-                transition={{ type: "spring", stiffness: 180, damping: 20 }}
               >
-                {/* Decorative Hover Circles */}
-                {!isDark && !isGreen && (
-                  <div
-                    className="absolute top-0 right-0 w-32 h-32 rounded-full -mr-16 -mt-16 transition-transform duration-500 group-hover:scale-110"
-                    style={{ backgroundColor: "#fcf9f8" }}
-                  />
-                )}
-                {isGreen && (
-                  <div
-                    className="absolute top-0 right-0 w-32 h-32 rounded-full -mr-16 -mt-16 transition-transform duration-500 group-hover:scale-110"
-                    style={{ backgroundColor: "rgba(255,255,255,0.4)" }}
-                  />
-                )}
-                {isDark && (
-                  <div
-                    className="absolute -bottom-12 -right-12 w-48 h-48 rounded-full blur-3xl transition-transform duration-500 group-hover:scale-110"
-                    style={{ backgroundColor: "rgba(255,255,255,0.08)" }}
-                  />
-                )}
-
-                {/* Roman Numeral Watermark */}
-                <span
-                  className={`font-display text-[8rem] font-bold absolute bottom-0 right-4 pointer-events-none select-none z-0 transition-transform duration-500 group-hover:-translate-y-2 group-hover:scale-105 ${numColorClass}`}
-                >
-                  {s.n}
-                </span>
-
-                <div className="relative z-10 flex flex-col h-full">
-                  <div>
+                <SmartContractIllustration />
+                <div className="flex items-center gap-3 mb-3 relative z-10">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-300">
                     <span
-                      className={`inline-block px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest mb-8 ${badgeClass}`}
+                      className="material-symbols-outlined text-sm"
+                      style={{ fontFamily: "'Material Symbols Outlined'" }}
                     >
-                      Langkah {s.n}
+                      lock
                     </span>
-                    <h3
-                      className={`text-3xl font-medium mb-4 ${isDark ? "text-white" : "text-gray-900"}`}
-                    >
-                      {s.title}
-                    </h3>
-                    <p
-                      className={`${bodyTextClass} text-lg leading-relaxed mb-6`}
-                    >
-                      {s.body}
-                    </p>
-                  </div>
-                  <div className="mt-auto pt-6 flex justify-center w-full">
-                    {idx === 0 && <Step1Illustration />}
-                    {idx === 1 && <Step2Illustration />}
-                    {idx === 2 && <Step3Illustration />}
-                    {idx === 3 && <Step4Illustration isDark={isDark} />}
-                  </div>
+                  </span>
+                  <p className="text-sm font-semibold text-emerald-200 uppercase tracking-wider">
+                    Smart Contract
+                  </p>
                 </div>
-              </motion.div>
-            );
-          })}
+                <p className="text-xl font-medium text-white leading-snug relative z-10 max-w-[80%]">
+                  Terotomatisasi di Soroban secara transparan
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Side: Bento Grid for Steps */}
+          <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {steps.map((s, idx) => {
+              const isDark = idx === 3;
+              const isGreen = idx === 1;
+
+              // Varying background and text
+              let cardBgClass = "bg-white border border-gray-200 text-gray-900";
+              let badgeClass = "bg-gray-100 text-gray-500";
+              let bodyTextClass = "text-gray-700";
+              let numColorClass = "text-verdant-950/[0.04]";
+              const cardStyle: React.CSSProperties = {
+                borderRadius: "2rem",
+              };
+
+              if (isGreen) {
+                cardBgClass = "bg-[#E2F1E1] text-gray-900";
+                badgeClass = "bg-white text-emerald-800";
+                bodyTextClass = "text-gray-800";
+                numColorClass = "text-emerald-950/[0.04]";
+              } else if (isDark) {
+                cardBgClass = "bg-primary-dark text-white";
+                badgeClass = "bg-white/20 text-emerald-200";
+                bodyTextClass = "text-emerald-100/90";
+                numColorClass = "text-white/[0.05]";
+              }
+
+              // Asymmetric border-radius scaled down for smaller cards
+              if (idx === 0) cardStyle.borderRadius = "2rem 1rem 2rem 2rem";
+              else if (idx === 1) cardStyle.borderRadius = "1rem 2rem 2rem 2rem";
+              else if (idx === 2) cardStyle.borderRadius = "2rem 2rem 1rem 2rem";
+              else if (idx === 3) cardStyle.borderRadius = "2rem 2rem 2rem 1rem";
+
+              return (
+                <motion.div
+                  key={s.n}
+                  className={`${cardBgClass} p-6 md:p-8 shadow-sm relative overflow-hidden group hover:shadow-md flex flex-col`}
+                  style={cardStyle}
+                  initial={{ opacity: 0, y: 40, filter: "blur(10px)" }}
+                  whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                  viewport={{ once: true, margin: "-100px" }}
+                  whileHover="hover"
+                  variants={{
+                    hover: { y: -8, scale: 1.02 },
+                  }}
+                  transition={{ type: "spring", stiffness: 180, damping: 20 }}
+                >
+                  {/* Decorative Hover Circles */}
+                  {!isDark && !isGreen && (
+                    <div
+                      className="absolute top-0 right-0 w-24 h-24 rounded-full -mr-12 -mt-12 group-hover:scale-110"
+                      style={{ backgroundColor: "#fcf9f8" }}
+                    />
+                  )}
+                  {isGreen && (
+                    <div
+                      className="absolute top-0 right-0 w-24 h-24 rounded-full -mr-12 -mt-12 group-hover:scale-110"
+                      style={{ backgroundColor: "rgba(255,255,255,0.4)" }}
+                    />
+                  )}
+                  {isDark && (
+                    <div
+                      className="absolute -bottom-8 -right-8 w-32 h-32 rounded-full blur-3xl group-hover:scale-110"
+                      style={{ backgroundColor: "rgba(255,255,255,0.08)" }}
+                    />
+                  )}
+
+                  {/* Roman Numeral Watermark */}
+                  <span
+                    className={`font-display text-[6rem] font-bold absolute bottom-0 right-4 pointer-events-none select-none z-0 group-hover:-translate-y-2 group-hover:scale-105 ${numColorClass}`}
+                  >
+                    {s.n}
+                  </span>
+
+                  <div className="relative z-10 flex flex-col h-full">
+                    <div>
+                      <span
+                        className={`inline-block px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest mb-6 ${badgeClass}`}
+                      >
+                        Langkah {s.n}
+                      </span>
+                      <h3
+                        className={`text-xl md:text-2xl font-medium mb-3 ${isDark ? "text-white" : "text-gray-900"}`}
+                      >
+                        {s.title}
+                      </h3>
+                      <p className={`${bodyTextClass} text-sm md:text-base leading-relaxed mb-4`}>
+                        {s.body}
+                      </p>
+                    </div>
+                    <div className="mt-auto pt-4 flex justify-center w-full origin-bottom scale-90">
+                      {idx === 0 && <Step1Illustration />}
+                      {idx === 1 && <Step2Illustration />}
+                      {idx === 2 && <Step3Illustration />}
+                      {idx === 3 && <Step4Illustration isDark={isDark} />}
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </motion.section>
@@ -1323,7 +1386,7 @@ function Impact() {
             <motion.div
               whileHover={{ y: -8, scale: 1.02 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="bg-white border border-gray-200 p-10 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:shadow-md cursor-default transition-shadow"
+              className="bg-white border border-gray-200 p-10 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:shadow-md cursor-default"
               style={{ borderRadius: "3rem" }}
             >
               <motion.div
@@ -1342,8 +1405,7 @@ function Impact() {
                   </span>
                 </div>
                 <p className="text-gray-600 text-sm">
-                  Koperasi Desa Merah Putih terdaftar dalam ekosistem pendanaan
-                  saprotan.
+                  Koperasi Desa Merah Putih terdaftar dalam ekosistem pendanaan saprotan.
                 </p>
               </div>
             </motion.div>
@@ -1352,7 +1414,7 @@ function Impact() {
             <motion.div
               whileHover={{ y: -8, scale: 1.02 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="p-10 flex flex-col justify-between relative overflow-hidden group hover:shadow-md cursor-default transition-shadow"
+              className="p-10 flex flex-col justify-between relative overflow-hidden group hover:shadow-md cursor-default"
               style={{ backgroundColor: "#E2F1E1", borderRadius: "3rem" }}
             >
               <motion.div
@@ -1372,8 +1434,7 @@ function Impact() {
                   <span className="text-gray-700 text-sm">/ kg</span>
                 </div>
                 <p className="text-gray-700 text-sm">
-                  Mengikuti patokan Harga Pembelian Pemerintah (Bapanas) untuk
-                  transparansi mutlak.
+                  Mengikuti patokan Harga Pembelian Pemerintah (Bapanas) untuk transparansi mutlak.
                 </p>
               </div>
             </motion.div>
@@ -1382,7 +1443,7 @@ function Impact() {
             <motion.div
               whileHover={{ y: -8, scale: 1.02 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="bg-white border border-gray-200 p-10 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:shadow-md cursor-default transition-shadow"
+              className="bg-white border border-gray-200 p-10 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:shadow-md cursor-default"
               style={{ borderRadius: "3rem" }}
             >
               <motion.div
@@ -1397,17 +1458,12 @@ function Impact() {
                 </h3>
                 <div className="flex items-baseline gap-2 mb-2">
                   <span className="text-4xl font-bold text-primary-dark">
-                    <CountUp
-                      to={85.96}
-                      format={(n) => n.toFixed(2)}
-                      prefix="Rp"
-                      suffix=" T"
-                    />
+                    <CountUp to={85.96} format={(n) => n.toFixed(2)} prefix="Rp" suffix=" T" />
                   </span>
                 </div>
                 <p className="text-gray-600 text-sm">
-                  Estimasi risiko gagal bayar kredit input nasional yang
-                  termitigasi oleh auto-netting.
+                  Estimasi risiko gagal bayar kredit input nasional yang termitigasi oleh
+                  auto-netting.
                 </p>
               </div>
             </motion.div>
@@ -1474,9 +1530,7 @@ function Impact() {
                       className="w-2 h-2 rounded-full bg-emerald-500 inline-block"
                     />
                   </p>
-                  <p className="text-sm font-medium text-gray-900">
-                    Soroban Contract Active
-                  </p>
+                  <p className="text-sm font-medium text-gray-900">Soroban Contract Active</p>
                 </div>
               </motion.div>
             </div>
@@ -1522,7 +1576,7 @@ function Features() {
           <motion.div
             whileHover={{ y: -5, scale: 1.02 }}
             transition={{ type: "spring", stiffness: 300, damping: 20 }}
-            className="lg:col-span-7 p-8 md:p-12 flex flex-col justify-between relative overflow-hidden transition-shadow hover:shadow-md cursor-default"
+            className="lg:col-span-7 p-8 md:p-12 flex flex-col justify-between relative overflow-hidden hover:shadow-md cursor-default"
             style={{ backgroundColor: "#E2F1E1", borderRadius: "2rem" }}
           >
             <div className="relative z-10">
@@ -1533,9 +1587,9 @@ function Features() {
                 Potong Utang Otomatis (Auto-Netting)
               </h3>
               <p className="text-gray-800 text-lg md:text-xl leading-relaxed max-w-xl">
-                Begitu koperasi membeli hasil panen, utang pupuk/saprotan petani
-                langsung dikurangi di dalam smart contract. Sisa bersih
-                diserahkan otomatis, menghilangkan selisih pembukuan.
+                Begitu koperasi membeli hasil panen, utang pupuk/saprotan petani langsung dikurangi
+                di dalam smart contract. Sisa bersih diserahkan otomatis, menghilangkan selisih
+                pembukuan.
               </p>
             </div>
             <div className="mt-12 flex flex-wrap gap-3 relative z-10">
@@ -1576,23 +1630,20 @@ function Features() {
             <motion.div
               whileHover={{ y: -5, scale: 1.02 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="bg-white border border-gray-200 p-8 flex flex-col justify-between shadow-sm relative overflow-hidden hover:shadow-md transition-shadow cursor-default group"
+              className="bg-white border border-gray-200 p-8 flex flex-col justify-between shadow-sm relative overflow-hidden hover:shadow-md cursor-default group"
               style={{ borderRadius: "2rem" }}
             >
               <motion.div
                 animate={{ rotate: -360 }}
                 transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                className="absolute top-0 right-0 w-32 h-32 rounded-full -mr-16 -mt-16 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-700"
+                className="absolute top-0 right-0 w-32 h-32 rounded-full -mr-16 -mt-16 pointer-events-none opacity-0 group-hover:opacity-100"
                 style={{ backgroundColor: "#fcf9f8" }}
               />
               <div className="relative z-10">
-                <h3 className="text-2xl font-medium text-gray-900 mb-4">
-                  Bukti Panen Abadi
-                </h3>
+                <h3 className="text-2xl font-medium text-gray-900 mb-4">Bukti Panen Abadi</h3>
                 <p className="text-gray-700 leading-relaxed text-sm">
-                  Setiap setoran panen tercatat permanen di blockchain Stellar.
-                  Menjadi dokumen digital berharga bagi petani untuk membuktikan
-                  kapasitas produksinya.
+                  Setiap setoran panen tercatat permanen di blockchain Stellar. Menjadi dokumen
+                  digital berharga bagi petani untuk membuktikan kapasitas produksinya.
                 </p>
               </div>
               <div className="mt-6 relative z-10">
@@ -1605,13 +1656,13 @@ function Features() {
             <motion.div
               whileHover={{ y: -5, scale: 1.02 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="bg-white border border-gray-200 p-8 flex flex-col justify-between shadow-sm relative overflow-hidden hover:shadow-md transition-shadow cursor-default group"
+              className="bg-white border border-gray-200 p-8 flex flex-col justify-between shadow-sm relative overflow-hidden hover:shadow-md cursor-default group"
               style={{ borderRadius: "2rem" }}
             >
               <motion.div
                 animate={{ rotate: 360 }}
                 transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                className="absolute top-0 right-0 w-32 h-32 rounded-full -mr-16 -mt-16 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-700"
+                className="absolute top-0 right-0 w-32 h-32 rounded-full -mr-16 -mt-16 pointer-events-none opacity-0 group-hover:opacity-100"
                 style={{ backgroundColor: "#fcf9f8" }}
               />
               <div className="relative z-10">
@@ -1619,9 +1670,8 @@ function Features() {
                   Reputasi yang Membuka Modal
                 </h3>
                 <p className="text-gray-700 leading-relaxed text-sm">
-                  Semakin rajin melunasi utang saprotan via panen, skor reputasi
-                  petani meningkat. Memudahkan mereka meminjam dana darurat atau
-                  modal tambahan di masa depan.
+                  Semakin rajin melunasi utang saprotan via panen, skor reputasi petani meningkat.
+                  Memudahkan mereka meminjam dana darurat atau modal tambahan di masa depan.
                 </p>
               </div>
               <div className="mt-6 relative z-10">
@@ -1741,25 +1791,54 @@ function Roadmap() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-24 relative">
-            {/* Connecting dashed line in background (visible on desktop) */}
-            <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-px border-l-2 border-dashed border-emerald-100 -translate-x-1/2 z-0" />
-
-            {/* Left column */}
-            <div className="flex flex-col gap-8 relative z-10">
-              <RoadmapCard item={layers[0]!} index={0} />
-              <div className="md:mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 relative">
+            {/* Left Side: Bento Grid for Roadmap Layers (Different version of Kendala Lapangan layout) */}
+            <div className="lg:col-span-7 flex flex-col gap-5 relative z-10">
+              <RoadmapCard item={layers[0]!} index={0} fullWidth />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <RoadmapCard item={layers[1]!} index={1} />
                 <RoadmapCard item={layers[2]!} index={2} />
               </div>
-              <div className="md:mt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <RoadmapCard item={layers[3]!} index={3} />
                 <RoadmapCard item={layers[4]!} index={4} />
               </div>
             </div>
-            {/* Right column (offset) */}
-            <div className="flex flex-col gap-8 md:pt-24 relative z-10">
-              <RoadmapCard item={layers[1]!} index={1} />
-              <div className="md:mt-6">
-                <RoadmapCard item={layers[3]!} index={3} />
+
+            {/* Right Side: Large Visual Card */}
+            <div className="lg:col-span-5 relative z-10">
+              <div
+                className="relative overflow-hidden w-full h-full min-h-[400px] bg-primary-dark"
+                style={{
+                  borderRadius: "2rem",
+                  borderBottomLeftRadius: "6rem",
+                }}
+              >
+                <Image
+                  alt="Roadmap vision"
+                  className="object-cover opacity-60 mix-blend-overlay"
+                  src={IMG.camilla}
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 40vw"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-primary-dark via-primary-dark/50 to-transparent" />
+                <div className="absolute bottom-10 left-8 right-8 z-10">
+                  <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-emerald-300 mb-6 backdrop-blur-md border border-white/20">
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontFamily: "'Material Symbols Outlined'" }}
+                    >
+                      public
+                    </span>
+                  </div>
+                  <h3 className="text-3xl font-medium text-white mb-3 leading-tight">
+                    Ekosistem Pertanian Terdesentralisasi
+                  </h3>
+                  <p className="text-emerald-100/80 text-base leading-relaxed">
+                    Menghubungkan petani desa dengan likuiditas global melalui teknologi Web3,
+                    menciptakan ekonomi sirkular yang adil dan transparan.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -1772,6 +1851,7 @@ function Roadmap() {
 function RoadmapCard({
   item,
   index,
+  fullWidth,
 }: {
   item: {
     level: string;
@@ -1781,15 +1861,14 @@ function RoadmapCard({
     style: "green" | "white";
   };
   index: number;
+  fullWidth?: boolean;
 }) {
   const isGreen = item.active;
 
-  const badgeClass = isGreen
-    ? "bg-white text-emerald-800 shadow-sm"
-    : "bg-gray-100 text-gray-500";
+  const badgeClass = isGreen ? "bg-white text-emerald-800 shadow-sm" : "bg-gray-100 text-gray-500";
 
   const cardStyle: React.CSSProperties = {
-    borderRadius: "3rem",
+    borderRadius: "2rem",
     ...(isGreen ? { backgroundColor: "#E2F1E1" } : {}),
   };
 
@@ -1799,8 +1878,8 @@ function RoadmapCard({
       whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
       viewport={{ once: true, margin: "-50px" }}
       transition={{ duration: 0.6, ease: "easeOut", delay: index * 0.1 }}
-      whileHover={{ y: -8, scale: 1.02 }}
-      className={`p-10 md:p-12 shadow-sm relative overflow-hidden group ${isGreen ? "border border-emerald-300" : "bg-white border border-gray-200 hover:shadow-md cursor-default"}`}
+      whileHover={{ y: -4, scale: 1.01 }}
+      className={`p-6 md:p-8 shadow-sm relative overflow-hidden flex flex-col justify-between group h-full ${isGreen ? "border border-emerald-300" : "bg-white border border-gray-200 hover:shadow-md cursor-default"}`}
       style={cardStyle}
     >
       {/* Active Pulse Border Effect */}
@@ -1808,7 +1887,7 @@ function RoadmapCard({
         <motion.div
           animate={{ opacity: [0.4, 0.8, 0.4] }}
           transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute inset-0 border-2 border-emerald-400/50 rounded-[3rem] pointer-events-none"
+          className="absolute inset-0 border-2 border-emerald-400/50 rounded-[2rem] pointer-events-none"
         />
       )}
 
@@ -1817,7 +1896,7 @@ function RoadmapCard({
         <motion.div
           animate={{ scale: [1, 1.1, 1], rotate: [0, 90, 0] }}
           transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-          className="absolute top-0 right-0 w-32 h-32 rounded-full -mr-16 -mt-16 pointer-events-none"
+          className="absolute top-0 right-0 w-24 h-24 rounded-full -mr-12 -mt-12 pointer-events-none"
           style={{ backgroundColor: "#fcf9f8" }}
         />
       )}
@@ -1840,14 +1919,12 @@ function RoadmapCard({
 
       <div className="relative z-10">
         <span
-          className={`inline-block px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest mb-8 ${badgeClass}`}
+          className={`inline-block px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest mb-4 ${badgeClass}`}
         >
           {item.level} {isGreen ? "(Aktif Sekarang)" : ""}
         </span>
-        <h3 className="text-3xl font-medium text-gray-900 mb-4">{item.name}</h3>
-        <p
-          className={`text-lg leading-relaxed ${isGreen ? "text-gray-800" : "text-gray-700"}`}
-        >
+        <h3 className="text-2xl font-medium text-gray-900 mb-2">{item.name}</h3>
+        <p className={`text-sm leading-relaxed ${isGreen ? "text-gray-800" : "text-gray-700"}`}>
           {item.note}
         </p>
       </div>
@@ -1894,12 +1971,8 @@ function CtaBand() {
             <h2 className="text-4xl md:text-6xl font-medium text-white mb-8 tracking-tight leading-tight">
               Satu rel pembayaran untuk 80.000 koperasi desa.
             </h2>
-            <p
-              className="text-xl mb-12 leading-relaxed"
-              style={{ color: "rgba(255,255,255,0.8)" }}
-            >
-              Mulai dari koperasi Anda. Catat satu panen, rasakan transparansi
-              mutlaknya.
+            <p className="text-xl mb-12 leading-relaxed" style={{ color: "rgba(255,255,255,0.8)" }}>
+              Mulai dari koperasi Anda. Catat satu panen, rasakan transparansi mutlaknya.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
               <motion.button
@@ -1918,7 +1991,7 @@ function CtaBand() {
                   ease: "easeInOut",
                 }}
                 type="button"
-                className="px-8 py-4 rounded-full font-semibold text-lg transition-colors text-primary-dark w-full sm:w-auto cursor-pointer"
+                className="px-8 py-4 rounded-full font-semibold text-lg text-primary-dark w-full sm:w-auto cursor-pointer"
                 style={{ backgroundColor: "#d8ead0" }}
               >
                 Coba untuk Koperasi
@@ -1928,7 +2001,7 @@ function CtaBand() {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   type="button"
-                  className="px-8 py-4 rounded-full font-semibold text-lg text-white transition-colors border border-white/40 hover:bg-white/10 w-full cursor-pointer"
+                  className="px-8 py-4 rounded-full font-semibold text-lg text-white border border-white/40 hover:bg-white/10 w-full cursor-pointer"
                 >
                   Lihat Design System
                 </motion.button>
@@ -1999,11 +2072,7 @@ function Footer() {
             </div>
           </div>
           <div className="flex gap-3">
-            <a
-              href="https://github.com/annona-protocol"
-              target="_blank"
-              rel="noreferrer"
-            >
+            <a href="https://github.com/annona-protocol" target="_blank" rel="noreferrer">
               <button
                 type="button"
                 className="px-5 py-2.5 rounded-full text-xs font-semibold border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors"
@@ -2024,8 +2093,8 @@ function Footer() {
               </span>
             </div>
             <p className="text-gray-700 font-medium max-w-[280px] text-sm">
-              Rel pembayaran dan settlement panen untuk koperasi desa. Pupuk
-              dulu, bayar pas panen, semua tercatat rapi.
+              Rel pembayaran dan settlement panen untuk koperasi desa. Pupuk dulu, bayar pas panen,
+              semua tercatat rapi.
             </p>
             <div className="flex gap-3 text-gray-500">
               <a
