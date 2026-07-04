@@ -18,10 +18,7 @@ export const referenceRoute = new Hono()
     return c.json({ items: json(items) });
   })
   .get("/hpp", async (c) => {
-    const items = await getDb()
-      .select()
-      .from(schema.priceRef)
-      .orderBy(desc(schema.priceRef.asOf));
+    const items = await getDb().select().from(schema.priceRef).orderBy(desc(schema.priceRef.asOf));
     return c.json({ items: json(items) });
   })
   .get("/catalog", async (c) => {

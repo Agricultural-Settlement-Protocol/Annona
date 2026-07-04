@@ -95,7 +95,9 @@ function SplitRow({
   return (
     <div className="flex items-center justify-between gap-4 px-5 py-4">
       <div className="flex items-center gap-3">
-        <span className={cn("inline-flex h-9 w-9 items-center justify-center rounded-lg", iconTone)}>
+        <span
+          className={cn("inline-flex h-9 w-9 items-center justify-center rounded-lg", iconTone)}
+        >
           {icon}
         </span>
         <div>
