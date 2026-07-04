@@ -679,7 +679,6 @@ function Step1Illustration() {
         whileHover={{
           y: -10,
           rotate: -5,
-          scale: 1.1,
           transition: { type: "spring", stiffness: 300 },
         }}
       >
@@ -733,7 +732,6 @@ function Step1Illustration() {
         animate={{ y: [0, -4, 0] }}
         transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
         whileHover={{
-          scale: 1.25,
           rotate: 360,
           transition: { type: "spring" },
         }}
@@ -759,7 +757,6 @@ function Step2Illustration() {
         animate={{ y: [0, -6, 0] }}
         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
         whileHover={{
-          scale: 1.1,
           rotate: [-4, 4, -4],
           transition: { duration: 0.5, repeat: Infinity },
         }}
@@ -796,7 +793,6 @@ function Step2Illustration() {
       <motion.g
         animate={{ y: [0, 5, 0] }}
         transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
-        whileHover={{ scale: 1.05 }}
       >
         {/* Lock shackle */}
         <motion.path
@@ -900,7 +896,6 @@ function Step3Illustration() {
         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
         whileHover={{
           y: -15,
-          scale: 1.1,
           rotate: -2,
           transition: { type: "spring" },
         }}
@@ -1010,7 +1005,6 @@ function Step4Illustration({ isDark }: { isDark?: boolean }) {
 
       {/* Left Node: Farmer */}
       <motion.g
-        whileHover={{ scale: 1.1 }}
         animate={{ y: [0, -2, 0] }}
         transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
       >
@@ -1039,7 +1033,6 @@ function Step4Illustration({ isDark }: { isDark?: boolean }) {
 
       {/* Right Node: Payback */}
       <motion.g
-        whileHover={{ scale: 1.1 }}
         animate={{ y: [0, -2, 0] }}
         transition={{
           duration: 3,
@@ -1290,33 +1283,33 @@ function HowItWorks() {
                   viewport={{ once: true, margin: "-100px" }}
                   whileHover="hover"
                   variants={{
-                    hover: { y: -8, scale: 1.02 },
+                    hover: { y: -8 },
                   }}
                   transition={{ type: "spring", stiffness: 180, damping: 20 }}
                 >
                   {/* Decorative Hover Circles */}
                   {!isDark && !isGreen && (
                     <div
-                      className="absolute top-0 right-0 w-24 h-24 rounded-full -mr-12 -mt-12 group-hover:scale-110"
+                      className="absolute top-0 right-0 w-24 h-24 rounded-full -mr-12 -mt-12"
                       style={{ backgroundColor: "#fcf9f8" }}
                     />
                   )}
                   {isGreen && (
                     <div
-                      className="absolute top-0 right-0 w-24 h-24 rounded-full -mr-12 -mt-12 group-hover:scale-110"
+                      className="absolute top-0 right-0 w-24 h-24 rounded-full -mr-12 -mt-12"
                       style={{ backgroundColor: "rgba(255,255,255,0.4)" }}
                     />
                   )}
                   {isDark && (
                     <div
-                      className="absolute -bottom-8 -right-8 w-32 h-32 rounded-full blur-3xl group-hover:scale-110"
+                      className="absolute -bottom-8 -right-8 w-32 h-32 rounded-full blur-3xl"
                       style={{ backgroundColor: "rgba(255,255,255,0.08)" }}
                     />
                   )}
 
                   {/* Roman Numeral Watermark */}
                   <span
-                    className={`font-display text-[6rem] font-bold absolute bottom-0 right-4 pointer-events-none select-none z-0 group-hover:-translate-y-2 group-hover:scale-105 ${numColorClass}`}
+                    className={`font-display text-[6rem] font-bold absolute bottom-0 right-4 pointer-events-none select-none z-0 group-hover:-translate-y-2 ${numColorClass}`}
                   >
                     {s.n}
                   </span>
@@ -1384,7 +1377,7 @@ function Impact() {
           <div className="lg:col-span-5 flex flex-col gap-6">
             {/* Metric 1 */}
             <motion.div
-              whileHover={{ y: -8, scale: 1.02 }}
+              whileHover={{ y: -8 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
               className="bg-white border border-gray-200 p-10 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:shadow-md cursor-default"
               style={{ borderRadius: "3rem" }}
@@ -1412,7 +1405,7 @@ function Impact() {
 
             {/* Metric 2 */}
             <motion.div
-              whileHover={{ y: -8, scale: 1.02 }}
+              whileHover={{ y: -8 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
               className="p-10 flex flex-col justify-between relative overflow-hidden group hover:shadow-md cursor-default"
               style={{ backgroundColor: "#E2F1E1", borderRadius: "3rem" }}
@@ -1441,7 +1434,7 @@ function Impact() {
 
             {/* Metric 3 */}
             <motion.div
-              whileHover={{ y: -8, scale: 1.02 }}
+              whileHover={{ y: -8 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
               className="bg-white border border-gray-200 p-10 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:shadow-md cursor-default"
               style={{ borderRadius: "3rem" }}
@@ -1574,7 +1567,7 @@ function Features() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Left: Large feature card */}
           <motion.div
-            whileHover={{ y: -5, scale: 1.02 }}
+            whileHover={{ y: -5 }}
             transition={{ type: "spring", stiffness: 300, damping: 20 }}
             className="lg:col-span-7 p-8 md:p-12 flex flex-col justify-between relative overflow-hidden hover:shadow-md cursor-default"
             style={{ backgroundColor: "#E2F1E1", borderRadius: "2rem" }}
@@ -1628,7 +1621,7 @@ function Features() {
           {/* Right: Two smaller cards */}
           <div className="lg:col-span-5 flex flex-col gap-6">
             <motion.div
-              whileHover={{ y: -5, scale: 1.02 }}
+              whileHover={{ y: -5 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
               className="bg-white border border-gray-200 p-8 flex flex-col justify-between shadow-sm relative overflow-hidden hover:shadow-md cursor-default group"
               style={{ borderRadius: "2rem" }}
@@ -1654,7 +1647,7 @@ function Features() {
             </motion.div>
 
             <motion.div
-              whileHover={{ y: -5, scale: 1.02 }}
+              whileHover={{ y: -5 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
               className="bg-white border border-gray-200 p-8 flex flex-col justify-between shadow-sm relative overflow-hidden hover:shadow-md cursor-default group"
               style={{ borderRadius: "2rem" }}
@@ -1878,7 +1871,7 @@ function RoadmapCard({
       whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
       viewport={{ once: true, margin: "-50px" }}
       transition={{ duration: 0.6, ease: "easeOut", delay: index * 0.1 }}
-      whileHover={{ y: -4, scale: 1.01 }}
+      whileHover={{ y: -4 }}
       className={`p-6 md:p-8 shadow-sm relative overflow-hidden flex flex-col justify-between group h-full ${isGreen ? "border border-emerald-300" : "bg-white border border-gray-200 hover:shadow-md cursor-default"}`}
       style={cardStyle}
     >
@@ -1976,7 +1969,6 @@ function CtaBand() {
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
               <motion.button
-                whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 animate={{
                   boxShadow: [
@@ -1998,7 +1990,6 @@ function CtaBand() {
               </motion.button>
               <Link href="/design" className="w-full sm:w-auto block">
                 <motion.button
-                  whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   type="button"
                   className="px-8 py-4 rounded-full font-semibold text-lg text-white border border-white/40 hover:bg-white/10 w-full cursor-pointer"
