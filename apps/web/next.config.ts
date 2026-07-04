@@ -4,6 +4,12 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   // Workspace packages ship TS source; let Next transpile them.
   transpilePackages: ["@annona/ui", "@annona/core", "@annona/sdk"],
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "lh3.googleusercontent.com" },
+      { protocol: "https", hostname: "images.unsplash.com" },
+    ],
+  },
   webpack: (config) => {
     // Resolve ".js" import specifiers to ".ts"/".tsx" source (Bundler-style imports).
     config.resolve.extensionAlias = {
