@@ -16,7 +16,7 @@ export function Landing() {
   return (
     <MotionConfig reducedMotion="user">
       <CustomCursor />
-      <div className="urbangreen-body min-h-screen flex flex-col relative">
+      <div className="urbangreen-body min-h-screen flex flex-col relative overflow-x-clip">
         <Header />
         <main className="flex-grow flex flex-col">
           <Hero />
