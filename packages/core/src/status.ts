@@ -37,3 +37,23 @@ export function classifyFlag(deliveredOverExpected: number): FlagReason {
   if (deliveredOverExpected >= FLAG_THRESHOLDS.partial) return "PartialDelivery";
   return "Suspected";
 }
+
+/** Classify a delivery into (status, flag) exactly as the contract's `classify`
+ *  (SMART-CONTRACT.md §6). The indexer replays this on every DeliveryRecorded to
+ *  derive the read-model status/flag — the on-chain `Flagged` event only fires
+ *  for the review-worthy bands, so status must be recomputed, not inferred from
+ *  the event stream. Ratio math uses bps to match the contract's integer path.
+ *  NOTE: this is the *delivery-band* status only; terminal Settled and the two
+ *  pre-delivery gates (SupplyDispatched/Active) come from their own events. */
+export function classifyDelivery(
+  deliveredVolG: bigint,
+  expectedVolG: bigint,
+): { status: Extract<Status, "Delivered" | "PartiallyDelivered" | "Flagged">; flag: FlagReason } {
+  if (expectedVolG <= 0n) return { status: "Flagged", flag: "Suspected" };
+  const ratioBps = Number((deliveredVolG * 10_000n) / expectedVolG);
+  if (ratioBps >= FLAG_THRESHOLDS.clean * 10_000) return { status: "Delivered", flag: "None" };
+  if (ratioBps >= FLAG_THRESHOLDS.warning * 10_000) return { status: "Delivered", flag: "Warning" };
+  if (ratioBps >= FLAG_THRESHOLDS.partial * 10_000)
+    return { status: "PartiallyDelivered", flag: "PartialDelivery" };
+  return { status: "Flagged", flag: "Suspected" };
+}
