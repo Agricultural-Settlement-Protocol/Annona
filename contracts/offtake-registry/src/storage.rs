@@ -9,7 +9,7 @@
 use soroban_sdk::{Address, Env, Vec};
 
 use crate::errors::ContractError;
-use crate::types::{Agreement, DataKey, HarvestReceipt, Reputation};
+use crate::types::{Agreement, CoopReputation, DataKey, HarvestReceipt, Reputation};
 
 // ~5s/ledger. Extend to ~30 days when TTL drops under ~1 day. Ample for the
 // hackathon (testnet resets quarterly anyway); tune EXTEND_TO up for prod.
@@ -115,6 +115,30 @@ pub fn get_reputation(env: &Env, farmer: &Address) -> Reputation {
 pub fn set_reputation(env: &Env, reputation: &Reputation) {
     let key = DataKey::Reputation(reputation.farmer.clone());
     env.storage().persistent().set(&key, reputation);
+    env.storage()
+        .persistent()
+        .extend_ttl(&key, TTL_THRESHOLD, TTL_EXTEND_TO);
+}
+
+// ── CoopReputation (per-KMP counters; defaults to zeros for a new coop) ──
+pub fn get_coop_reputation(env: &Env, coop: &Address) -> CoopReputation {
+    env.storage()
+        .persistent()
+        .get(&DataKey::CoopReputation(coop.clone()))
+        .unwrap_or_else(|| CoopReputation {
+            coop: coop.clone(),
+            agreements: 0,
+            settlements: 0,
+            total_residu_principal: 0,
+            total_residu_cleared: 0,
+            disputes: 0,
+            frozen: false,
+        })
+}
+
+pub fn set_coop_reputation(env: &Env, coop_rep: &CoopReputation) {
+    let key = DataKey::CoopReputation(coop_rep.coop.clone());
+    env.storage().persistent().set(&key, coop_rep);
     env.storage()
         .persistent()
         .extend_ttl(&key, TTL_THRESHOLD, TTL_EXTEND_TO);

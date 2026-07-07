@@ -1,6 +1,6 @@
 {
   "generators": {
-    "address": 6,
+    "address": 7,
     "nonce": 0,
     "mux_id": 0
   },
@@ -103,10 +103,10 @@
                   ]
                 },
                 {
-                  "i128": "100000000"
+                  "i128": "2000000"
                 },
                 {
-                  "u32": 0
+                  "u32": 1000
                 },
                 {
                   "u32": 500
@@ -190,7 +190,7 @@
                   "u64": "0"
                 },
                 {
-                  "i128": "100000"
+                  "i128": "2600000"
                 },
                 {
                   "symbol": "A"
@@ -224,7 +224,31 @@
         }
       ]
     ],
-    [],
+    [
+      [
+        "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4",
+        {
+          "function": {
+            "contract_fn": {
+              "contract_address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMDR4",
+              "function_name": "mark_residu_remitted",
+              "args": [
+                {
+                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4"
+                },
+                {
+                  "u64": "0"
+                },
+                {
+                  "bytes": "0909090909090909090909090909090909090909090909090909090909090909"
+                }
+              ]
+            }
+          },
+          "sub_invocations": []
+        }
+      ]
+    ],
     []
   ],
   "ledger": {
@@ -367,6 +391,26 @@
               "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4",
               "key": {
                 "ledger_key_nonce": {
+                  "nonce": "6277191135259896685"
+                }
+              },
+              "durability": "temporary",
+              "val": "void"
+            }
+          },
+          "ext": "v0"
+        },
+        "live_until": 6311999
+      },
+      {
+        "entry": {
+          "last_modified_ledger_seq": 0,
+          "data": {
+            "contract_data": {
+              "ext": "v0",
+              "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4",
+              "key": {
+                "ledger_key_nonce": {
                   "nonce": "8370022561469687789"
                 }
               },
@@ -431,7 +475,7 @@
                       "symbol": "base_price_agrinas"
                     },
                     "val": {
-                      "i128": "100000000"
+                      "i128": "2000000"
                     }
                   },
                   {
@@ -488,7 +532,7 @@
                       "symbol": "coop_handling_accrued"
                     },
                     "val": {
-                      "i128": "32500"
+                      "i128": "845000"
                     }
                   },
                   {
@@ -496,7 +540,7 @@
                       "symbol": "coop_margin_accrued"
                     },
                     "val": {
-                      "i128": "0"
+                      "i128": "200000"
                     }
                   },
                   {
@@ -504,7 +548,7 @@
                       "symbol": "delivered_vol_g"
                     },
                     "val": {
-                      "i128": "100000"
+                      "i128": "2600000"
                     }
                   },
                   {
@@ -530,7 +574,7 @@
                     "val": {
                       "vec": [
                         {
-                          "symbol": "Suspected"
+                          "symbol": "Warning"
                         }
                       ]
                     }
@@ -564,7 +608,7 @@
                       "symbol": "input_debt"
                     },
                     "val": {
-                      "i128": "100000000"
+                      "i128": "2200000"
                     }
                   },
                   {
@@ -580,7 +624,7 @@
                       "symbol": "paid_to_farmer"
                     },
                     "val": {
-                      "i128": "0"
+                      "i128": "13855000"
                     }
                   },
                   {
@@ -588,7 +632,7 @@
                       "symbol": "remaining_debt"
                     },
                     "val": {
-                      "i128": "99382500"
+                      "i128": "0"
                     }
                   },
                   {
@@ -596,7 +640,7 @@
                       "symbol": "residu_principal"
                     },
                     "val": {
-                      "i128": "617500"
+                      "i128": "2000000"
                     }
                   },
                   {
@@ -606,7 +650,7 @@
                     "val": {
                       "vec": [
                         {
-                          "symbol": "Pending"
+                          "symbol": "Remitted"
                         }
                       ]
                     }
@@ -616,7 +660,7 @@
                       "symbol": "saprotan_markup_bps"
                     },
                     "val": {
-                      "u32": 0
+                      "u32": 1000
                     }
                   },
                   {
@@ -624,7 +668,7 @@
                       "symbol": "settled_vol_g"
                     },
                     "val": {
-                      "i128": "100000"
+                      "i128": "2600000"
                     }
                   },
                   {
@@ -634,7 +678,7 @@
                     "val": {
                       "vec": [
                         {
-                          "symbol": "Flagged"
+                          "symbol": "Settled"
                         }
                       ]
                     }
@@ -712,7 +756,7 @@
                       "symbol": "settlements"
                     },
                     "val": {
-                      "u32": 0
+                      "u32": 1
                     }
                   },
                   {
@@ -728,7 +772,7 @@
                       "symbol": "total_residu_principal"
                     },
                     "val": {
-                      "i128": "617500"
+                      "i128": "2000000"
                     }
                   }
                 ]
@@ -806,7 +850,7 @@
                           "symbol": "volume_g"
                         },
                         "val": {
-                          "i128": "100000"
+                          "i128": "2600000"
                         }
                       }
                     ]
@@ -860,7 +904,7 @@
                       "symbol": "flags"
                     },
                     "val": {
-                      "u32": 1
+                      "u32": 0
                     }
                   },
                   {
@@ -876,7 +920,7 @@
                       "symbol": "on_time_settlements"
                     },
                     "val": {
-                      "u32": 0
+                      "u32": 1
                     }
                   },
                   {
@@ -884,7 +928,7 @@
                       "symbol": "total_settled_g"
                     },
                     "val": {
-                      "i128": "100000"
+                      "i128": "2600000"
                     }
                   }
                 ]
@@ -968,6 +1012,58 @@
                     "symbol": "Balance"
                   },
                   {
+                    "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAITA4"
+                  }
+                ]
+              },
+              "durability": "persistent",
+              "val": {
+                "map": [
+                  {
+                    "key": {
+                      "symbol": "amount"
+                    },
+                    "val": {
+                      "i128": "13855000"
+                    }
+                  },
+                  {
+                    "key": {
+                      "symbol": "authorized"
+                    },
+                    "val": {
+                      "bool": true
+                    }
+                  },
+                  {
+                    "key": {
+                      "symbol": "clawback"
+                    },
+                    "val": {
+                      "bool": false
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "ext": "v0"
+        },
+        "live_until": 518400
+      },
+      {
+        "entry": {
+          "last_modified_ledger_seq": 0,
+          "data": {
+            "contract_data": {
+              "ext": "v0",
+              "contract": "CDLDVFKHEZ2RVB3NG4UQA4VPD3TSHV6XMHXMHP2BSGCJ2IIWVTOHGDSG",
+              "key": {
+                "vec": [
+                  {
+                    "symbol": "Balance"
+                  },
+                  {
                     "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMDR4"
                   }
                 ]
@@ -980,7 +1076,7 @@
                       "symbol": "amount"
                     },
                     "val": {
-                      "i128": "100000000"
+                      "i128": "86145000"
                     }
                   },
                   {

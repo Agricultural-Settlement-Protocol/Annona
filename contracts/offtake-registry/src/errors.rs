@@ -27,4 +27,7 @@ pub enum ContractError {
     MathOverflow = 7,
     /// caller is not the agreement's coop (nor admin, for settle)
     Unauthorized = 8,
+    /// residu operation not valid for the agreement's current ResiduStatus
+    /// (e.g. confirm before remit, remit before settle, dispute before remit)
+    InvalidResiduStatus = 9,
 }
