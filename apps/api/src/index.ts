@@ -1,10 +1,14 @@
 import "dotenv/config";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import { agreementsRoute } from "./routes/agreements.js";
 import { farmersRoute } from "./routes/farmers.js";
 import { healthRoute } from "./routes/health.js";
+import { coopRoute, overviewRoute } from "./routes/overview.js";
 import { referenceRoute } from "./routes/reference.js";
+import { residuRoute } from "./routes/residu.js";
+import { settlementsRoute } from "./routes/settlements.js";
 
 /**
  * Annona API (abstraction layer).
@@ -16,10 +20,18 @@ import { referenceRoute } from "./routes/reference.js";
  */
 const app = new Hono();
 
+// Browser reads come from the web app on another origin (:3000 -> :8787).
+// Read-only API; permissive CORS is fine for the testnet MVP.
+app.use("*", cors());
+
 app.route("/health", healthRoute);
 app.route("/agreements", agreementsRoute);
 app.route("/farmers", farmersRoute);
 app.route("/reference", referenceRoute);
+app.route("/overview", overviewRoute);
+app.route("/coop", coopRoute);
+app.route("/settlements", settlementsRoute);
+app.route("/residu", residuRoute);
 
 app.get("/", (c) => c.json({ name: "annona-api", status: "ok" }));
 
