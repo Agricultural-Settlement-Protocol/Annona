@@ -85,6 +85,23 @@ export interface ApiAgreementDetail extends ApiAgreement {
   deliveries: ApiDelivery[];
 }
 
+export interface ApiDeliveryRow {
+  id: string;
+  agreementId: string;
+  agreementOnchainId: bigint;
+  farmerId: string;
+  farmerName: string;
+  commodityCode: string;
+  seq: number;
+  volumeG: bigint;
+  grade: string;
+  moistureBps: number | null;
+  receiptOnchainRef: string | null;
+  deliveredAt: string;
+  flag: FlagReason;
+  paid: boolean;
+}
+
 export interface ApiFarmerReputation {
   deliveries: number;
   onTime: number;
@@ -175,7 +192,7 @@ export interface ApiOverview {
   cashNeededThisWeek: bigint;
   inboundSupply: ApiAgreement[];
   supplyRequestRows: {
-    agreement: ApiAgreement;
+    agreement: ApiAgreement & { inputs: ApiAgreementInput[] };
     farmerId: string;
     farmerName: string;
     status: string;
@@ -257,6 +274,17 @@ export async function fetchAgreement(id: string): Promise<ApiAgreementDetail> {
   };
 }
 
+export async function fetchDeliveries(): Promise<ApiDeliveryRow[]> {
+  const { items } = await getJSON<{ items: (Raw<ApiDeliveryRow> & Record<string, unknown>)[] }>(
+    "/deliveries",
+  );
+  return items.map((r) => ({
+    ...(r as unknown as ApiDeliveryRow),
+    agreementOnchainId: big(r.agreementOnchainId),
+    volumeG: big(r.volumeG),
+  }));
+}
+
 export async function fetchFarmers(): Promise<ApiFarmer[]> {
   const { items } = await getJSON<{ items: ApiFarmer[] }>("/farmers");
   return items;
@@ -286,7 +314,12 @@ export async function fetchOverview(): Promise<ApiOverview> {
     harvestThisWeek: { rows: Raw<ApiAgreement>[]; totalKg: number; totalValue: string };
     cashNeededThisWeek: string;
     inboundSupply: Raw<ApiAgreement>[];
-    supplyRequestRows: { agreement: Raw<ApiAgreement>; farmerId: string; farmerName: string; status: string }[];
+    supplyRequestRows: {
+      agreement: Raw<ApiAgreement> & { inputs: Raw<ApiAgreementInput>[] };
+      farmerId: string;
+      farmerName: string;
+      status: string;
+    }[];
   }>("/overview");
   return {
     coopOverview: {
@@ -304,7 +337,7 @@ export async function fetchOverview(): Promise<ApiOverview> {
     inboundSupply: r.inboundSupply.map(parseAgreement),
     supplyRequestRows: r.supplyRequestRows.map((row) => ({
       ...row,
-      agreement: parseAgreement(row.agreement),
+      agreement: { ...parseAgreement(row.agreement), inputs: row.agreement.inputs.map(parseInput) },
     })),
   };
 }

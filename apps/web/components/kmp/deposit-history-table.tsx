@@ -3,12 +3,13 @@
 /**
  * Riwayat Setoran table — used on the Setor Panen page.
  * Searchable by farmer name or agreement number. Newest first.
- * Paid/unpaid badge is settlement-aware (staged settlement).
+ * Paid/unpaid badge is settlement-aware (staged settlement). Backed by /deliveries.
  */
 
+import { fetchDeliveries } from "@/lib/api";
 import { TBody, THead, Table, TableFrame, Td, Th, Tr } from "@/components/kmp/table";
-import { deliveryHistoryRows } from "@/lib/mock-data";
-import { TxHashLink } from "@annona/ui";
+import { useApi } from "@/lib/use-api";
+import { Alert, TxHashLink } from "@annona/ui";
 import { CheckCircle2, Clock } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -33,13 +34,14 @@ function PaidBadge({ paid }: { paid: boolean }) {
 
 export function DepositHistoryTable() {
   const [query, setQuery] = useState("");
-  const allRows = useMemo(() => deliveryHistoryRows(), []);
+  const { data, loading, error } = useApi(fetchDeliveries);
+  const allRows = data ?? [];
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return allRows;
     return allRows.filter(
-      (r) => r.farmer.name.toLowerCase().includes(q) || String(r.agreement.onchainId).includes(q),
+      (r) => r.farmerName.toLowerCase().includes(q) || String(r.agreementOnchainId).includes(q),
     );
   }, [allRows, query]);
 
@@ -55,55 +57,72 @@ export function DepositHistoryTable() {
         />
       </div>
 
-      <TableFrame>
-        <Table>
-          <THead>
-            <Th>Tanggal</Th>
-            <Th>Petani</Th>
-            <Th>Perjanjian</Th>
-            <Th>Setoran ke</Th>
-            <Th>Volume (kg)</Th>
-            <Th>Grade</Th>
-            <Th>Kadar Air (%)</Th>
-            <Th>Status Bayar</Th>
-            <Th>Tx</Th>
-          </THead>
-          <TBody>
-            {filtered.length === 0 ? (
-              <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-sm text-muted-foreground">
-                  Tidak ada data setoran ditemukan.
-                </td>
-              </tr>
-            ) : (
-              filtered.map((row) => (
-                <Tr key={row.delivery.id}>
-                  <Td className="tabular-nums">{row.delivery.deliveredAt}</Td>
-                  <Td className="font-medium">{row.farmer.name}</Td>
-                  <Td>
-                    <Link
-                      href={`/kmp/perjanjian/${row.agreement.id}`}
-                      className="text-accent hover:underline"
-                    >
-                      #{String(row.agreement.onchainId)}
-                    </Link>
-                  </Td>
-                  <Td>Ke-{row.delivery.seq}</Td>
-                  <Td className="tabular-nums">{row.delivery.volumeKg.toLocaleString("id-ID")}</Td>
-                  <Td>{row.delivery.grade}</Td>
-                  <Td className="tabular-nums">{(row.delivery.moistureBps / 100).toFixed(1)}</Td>
-                  <Td>
-                    <PaidBadge paid={row.paid} />
-                  </Td>
-                  <Td>
-                    <TxHashLink hash={row.delivery.receiptTxHash} />
-                  </Td>
-                </Tr>
-              ))
-            )}
-          </TBody>
-        </Table>
-      </TableFrame>
+      {loading && <p className="text-sm text-muted-foreground">Memuat riwayat setoran...</p>}
+      {error && (
+        <Alert tone="warning" title="Gagal memuat riwayat setoran">
+          {error}
+        </Alert>
+      )}
+
+      {!loading && !error && (
+        <TableFrame>
+          <Table>
+            <THead>
+              <Th>Tanggal</Th>
+              <Th>Petani</Th>
+              <Th>Perjanjian</Th>
+              <Th>Setoran ke</Th>
+              <Th>Volume (kg)</Th>
+              <Th>Grade</Th>
+              <Th>Kadar Air (%)</Th>
+              <Th>Status Bayar</Th>
+              <Th>Tx</Th>
+            </THead>
+            <TBody>
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                    Tidak ada data setoran ditemukan.
+                  </td>
+                </tr>
+              ) : (
+                filtered.map((row) => (
+                  <Tr key={row.id}>
+                    <Td className="tabular-nums">{row.deliveredAt.slice(0, 10)}</Td>
+                    <Td className="font-medium">{row.farmerName}</Td>
+                    <Td>
+                      <Link
+                        href={`/kmp/perjanjian/${row.agreementId}`}
+                        className="text-accent hover:underline"
+                      >
+                        #{String(row.agreementOnchainId)}
+                      </Link>
+                    </Td>
+                    <Td>Ke-{row.seq}</Td>
+                    <Td className="tabular-nums">
+                      {Number(row.volumeG / 1000n).toLocaleString("id-ID")}
+                    </Td>
+                    <Td>{row.grade}</Td>
+                    <Td className="tabular-nums">
+                      {row.moistureBps != null ? (row.moistureBps / 100).toFixed(1) : "-"}
+                    </Td>
+                    <Td>
+                      <PaidBadge paid={row.paid} />
+                    </Td>
+                    <Td>
+                      {row.receiptOnchainRef ? (
+                        <TxHashLink hash={row.receiptOnchainRef} />
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </Td>
+                  </Tr>
+                ))
+              )}
+            </TBody>
+          </Table>
+        </TableFrame>
+      )}
     </div>
   );
 }

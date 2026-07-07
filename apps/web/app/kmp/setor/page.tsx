@@ -11,13 +11,14 @@
  * No gradient button here — that lives solely on /kmp/pembayaran.
  */
 
+import { fetchAgreements, fetchDeliveries, fetchFarmers, farmerMap } from "@/lib/api";
 import { DepositHistoryTable } from "@/components/kmp/deposit-history-table";
 import { PageHeader } from "@/components/kmp/page-header";
 import { SearchSelect } from "@/components/kmp/search-select";
 import type { SearchSelectItem } from "@/components/kmp/search-select";
 import { useMockTx } from "@/components/kmp/use-mock-tx";
-import { MOCK_AGREEMENTS, deliveriesOfAgreement, getFarmer } from "@/lib/mock-data";
-import { classifyFlag, formatRupiah, kgToGrams } from "@annona/core";
+import { useApi } from "@/lib/use-api";
+import { classifyFlag } from "@annona/core";
 import type { Status } from "@annona/core";
 import {
   Alert,
@@ -92,6 +93,15 @@ function finalStatusLabel(flag: ReturnType<typeof classifyFlag>): string {
 }
 
 export default function SetorPage() {
+  /* ── Live data ───────────────────────────────────────────────────────── */
+  const { data, loading, error } = useApi(
+    () => Promise.all([fetchAgreements(), fetchFarmers(), fetchDeliveries()]),
+    [],
+  );
+  const agreements = data?.[0] ?? [];
+  const fmap = farmerMap(data?.[1] ?? []);
+  const allDeliveries = data?.[2] ?? [];
+
   /* ── Agreement selection ─────────────────────────────────────────────── */
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -117,24 +127,26 @@ export default function SetorPage() {
   const txFm = useMockTx(); // force majeure
 
   /* ── Derived ─────────────────────────────────────────────────────────── */
-  const eligibleAgreements = MOCK_AGREEMENTS.filter((a) => DEPOSIT_ELIGIBLE.includes(a.status));
+  const eligibleAgreements = agreements.filter((a) => DEPOSIT_ELIGIBLE.includes(a.status));
 
   const selectItems: SearchSelectItem[] = eligibleAgreements.map((a) => {
-    const farmer = getFarmer(a.farmerId);
+    const farmer = fmap.get(a.farmerId);
     const deliveredKg = Number(a.deliveredVolG / 1000n);
     const remainKg = a.expectedVolKg - deliveredKg;
     return {
       id: a.id,
-      label: farmer?.name ?? "(petani)",
+      label: a.farmerName,
       sublabel: `Perjanjian #${a.onchainId}, sisa perkiraan ${remainKg.toLocaleString("id-ID")} kg`,
       keywords: `${a.commodityCode} ${farmer?.kecamatan ?? ""}`,
     };
   });
 
-  const agreement = MOCK_AGREEMENTS.find((a) => a.id === selectedId) ?? null;
-  const farmer = agreement ? getFarmer(agreement.farmerId) : null;
+  const agreement = agreements.find((a) => a.id === selectedId) ?? null;
+  const farmer = agreement ? (fmap.get(agreement.farmerId) ?? null) : null;
 
-  const existingDeliveries = agreement ? deliveriesOfAgreement(agreement.id) : [];
+  const existingDeliveries = agreement
+    ? allDeliveries.filter((d) => d.agreementId === agreement.id)
+    : [];
   const deliveredSoFarKg = agreement ? Number(agreement.deliveredVolG / 1000n) : 0;
   const inputKgNum = Number.parseFloat(volumeKg) || 0;
   const totalDeliveredKg = deliveredSoFarKg + inputKgNum;
@@ -214,6 +226,15 @@ export default function SetorPage() {
           </Button>
         }
       />
+
+      {loading && (
+        <p className="text-sm text-muted-foreground">Memuat perjanjian aktif...</p>
+      )}
+      {error && (
+        <Alert tone="warning" title="Gagal memuat perjanjian">
+          {error}
+        </Alert>
+      )}
 
       {/* Step 1: Pilih perjanjian */}
       <Card>

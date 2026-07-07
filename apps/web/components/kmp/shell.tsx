@@ -1,6 +1,8 @@
 "use client";
 
-import { MOCK_COOP, shortAddr } from "@/lib/mock-data";
+import { fetchCoop } from "@/lib/api";
+import { useApi } from "@/lib/use-api";
+import { shortAddr } from "@/lib/mock-data";
 import { Logo, LogoMark } from "@annona/ui";
 import { cn } from "@annona/ui";
 import type { LucideIcon } from "lucide-react";
@@ -121,6 +123,8 @@ function SidebarContent({
   onToggle?: () => void;
 }) {
   const pathname = usePathname();
+  const { data: coopData } = useApi(fetchCoop);
+  const coop = coopData?.coop;
   return (
     <div className="flex h-full flex-col">
       <div
@@ -154,12 +158,12 @@ function SidebarContent({
 
       {collapsed ? null : (
         <div className="mx-4 mb-4 rounded-lg border border-border bg-surface-muted px-3 py-2.5">
-          <p className="text-sm font-semibold text-foreground">{MOCK_COOP.name}</p>
+          <p className="text-sm font-semibold text-foreground">{coop?.name ?? "Koperasi"}</p>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            {MOCK_COOP.kecamatan}, {MOCK_COOP.kabupaten}
+            {coop ? `${coop.kecamatan}, ${coop.kabupaten}` : ""}
           </p>
           <p className="mt-1 font-mono text-[11px] text-aqua-700">
-            {shortAddr(MOCK_COOP.walletAddress)}
+            {coop ? shortAddr(coop.walletAddress) : ""}
           </p>
         </div>
       )}

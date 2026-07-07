@@ -4,10 +4,12 @@
  *  (1) Kargo masuk on-chain (aqua) — accept_supply double-confirmation gate.
  *  (2) Stok off-chain (muted badge) — local inventory log, not blockchain. */
 
+import { type ApiAgreement, fetchOverview } from "@/lib/api";
 import { PageHeader } from "@/components/kmp/page-header";
 import { TBody, THead, Table, TableFrame, Td, Th, Tr } from "@/components/kmp/table";
 import { type MockTxState, useMockTx } from "@/components/kmp/use-mock-tx";
-import { MOCK_STOCK, formatKg, getFarmer, inboundSupply } from "@/lib/mock-data";
+import { useApi } from "@/lib/use-api";
+import { MOCK_STOCK, formatKg } from "@/lib/mock-data";
 import {
   Alert,
   Badge,
@@ -50,7 +52,7 @@ function InboundCard({
   isDone,
   doneTxHash,
 }: {
-  agreement: ReturnType<typeof inboundSupply>[number];
+  agreement: ApiAgreement;
   farmerName: string;
   isAnyProcessing: boolean;
   onAccept: () => void;
@@ -151,7 +153,8 @@ function InboundCard({
 }
 
 export default function GudangPage() {
-  const inbound = inboundSupply();
+  const { data: overview } = useApi(fetchOverview);
+  const inbound = overview?.inboundSupply ?? [];
 
   // One tx instance at a time; track which card is processing and which are done.
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -246,12 +249,11 @@ export default function GudangPage() {
             </div>
           ) : (
             inbound.map((a) => {
-              const farmer = getFarmer(a.farmerId);
               return (
                 <InboundCard
                   key={a.id}
                   agreement={a}
-                  farmerName={farmer?.name ?? "(petani)"}
+                  farmerName={a.farmerName}
                   isAnyProcessing={isAnyProcessing}
                   onAccept={() => handleAccept(a.id)}
                   state={activeId === a.id ? txAccept.state : "idle"}
