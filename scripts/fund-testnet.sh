@@ -17,7 +17,7 @@ NETWORK="${STELLAR_NETWORK:-testnet}"
 for name in annona-admin annona-agrinas annona-coop annona-farmer; do
   if ! stellar keys address "$name" >/dev/null 2>&1; then
     echo "generating identity: $name"
-    stellar keys generate --global "$name" --network "$NETWORK" --fund
+    stellar keys generate "$name" --network "$NETWORK" --fund
   else
     echo "funding existing identity: $name"
     stellar keys fund "$name" --network "$NETWORK" || true
