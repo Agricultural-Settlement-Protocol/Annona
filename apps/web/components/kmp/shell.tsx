@@ -54,7 +54,11 @@ const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
   {
     label: "Transaksi",
     items: [
-      { href: "/kmp/permintaan", label: "Permintaan Saprotan", icon: ClipboardList },
+      {
+        href: "/kmp/permintaan",
+        label: "Permintaan Saprotan",
+        icon: ClipboardList,
+      },
       { href: "/kmp/setor", label: "Setor Panen", icon: PackageCheck },
       { href: "/kmp/pembayaran", label: "Pembayaran", icon: Banknote },
       { href: "/kmp/residu", label: "Residu Agrinas", icon: Landmark },
@@ -104,12 +108,18 @@ function NavLink({
           : "text-ink-600 hover:bg-surface-muted hover:text-foreground",
       )}
     >
-      <Icon size={18} className={cn("shrink-0", active ? "text-verdant-700" : "text-ink-400")} />
+      <Icon
+        size={18}
+        className={cn("shrink-0", active ? "text-verdant-700" : "text-ink-400")}
+      />
       {collapsed ? null : (
         <>
           {item.label}
           {active ? (
-            <span className="ml-auto h-5 w-1 rounded-full bg-verdant-500" aria-hidden />
+            <span
+              className="ml-auto h-5 w-1 rounded-full bg-verdant-500"
+              aria-hidden
+            />
           ) : null}
         </>
       )}
@@ -138,7 +148,11 @@ function SidebarContent({
         )}
       >
         <Link href="/" onClick={onNavigate} aria-label="Annona">
-          {collapsed ? <LogoMark className="h-7 w-7" /> : <Logo className="h-7 w-auto" />}
+          {collapsed ? (
+            <LogoMark className="h-7 w-7" />
+          ) : (
+            <Logo className="h-7 w-auto" />
+          )}
         </Link>
         {collapsed ? null : (
           <span className="rounded-full bg-aqua-50 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-aqua-700 uppercase">
@@ -155,14 +169,20 @@ function SidebarContent({
               collapsed ? "mt-2" : "ml-auto",
             )}
           >
-            {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+            {collapsed ? (
+              <PanelLeftOpen size={16} />
+            ) : (
+              <PanelLeftClose size={16} />
+            )}
           </button>
         ) : null}
       </div>
 
       {collapsed ? null : (
         <div className="mx-4 mb-4 rounded-lg border border-border bg-surface-muted px-3 py-2.5">
-          <p className="text-sm font-semibold text-foreground">{coop?.name ?? "Koperasi"}</p>
+          <p className="text-sm font-semibold text-foreground">
+            {coop?.name ?? "Koperasi"}
+          </p>
           <p className="mt-0.5 text-xs text-muted-foreground">
             {coop ? `${coop.kecamatan}, ${coop.kabupaten}` : ""}
           </p>
@@ -173,7 +193,10 @@ function SidebarContent({
       )}
 
       <nav
-        className={cn("flex-1 space-y-4 overflow-y-auto", collapsed ? "px-2" : "px-3")}
+        className={cn(
+          "flex-1 space-y-4 overflow-y-auto",
+          collapsed ? "px-2" : "px-3",
+        )}
         aria-label="Menu utama"
       >
         {NAV_GROUPS.map((group) => (
@@ -183,7 +206,9 @@ function SidebarContent({
                 {group.label}
               </p>
             ) : null}
-            {group.label && collapsed ? <div className="mx-2 mb-1 border-t border-border" /> : null}
+            {group.label && collapsed ? (
+              <div className="mx-2 mb-1 border-t border-border" />
+            ) : null}
             <div className="space-y-1">
               {group.items.map((item) => (
                 <NavLink
@@ -199,7 +224,12 @@ function SidebarContent({
         ))}
       </nav>
 
-      <div className={cn("border-t border-border py-4", collapsed ? "px-2" : "px-4")}>
+      <div
+        className={cn(
+          "border-t border-border py-4",
+          collapsed ? "px-2" : "px-4",
+        )}
+      >
         {collapsed ? (
           <div className="flex flex-col items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-verdant-100 text-sm font-bold text-verdant-800">
@@ -222,7 +252,9 @@ function SidebarContent({
                 HU
               </div>
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-foreground">H. Usman</p>
+                <p className="truncate text-sm font-semibold text-foreground">
+                  H. Usman
+                </p>
                 <p className="text-xs text-muted-foreground">Pengurus KMP</p>
               </div>
               <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-aqua-50 px-2 py-0.5 text-[10px] font-semibold text-aqua-700">

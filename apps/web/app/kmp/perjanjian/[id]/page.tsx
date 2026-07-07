@@ -5,7 +5,15 @@
 
 import { LifecycleTimeline } from "@/components/kmp/lifecycle-timeline";
 import { PageHeader } from "@/components/kmp/page-header";
-import { TBody, THead, Table, TableFrame, Td, Th, Tr } from "@/components/kmp/table";
+import {
+  TBody,
+  THead,
+  Table,
+  TableFrame,
+  Td,
+  Th,
+  Tr,
+} from "@/components/kmp/table";
 import {
   fetchAgreement,
   fetchCatalog,
@@ -50,10 +58,18 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 
 /** Labeled info row — two-column pair used in the details grid. */
-function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
+function InfoRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="flex flex-col gap-0.5 sm:flex-row sm:items-start sm:gap-4">
-      <span className="min-w-44 text-sm font-medium text-muted-foreground">{label}</span>
+      <span className="min-w-44 text-sm font-medium text-muted-foreground">
+        {label}
+      </span>
       <span className="text-sm text-foreground">{children}</span>
     </div>
   );
@@ -76,7 +92,9 @@ export default function AgreementDetailPage() {
 
   if (loading) {
     return (
-      <div className="py-16 text-center text-sm text-muted-foreground">Memuat perjanjian...</div>
+      <div className="py-16 text-center text-sm text-muted-foreground">
+        Memuat perjanjian...
+      </div>
     );
   }
 
@@ -103,13 +121,18 @@ export default function AgreementDetailPage() {
     );
   }
 
-  const [agreement, farmers, catalog, hppRefs, allSettlements, allResidu] = data;
+  const [agreement, farmers, catalog, hppRefs, allSettlements, allResidu] =
+    data;
   const farmer = farmers.find((f) => f.id === agreement.farmerId);
   const catalogById = new Map(catalog.map((c) => [c.id, c]));
   const deliveries = agreement.deliveries;
-  const settlements = allSettlements.filter((s) => s.agreementId === agreement.id);
+  const settlements = allSettlements.filter(
+    (s) => s.agreementId === agreement.id,
+  );
   const residu = allResidu.find((r) => r.agreementId === agreement.id);
-  const priceRef = hppRefs.find((p) => p.commodityCode === agreement.commodityCode);
+  const priceRef = hppRefs.find(
+    (p) => p.commodityCode === agreement.commodityCode,
+  );
 
   const deliveredKg = Number(agreement.deliveredVolG / 1000n);
   const settledKg = Number(agreement.settledVolG / 1000n);
@@ -117,7 +140,8 @@ export default function AgreementDetailPage() {
   // Grade and kadar air: show estimate badge before first delivery, actual badge after.
   // agreement.grade/moistureBps = default at creation time (SOP estimate).
   // latest delivery's grade/moistureBps = physical measurement.
-  const latestDelivery = deliveries.length > 0 ? deliveries[deliveries.length - 1] : undefined;
+  const latestDelivery =
+    deliveries.length > 0 ? deliveries[deliveries.length - 1] : undefined;
   const hasDelivery = deliveries.length > 0;
   const gradeDisplay = latestDelivery?.grade ?? agreement.grade;
   const moistureDisplay = latestDelivery?.moistureBps ?? agreement.moistureBps;
@@ -150,14 +174,16 @@ export default function AgreementDetailPage() {
         <Alert tone="warning" title="Perlu Ditinjau">
           Setoran {deliveredKg.toLocaleString("id-ID")} kg dari perkiraan{" "}
           {agreement.expectedVolKg.toLocaleString("id-ID")} kg (
-          {Math.round((deliveredKg / agreement.expectedVolKg) * 100)}%). Penyebab perlu dikonfirmasi
-          petugas lapangan sebelum kesimpulan diambil.
+          {Math.round((deliveredKg / agreement.expectedVolKg) * 100)}%).
+          Penyebab perlu dikonfirmasi petugas lapangan sebelum kesimpulan
+          diambil.
         </Alert>
       )}
       {agreement.status === "ForceMajeure" && (
         <Alert tone="danger" title="Gagal Panen Dikonfirmasi">
-          Kondisi force majeure telah dicatat. Tanpa penalti reputasi untuk petani. Utang
-          direstrukturisasi di luar sistem rantai sesuai prosedur koperasi.
+          Kondisi force majeure telah dicatat. Tanpa penalti reputasi untuk
+          petani. Utang direstrukturisasi di luar sistem rantai sesuai prosedur
+          koperasi.
         </Alert>
       )}
 
@@ -179,7 +205,9 @@ export default function AgreementDetailPage() {
           />
           <CardContent className="space-y-3">
             <InfoRow label="Nama">
-              <span className="font-semibold">{farmer?.name ?? "(tidak diketahui)"}</span>
+              <span className="font-semibold">
+                {farmer?.name ?? "(tidak diketahui)"}
+              </span>
             </InfoRow>
             <InfoRow label="Reputasi">
               {farmer ? <ReputationBadge tier={farmer.repTier} /> : null}
@@ -196,8 +224,14 @@ export default function AgreementDetailPage() {
               </span>
             </InfoRow>
             <div className="pt-1">
-              <Link href={farmer ? `/kmp/petani?fokus=${farmer.id}` : "/kmp/petani"}>
-                <Button variant="outline" size="sm" leftIcon={<User size={14} />}>
+              <Link
+                href={farmer ? `/kmp/petani?fokus=${farmer.id}` : "/kmp/petani"}
+              >
+                <Button
+                  variant="outline"
+                  size="sm"
+                  leftIcon={<User size={14} />}
+                >
                   Lihat profil petani
                 </Button>
               </Link>
@@ -213,7 +247,9 @@ export default function AgreementDetailPage() {
           />
           <CardContent className="space-y-3">
             <InfoRow label="Komoditas">
-              {agreement.commodityCode === "GABAH" ? "Gabah Kering Panen" : "Jagung Pipilan Kering"}
+              {agreement.commodityCode === "GABAH"
+                ? "Gabah Kering Panen"
+                : "Jagung Pipilan Kering"}
             </InfoRow>
 
             {/* Grade: Perkiraan sebelum setoran pertama, Aktual setelahnya */}
@@ -252,9 +288,13 @@ export default function AgreementDetailPage() {
 
             <InfoRow label="Harga Pokok Agrinas">
               <RupiahAmount smallest={agreement.basePriceAgrinas} />
-              <span className="ml-1 text-xs text-muted-foreground">(pokok saprotan)</span>
+              <span className="ml-1 text-xs text-muted-foreground">
+                (pokok saprotan)
+              </span>
             </InfoRow>
-            <InfoRow label="Markup Saprotan">{agreement.saprotanMarkupBps / 100}%</InfoRow>
+            <InfoRow label="Markup Saprotan">
+              {agreement.saprotanMarkupBps / 100}%
+            </InfoRow>
             <InfoRow label="Utang Saprotan">
               <RupiahAmount smallest={agreement.inputDebt} />
             </InfoRow>
@@ -267,7 +307,9 @@ export default function AgreementDetailPage() {
                 (v{agreement.hppVersion}, {priceRef?.hppSource ?? "Inpres"})
               </span>
             </InfoRow>
-            <InfoRow label="Toleransi Setoran">{agreement.toleranceBps / 100}%</InfoRow>
+            <InfoRow label="Toleransi Setoran">
+              {agreement.toleranceBps / 100}%
+            </InfoRow>
           </CardContent>
         </Card>
       </div>
@@ -295,8 +337,12 @@ export default function AgreementDetailPage() {
                   const lineTotal = inp.lineTotalPrincipal;
                   return (
                     <Tr key={inp.catalogId}>
-                      <Td className="font-medium">{item?.name ?? inp.catalogId}</Td>
-                      <Td className="text-muted-foreground capitalize">{item?.category ?? "-"}</Td>
+                      <Td className="font-medium">
+                        {item?.name ?? inp.catalogId}
+                      </Td>
+                      <Td className="text-muted-foreground capitalize">
+                        {item?.category ?? "-"}
+                      </Td>
                       <Td className="text-right tabular-nums">
                         {inp.qty} unit
                       </Td>
@@ -311,16 +357,26 @@ export default function AgreementDetailPage() {
                 })}
                 {/* Totals row */}
                 <tr className="border-t-2 border-border bg-surface-muted">
-                  <td colSpan={4} className="px-4 py-3 text-sm font-semibold text-foreground">
+                  <td
+                    colSpan={4}
+                    className="px-4 py-3 text-sm font-semibold text-foreground"
+                  >
                     Total Pokok Agrinas
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <RupiahAmount smallest={agreement.basePriceAgrinas} className="font-bold" />
+                    <RupiahAmount
+                      smallest={agreement.basePriceAgrinas}
+                      className="font-bold"
+                    />
                   </td>
                 </tr>
                 <tr className="bg-surface-muted">
-                  <td colSpan={4} className="px-4 py-3 text-sm text-muted-foreground">
-                    Utang Saprotan (termasuk markup {agreement.saprotanMarkupBps / 100}%)
+                  <td
+                    colSpan={4}
+                    className="px-4 py-3 text-sm text-muted-foreground"
+                  >
+                    Utang Saprotan (termasuk markup{" "}
+                    {agreement.saprotanMarkupBps / 100}%)
                   </td>
                   <td className="px-4 py-3 text-right">
                     <RupiahAmount smallest={agreement.inputDebt} />
@@ -371,7 +427,9 @@ export default function AgreementDetailPage() {
               />
             </div>
             <div>
-              <span className="text-muted-foreground">Dibayarkan ke petani: </span>
+              <span className="text-muted-foreground">
+                Dibayarkan ke petani:{" "}
+              </span>
               <RupiahAmount smallest={agreement.paidToFarmer} tone="positive" />
             </div>
           </div>
@@ -418,7 +476,9 @@ export default function AgreementDetailPage() {
                         </span>
                       </Td>
                       <Td className="text-right tabular-nums text-muted-foreground">
-                        {d.moistureBps != null ? `${(d.moistureBps / 100).toFixed(1)}%` : "-"}
+                        {d.moistureBps != null
+                          ? `${(d.moistureBps / 100).toFixed(1)}%`
+                          : "-"}
                       </Td>
                       <Td className="text-muted-foreground">{d.deliveredAt}</Td>
                       <Td>
@@ -447,12 +507,16 @@ export default function AgreementDetailPage() {
           />
           <CardContent className="space-y-6">
             {settlements.map((s) => (
-              <div key={s.id} className="rounded-lg border border-border bg-surface-muted/40 p-4">
+              <div
+                key={s.id}
+                className="rounded-lg border border-border bg-surface-muted/40 p-4"
+              >
                 {/* Settlement meta */}
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold text-foreground">
-                      Penyelesaian {Number(s.settledVolG / 1000n).toLocaleString("id-ID")} kg
+                      Penyelesaian{" "}
+                      {Number(s.settledVolG / 1000n).toLocaleString("id-ID")} kg
                     </p>
                     <p className="text-xs text-muted-foreground">
                       Tanggal {s.settledAt}. Ref bank: {s.rupiahRef ?? "-"}
@@ -489,7 +553,10 @@ export default function AgreementDetailPage() {
                 <ResiduStatusBadge status={residu.status} />
                 <p className="mt-1 text-sm text-muted-foreground">
                   Jumlah pokok:{" "}
-                  <RupiahAmount smallest={residu.principalAmount} className="text-sm" />
+                  <RupiahAmount
+                    smallest={residu.principalAmount}
+                    className="text-sm"
+                  />
                 </p>
               </div>
               {residu.txHash && <TxHashLink hash={residu.txHash} />}
@@ -497,7 +564,10 @@ export default function AgreementDetailPage() {
 
             {residu.bankRef && (
               <div className="text-sm text-muted-foreground">
-                Referensi bank: <span className="font-mono text-foreground">{residu.bankRef}</span>
+                Referensi bank:{" "}
+                <span className="font-mono text-foreground">
+                  {residu.bankRef}
+                </span>
               </div>
             )}
 
@@ -515,9 +585,13 @@ export default function AgreementDetailPage() {
 
             {residu.status === "Pending" && (
               <Alert tone="warning" title="Residu belum disetor">
-                Sebesar <RupiahAmount smallest={residu.principalAmount} className="text-sm" />{" "}
-                adalah uang Agrinas yang tersimpan di kas koperasi. Segera remitkan ke rekening
-                Agrinas untuk menyelesaikan kewajiban.
+                Sebesar{" "}
+                <RupiahAmount
+                  smallest={residu.principalAmount}
+                  className="text-sm"
+                />{" "}
+                adalah uang Agrinas yang tersimpan di kas koperasi. Segera
+                remitkan ke rekening Agrinas untuk menyelesaikan kewajiban.
               </Alert>
             )}
           </CardContent>
