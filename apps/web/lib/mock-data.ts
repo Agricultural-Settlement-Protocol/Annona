@@ -1239,6 +1239,106 @@ export interface DeliveryHistoryRow {
   paid: boolean;
 }
 
+// ─── Card-grid selectors (Setor + Pembayaran pages) ─────────────────────────
+
+/** Agreements currently open for new deposits: Active or PartiallyDelivered. */
+export function depositPendingAgreements(): Array<{
+  agreement: MockAgreement;
+  farmer: MockFarmer;
+}> {
+  const eligible: Status[] = ["Active", "PartiallyDelivered"];
+  return MOCK_AGREEMENTS.filter((a) => eligible.includes(a.status))
+    .map((a) => {
+      const farmer = getFarmer(a.farmerId);
+      if (!farmer) return null;
+      return { agreement: a, farmer };
+    })
+    .filter((r): r is { agreement: MockAgreement; farmer: MockFarmer } => r !== null);
+}
+
+/** Agreements whose deposit window is closed: Delivered, Flagged, Settled, ForceMajeure. */
+export function depositCompletedAgreements(): Array<{
+  agreement: MockAgreement;
+  farmer: MockFarmer;
+}> {
+  const complete: Status[] = ["Delivered", "Flagged", "Settled", "ForceMajeure"];
+  return MOCK_AGREEMENTS.filter((a) => complete.includes(a.status))
+    .map((a) => {
+      const farmer = getFarmer(a.farmerId);
+      if (!farmer) return null;
+      return { agreement: a, farmer };
+    })
+    .filter((r): r is { agreement: MockAgreement; farmer: MockFarmer } => r !== null);
+}
+
+/** Agreements with unsettled delivered volume: the payment queue. */
+export function paymentPendingAgreements(): Array<{
+  agreement: MockAgreement;
+  farmer: MockFarmer;
+}> {
+  const eligible: Status[] = ["Delivered", "PartiallyDelivered", "Flagged"];
+  return MOCK_AGREEMENTS.filter(
+    (a) => eligible.includes(a.status) && a.deliveredVolG > a.settledVolG,
+  )
+    .map((a) => {
+      const farmer = getFarmer(a.farmerId);
+      if (!farmer) return null;
+      return { agreement: a, farmer };
+    })
+    .filter((r): r is { agreement: MockAgreement; farmer: MockFarmer } => r !== null);
+}
+
+/** Settled agreements for the "Sudah Dibayar / Lunas" section. */
+export function paymentSettledAgreements(): Array<{
+  agreement: MockAgreement;
+  farmer: MockFarmer;
+  residu: MockResiduRow | undefined;
+}> {
+  return MOCK_AGREEMENTS.filter((a) => a.status === "Settled")
+    .map((a) => {
+      const farmer = getFarmer(a.farmerId);
+      if (!farmer) return null;
+      return { agreement: a, farmer, residu: residuOfAgreement(a.id) };
+    })
+    .filter(
+      (
+        r,
+      ): r is { agreement: MockAgreement; farmer: MockFarmer; residu: MockResiduRow | undefined } =>
+        r !== null,
+    );
+}
+
+/** Summary stats for the Setor Panen page header. */
+export function setorStats() {
+  const menunggu = MOCK_AGREEMENTS.filter((a) =>
+    (["Active", "PartiallyDelivered"] as Status[]).includes(a.status),
+  ).length;
+  const totalSetorKg = MOCK_DELIVERIES.reduce((sum, d) => sum + d.volumeKg, 0);
+  const selesai = MOCK_AGREEMENTS.filter((a) =>
+    (["Delivered", "Flagged", "Settled", "ForceMajeure"] as Status[]).includes(a.status),
+  ).length;
+  const totalAgreements = MOCK_AGREEMENTS.length;
+  return { menunggu, totalSetorKg, selesai, totalAgreements };
+}
+
+/** Summary stats for the Pembayaran page header. */
+export function pembayaranStats() {
+  const eligible: Status[] = ["Delivered", "PartiallyDelivered", "Flagged"];
+  const payable = MOCK_AGREEMENTS.filter(
+    (a) => eligible.includes(a.status) && a.deliveredVolG > a.settledVolG,
+  );
+  const totalBelumDibayarRp = payable.reduce((sum, a) => {
+    const unsettledKg = (a.deliveredVolG - a.settledVolG) / 1000n;
+    return sum + unsettledKg * a.hppPerKg;
+  }, 0n);
+  const residuPending = MOCK_RESIDU_LEDGER.filter((r) => r.status === "Pending").reduce(
+    (sum, r) => sum + r.principalAmount,
+    0n,
+  );
+  const sudahLunas = MOCK_AGREEMENTS.filter((a) => a.status === "Settled").length;
+  return { totalBelumDibayarRp, residuPending, sudahLunas };
+}
+
 export function deliveryHistoryRows(): DeliveryHistoryRow[] {
   return MOCK_DELIVERIES.map((d) => {
     const agreement = getAgreement(d.agreementId);

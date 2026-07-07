@@ -61,6 +61,11 @@ When the assistant (or an owner) makes a mistake, hits a non-obvious gotcha, or 
 
 <!-- Add new entries below this line. Do not delete past entries; supersede with a newer one if needed. -->
 
+### 2026-07-06 — Oversight dashboard build: `role` prop + fragment keys
+- **What:** Oversight dashboard agent named a custom component prop `role` (`<OversightShell role="agrinas">`); Biome flags every such JSX attribute as an invalid ARIA role. Also returned a keyless `<>...</>` fragment from a `.map()` (key was on the inner `<Tr>`), producing a React key warning only visible at runtime.
+- **Fix:** Renamed prop to `viewRole` (destructure-aliased to `role` internally so bodies stay unchanged). Keyed the outer `<Fragment key=...>` instead of the inner row. Lint alone does not catch the fragment-key case; a dev-server render pass of every new page does.
+- **Rule:** `role` joins `prefix`/`color` on the never-use-as-prop-name list (2026-06-30 entry). When a `.map()` returns multiple siblings, key the `<Fragment>`, not a child. Always boot the dev server and hit every new route once before calling frontend work verified; typecheck + lint miss runtime-only React warnings.
+
 ### 2026-07-04 — KMP dashboard: owner UX preferences + build patterns
 - **What:** Built the KMP dashboard (screens A to F + Permintaan/Pembayaran/Residu/Pengaturan) with mock data. Owner gave detailed rounds of feedback that encode durable preferences, plus two recurring technical gotchas surfaced.
 - **Fix / owner preferences (apply to ALL future dashboard work):**
