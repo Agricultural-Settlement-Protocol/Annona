@@ -1,3 +1,4 @@
+import { AuthGuard } from "@/components/auth-guard";
 import { OversightShell } from "@/components/oversight/shell";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
@@ -8,5 +9,9 @@ export const metadata: Metadata = {
 };
 
 export default function PemerintahLayout({ children }: { children: ReactNode }) {
-  return <OversightShell viewRole="pemerintah">{children}</OversightShell>;
+  return (
+    <AuthGuard requiredRole="pemerintah">
+      <OversightShell viewRole="pemerintah">{children}</OversightShell>
+    </AuthGuard>
+  );
 }

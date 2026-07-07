@@ -26,11 +26,12 @@ import { PaymentHistoryTable } from "@/components/kmp/payment-history-table";
 import {
   MOCK_AGREEMENTS,
   getFarmer,
+  kmpIncomeStats,
   paymentPendingAgreements,
   paymentSettledAgreements,
   pembayaranStats,
 } from "@/lib/mock-data";
-import { Banknote, History, Search } from "lucide-react";
+import { Banknote, History, Search, TrendingUp } from "lucide-react";
 import { useMemo, useState } from "react";
 import { ResiduStatusBadge, RupiahAmount, StatCard, StatusBadge } from "@annona/ui";
 
@@ -39,6 +40,7 @@ export default function PembayaranPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const stats = useMemo(() => pembayaranStats(), []);
+  const income = useMemo(() => kmpIncomeStats(), []);
   const pending = useMemo(() => paymentPendingAgreements(), []);
   const settled = useMemo(() => paymentSettledAgreements(), []);
 
@@ -86,7 +88,32 @@ export default function PembayaranPage() {
         description="Selesaikan pembayaran panen dengan split tiga arah: petani terima tunai, residu pokok Agrinas dikunci di kas, margin KMP tercatat."
       />
 
-      {/* Summary stats */}
+      {/* KMP income summary — KMP's own earnings (not Agrinas residu) */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard
+          label="Total Margin Saprotan"
+          value={<RupiahAmount smallest={income.totalMarginSaprotan} className="text-3xl" />}
+          icon={<TrendingUp size={18} />}
+          tone="good"
+          hint="Markup KMP atas harga pokok Agrinas, dari semua perjanjian yang sudah selesai"
+        />
+        <StatCard
+          label="Total Biaya Tangani"
+          value={<RupiahAmount smallest={income.totalBiayaTangani} className="text-3xl" />}
+          icon={<TrendingUp size={18} />}
+          tone="good"
+          hint="Biaya penanganan panen yang dikumpulkan dari semua penyelesaian"
+        />
+        <StatCard
+          label="Estimasi Pendapatan KMP"
+          value={<RupiahAmount smallest={income.estimasiPendapatanKMP} className="text-3xl" />}
+          icon={<TrendingUp size={18} />}
+          tone="good"
+          hint="Total margin saprotan ditambah biaya tangani (bukan termasuk residu Agrinas)"
+        />
+      </div>
+
+      {/* Settlement status stats */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard
           label="Total Belum Dibayar"

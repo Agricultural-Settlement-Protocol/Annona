@@ -187,6 +187,7 @@ Each feature: **what it does, why, acceptance criteria, on/off-chain split, whic
   - **Auto-estimate** `expected_vol = area × yield/ha(kabupaten)` with formula + BPS/KATAM source (labeled estimate, not AI).
   - **HPP panel** auto-fills current decree price + version. **Tolerance slider** default 20%.
 - **On/off-chain:** agreement core on-chain (`create_agreement`, derives debt); input line-items + catalog snapshot off-chain linked by `onchain_id`.
+- **Multi-Agrinas readiness (explicit, per owner question):** the contract and ERD already parameterize the operator **per agreement** — `create_agreement` takes an `agrinas: Address`, and `agreement.agrinas_id` is an FK, not a global constant. A KMP choosing among several Agrinas operators is a UI/data question only (seed more operators, add a picker to Screen C) — **no contract or ERD change required**. See `SMART-CONTRACT.md` §1a.
 - **Interface:** KMP Dashboard → Screen C. Freighter signs.
 - **Acceptance:** agreement on-chain with tx hash; `AgreementCreated` indexed; `input_debt = base × (1 + markup)` correct; cost-ledger matches chain; appears in Agrinas bulk-request queue.
 
@@ -195,8 +196,15 @@ Each feature: **what it does, why, acceptance criteria, on/off-chain split, whic
 - **Why:** mitigates field manipulation; neither party advances the other's step; debt only becomes a live liability once goods are physically received.
 - **Details:** Agrinas dispatch trigger reads the aggregated bulk-request queue; KMP accept button only enables when the inbound cargo is marked arrived.
 - **On/off-chain:** both transitions on-chain (`SupplyDispatched`, `SupplyAccepted` events); logistics/cargo notes off-chain.
-- **Interface:** Agrinas view Screen M (dispatch); KMP Screen F (accept). Freighter signs each party.
+- **Interface:** Agrinas view Screen M2 (dispatch); KMP Screen F (accept). Freighter signs each party.
 - **Acceptance:** cannot `accept_supply` before `dispatch_supply`; cannot `record_delivery` before `Active`; both tx hashes shown.
+
+### 7.2c F2.2 — Harvest Forwarding Logistics (off-chain) *(new)*
+- **What:** the other direction of logistics — KMP forwards accepted harvest to the **gudang Agrinas** warehouse. Shipments are batch lots per commodity; per-farmer traceability is preserved via lot lines referencing the original deliveries. Double gate mirrors the residu pattern: KMP marks a shipment `Dikirim`, Agrinas confirms `Diterima` or flags `Selisih` with a mandatory note.
+- **Why:** physical goods movement, not money settlement — off-chain for now (golden rule 2); the two-party attestation is chain-worthy long-term (see `SMART-CONTRACT.md` §8b for the planned v3.1 `forward_harvest`/`confirm_harvest_receipt` dual-gate).
+- **On/off-chain:** entirely off-chain in MVP (`harvest_shipment`, `harvest_shipment_line`); **not implemented on-chain**.
+- **Interface:** KMP Screen N (forward + history); Agrinas Screen M3 (receive + history).
+- **Acceptance:** shipment history searchable on both sides; Selisih requires a note; weighted-average moisture per grade-lot displays correctly when lines share a grade but differ in moisture.
 
 ### 7.3 F3 — Delivery & Harvest Receipt
 - **What:** record harvest handover (volume + grade + moisture) → mint immutable **Harvest Receipt**; supports multiple (partial) deliveries. Requires status `Active`.
@@ -239,13 +247,13 @@ Each feature: **what it does, why, acceptance criteria, on/off-chain split, whic
 ### 7.7 F7 — KMP Dashboard
 - **What:** the operational cockpit (overview, registry, create, inbound-supply accept, deliver, settle, agreement detail, inventory).
 - **Why:** the daily tool for a non-expert village officer running the on-site cash agent.
-- **Interface:** Screens A–F ([§8](#8-interface-specifications-screen-by-screen)).
+- **Interface:** Screens A–F, N ([§8](#8-interface-specifications-screen-by-screen)).
 - **Acceptance:** all stat cards live from indexer; every on-chain action shows tx hash; mobile/tablet responsive.
 
 ### 7.8 F8 — Oversight Dashboard (RBAC: Agrinas + Government) + AI Assistant *(updated)*
-- **What:** one oversight app, role-gated into two views. **Agrinas (operator):** master catalog + logistics dispatch (Screen M), residu reconciliation desk (Screen I), commercial coop performance. **Government (regulator, read-only):** macro production/payout aggregates, coop leaderboard, force-majeure/subsidy intervention queue (Screen G). Both share a plain-Bahasa **chatbot** over read-models, scoped to the caller's role.
+- **What:** one oversight app, role-gated into two views. **Agrinas (operator):** master catalog CRUD (Screen M1), logistics dispatch (Screen M2), harvest-receiving desk (Screen M3), residu reconciliation desk (Screen I), commercial coop performance. **Government (regulator, read-only):** macro production/payout aggregates, coop leaderboard, force-majeure/subsidy intervention queue (Screen G). Both share a plain-Bahasa **chatbot** over read-models, scoped to the caller's role.
 - **Why:** separation of concerns — Agrinas runs the supply chain; Government only watches food security and intervenes on gagal panen. Answers "which KMP underperforms / owes residu / why?"
-- **Interface:** Screens G (Gov), I (Agrinas residu), M (Agrinas catalog+dispatch); plus AI.
+- **Interface:** Screens G (Gov), I (Agrinas residu), M1–M3 (Agrinas catalog/dispatch/receiving); plus AI.
 - **Acceptance:** RBAC gates the two views; metrics aggregate across all on-chain agreements; Agrinas can dispatch + reconcile residu; AI answers ≥3 demo queries grounded with source links (no hallucinated numbers), scoped per role; AI is cuttable.
 
 ### 7.9 F9 — Farmer View
@@ -273,6 +281,8 @@ Three interface shells + AI. Each screen: **purpose · components · data source
 
 > **Design principle:** KMP operators are *not* finance/tech experts. Big color-coded numbers, plain Bahasa, AI does the heavy lifting. Every on-chain action shows a **tx hash + explorer link** (proves "real transactions").
 
+> **Login (updated 2026-07-07):** one shared `/auth` page, Supabase Auth email+password — replaces the earlier manual role-select at `/oversight`. `app_user.role` (kmp/agrinas/pemerintah) routes the signed-in user straight to `/kmp`, `/oversight/agrinas`, or `/oversight/pemerintah`.
+
 ### 8.1 KMP Dashboard (Pengurus) — operational cockpit
 
 **Screen A — Home / Overview**
@@ -296,14 +306,31 @@ Three interface shells + AI. Each screen: **purpose · components · data source
 - *Components:* lifecycle timeline (Created→SupplyDispatched→Active→Delivered→Settled), debt vs paid, residu status, all receipts (tx links), settlement + split records, flag/force-majeure notes, explorer link.
 
 **Screen F — Inventory & Supply Request Desk** *(F2.1, F10)*
-- *Components:* **Agrinas Inbound Cargo Monitor** (dispatched shipments, status `SupplyDispatched`); **Verify & Accept Inbound Supply** button (enabled on arrival → `accept_supply` → `Active`); input stock in/out tied to agreements; harvest received vs forwarded to Bulog. On-chain accept + off-chain stock table (labeled).
+- *Components:* **Agrinas Inbound Cargo Monitor** (dispatched shipments, status `SupplyDispatched`); **Verify & Accept Inbound Supply** button (enabled on arrival → `accept_supply` → `Active`); input stock in/out tied to agreements; harvest received vs forwarded to the **gudang Agrinas** warehouse. On-chain accept + off-chain stock table (labeled).
+
+**Screen N — Logistik Panen** *(F2.1/F10, new)*
+- *Purpose:* KMP's side of forwarding accepted harvest onward to Agrinas — the counterpart to Screen M3.
+- *Components:* draft a shipment (commodity + batch of deliveries to include, per-farmer lines auto-populated from recorded deliveries); **Kirim** action (Draft → `Dikirim`, declares `total_volume_g`); shipment history (searchable, status Dikirim/Diterima/Selisih, discrepancy notes visible once Agrinas responds).
+- *Actions:* create + send shipment (off-chain, no chain tx yet — see `SMART-CONTRACT.md` §8b for the planned v3.1 on-chain gate). *Data:* `harvest_shipment` + `harvest_shipment_line`.
 
 ### 8.2 Oversight Dashboard — RBAC (Agrinas operator | Government regulator) + AI
 
-**Screen M — Master Saprotan Catalog & Logistics Console** *(F8, Agrinas)* — *new*
-- *Purpose:* control national input-price standardization + mobilize supply chain.
-- *Components:* **Base Price Control Matrix** (`base_price_agrinas` per operational region, editable); **KMP Bulk Request Terminal** (aggregated `Created` agreements by region); **Dispatch Cargo Trigger** (authorize logistics → `dispatch_supply` → `SupplyDispatched`).
-- *Actions:* edit base price (off-chain catalog), dispatch (Freighter, Agrinas signs). *Data:* catalog + `mv_bulk_request_queue`.
+**Screen M — Agrinas operator suite** *(F8, Agrinas)* — split into three focused pages (2026-07-07: one page per concern, matching the KMP dashboard house style):
+
+**Screen M1 — Katalog Saprotan (CRUD)**
+- *Purpose:* Agrinas fully owns the master input-price list, not just an editable price field.
+- *Components:* **Katalog table** (code, name, category, region, `base_price_agrinas`, `stock_status` Tersedia/Menipis/Habis, `unit_label`) with add/edit/delete; dropdown-constrained fields (category, region, stock_status) rather than free text.
+- *Actions:* create/edit/delete catalog item (off-chain, no chain tx — the *snapshot* into an agreement is what locks on-chain, per `base_price_agrinas` in §7.2). *Data:* `saprotan_catalog`.
+
+**Screen M2 — Logistik Saprotan (Dispatch Desk)**
+- *Purpose:* mobilize supply chain from the aggregated KMP order queue.
+- *Components:* **KMP Bulk Request Terminal** (aggregated `Created` agreements by region); **Dispatch Cargo Trigger** (authorize logistics → `dispatch_supply` → `SupplyDispatched`); **dispatch history** table (past dispatches, searchable).
+- *Actions:* dispatch (Freighter, Agrinas signs). *Data:* `mv_bulk_request_queue`.
+
+**Screen M3 — Penerimaan Hasil Panen (Receiving Desk)** *(new)*
+- *Purpose:* the other half of the logistics loop — confirm harvest lots KMP forwards to the gudang Agrinas (§7.2c / `SMART-CONTRACT.md` §8b; off-chain in MVP).
+- *Components:* inbound shipment queue (status `Dikirim`, KMP-declared `total_volume_g`, per-farmer lot lines with grade + weighted-average moisture); **double-gate action** — `Tandai Diterima` (confirm, volumes match) or `Tandai Selisih` (flag discrepancy, mandatory note); shipment history (searchable, all statuses).
+- *Actions:* confirm or flag receipt (off-chain; the tx-hash pattern does not apply here yet). *Data:* `harvest_shipment` + `harvest_shipment_line`.
 
 **Screen I — Cash Reconciliation & Residu Verification Desk** *(F4.1, Agrinas)* — *modified*
 - *Purpose:* track + confirm residu principal remitted from each KMP to Agrinas.
@@ -315,9 +342,9 @@ Three interface shells + AI. Each screen: **purpose · components · data source
 - *Components:* **Macro Payout & Production Row** (total food volume produced kg, productivity per kecamatan, avg regional farmer reputation, panen-success vs gagal-panen ratio); **coop leaderboard** (per-KMP rates, red floats up); **commodity distribution** chart; **Graded Flag & Intervention Queue** (force-majeure claims needing manual gov verification for subsidy/aid).
 - *Data:* `mv_macro_production`, `mv_coop_leaderboard`, `mv_flag_queue`. Read-only.
 
-**Screen H — AI Assistant (chatbot)** *(F8)*
-- *Components:* chat over read-models, **scoped to the caller's role** (Agrinas: residu/dispatch/commercial; Government: macro/production/flags). Demo prompts: *"KMP mana paling banyak utang belum terbayar?"* · *"Berapa residu pokok Agrinas yang belum disetor?"* · *"Siapa panen minggu depan?"* · *"Kenapa KMP Sukamaju settlement rate rendah?"*
-- *Behavior:* read-only, grounded, every figure links to source; Gemini Flash; first to cut.
+**Screen H — AI Assistant (chatbot)** *(F8)* — *updated, now multi-session*
+- *Components:* chat over read-models, **scoped to the caller's role** (Agrinas: residu/dispatch/commercial; Government: macro/production/flags). **Multi-session:** new chat, rename, delete, pin — a conversation list like any modern assistant, not a single ephemeral thread. **File import**: attach `.xlsx`/`.csv` (e.g. a coop's own harvest log) or images (e.g. a photo of a delivery slip) for the assistant to read via **Groq `llama-4-scout` vision**. **Financial-analysis capability**: beyond lookup ("siapa panen minggu depan"), the assistant can reason over imported/read-model numbers (e.g. "bandingkan residu KMP A vs B bulan ini"). Demo prompts: *"KMP mana paling banyak utang belum terbayar?"* · *"Berapa residu pokok Agrinas yang belum disetor?"* · *"Siapa panen minggu depan?"* · *"Kenapa KMP Sukamaju settlement rate rendah?"*
+- *Behavior:* read-only, grounded, every figure links to source; **Groq `llama-3.3-70b`** for chat + **`llama-4-scout`** for vision/file import; first to cut.
 
 ### 8.3 Farmer View (Petani) — mobile-first, dignity-first
 
@@ -376,7 +403,7 @@ annona/
 └── turbo.json · pnpm-workspace.yaml · package.json
 ```
 
-**Stack (latest):** Next.js 15 · React 19 · Tailwind v4 · TypeScript 5.6 · Hono 4 · Supabase/Postgres 16 · Drizzle · Rust + soroban-sdk 22 · @stellar/stellar-sdk 13 · Freighter · Gemini Flash · Turborepo 2 · pnpm 9 · Node 22. Full version table → [`technical/TECH-STACK.md`](./technical/TECH-STACK.md).
+**Stack (latest):** Next.js 15 · React 19 · Tailwind v4 · TypeScript 5.6 · Hono 4 · Supabase/Postgres 16 · Drizzle · Rust + soroban-sdk 22 · @stellar/stellar-sdk 13 · Freighter · Groq (llama-3.3-70b + llama-4-scout vision) · Turborepo 2 · pnpm 9 · Node 22. Full version table → [`technical/TECH-STACK.md`](./technical/TECH-STACK.md).
 
 ---
 
@@ -460,7 +487,7 @@ Full detail + endpoints + the honest gaps → [`technical/DATA-SOURCES.md`](./te
 | **Reflector** (oracle) | 🔶 interface MVP, live L5 | public contract, free to read |
 | **Blend** (lending) | ⏭ L4 | open-source SDK, free |
 | **DeFindex** (vaults) | ⏭ L4 | open-source SDK, free |
-| **Gemini Flash** (AI) | ✅ MVP (cuttable) | API key, free tier/cheap |
+| **Groq** (AI: llama-3.3-70b chat + llama-4-scout vision) | ✅ MVP (cuttable) | API key, free tier/cheap |
 
 **Composability is bidirectional:** we consume primitives, *and* expose `@annona/sdk` so others build on Annona (lending, insurance, gov dashboards read our farmer history/reputation without rebuilding it). That's the SCF "reusable infrastructure" criterion, concretely.
 
@@ -536,7 +563,7 @@ Full detail + endpoints + the honest gaps → [`technical/DATA-SOURCES.md`](./te
 1. **Letter of Intent** — ≥1 real coop / Agrinas / Dinas Koperasi contact before finale. Highest-leverage non-code task. *(PM.)*
 2. **Demo commodity** — **gabah** hero (cleanest HPP); jagung second to prove generic contract. ✅
 3. **Custody for `settle`** — pre-funded contract (escrow-lite), KMP on-site cash agent, for cleanest demo. ✅
-4. **AI scope** — confirm Gemini Flash (or Claude Haiku); lock 3–4 demo queries; **role-scoped (Agrinas vs Government)**; agree it's first to cut.
+4. **AI scope** — confirm Groq (llama-3.3-70b + llama-4-scout vision); lock 3–4 demo queries; **role-scoped (Agrinas vs Government)**; agree it's first to cut.
 5. **dIDR decimals** — 2 (rupiah-cents) vs 0 (whole rupiah). Recommend 2.
 6. **Brand + repo** — confirm **Annona**, register `annona.finance`, init public monorepo before Day 1.
 7. **Cut order (locked)** — see §7.11. Sacred: contract (double-confirmation + three-way split + residu) + happy-path settlement + KMP + Oversight dashboards.

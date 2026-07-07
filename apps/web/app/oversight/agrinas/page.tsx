@@ -12,7 +12,9 @@ import { ScrollArea } from "@/components/scroll-area";
 import {
   AGRINAS_ACTIVITY,
   MOCK_COOP_PROFILES,
+  OVERSIGHT_SHIPMENTS,
   buildDispatchRequests,
+  buildEditableCatalog,
   protocolMetrics,
 } from "@/lib/oversight-data";
 import { formatRupiah } from "@annona/core";
@@ -30,8 +32,10 @@ import {
   AlertTriangle,
   ArrowRight,
   CheckCircle2,
+  Inbox,
   Landmark,
   Package,
+  PackageX,
   Scale,
   Send,
   Truck,
@@ -76,6 +80,9 @@ export default function AgrinasHomePage() {
     [],
   );
   const frozenCoops = MOCK_COOP_PROFILES.filter((c) => c.reputation.frozen);
+  const catalog = useMemo(() => buildEditableCatalog(), []);
+  const stokHabis = catalog.filter((r) => r.stockStatus === "Habis").length;
+  const kirimanMenunggu = OVERSIGHT_SHIPMENTS.filter((s) => s.status === "Dikirim").length;
 
   return (
     <div>
@@ -86,7 +93,17 @@ export default function AgrinasHomePage() {
           <>
             <Link href="/oversight/agrinas/katalog">
               <Button variant="outline" size="sm" leftIcon={<Package size={14} />}>
-                Katalog dan Logistik
+                Katalog
+              </Button>
+            </Link>
+            <Link href="/oversight/agrinas/logistik">
+              <Button variant="outline" size="sm" leftIcon={<Truck size={14} />}>
+                Logistik
+              </Button>
+            </Link>
+            <Link href="/oversight/agrinas/penerimaan">
+              <Button variant="outline" size="sm" leftIcon={<Inbox size={14} />}>
+                Penerimaan
               </Button>
             </Link>
             <Link href="/oversight/agrinas/residu">
@@ -162,6 +179,69 @@ export default function AgrinasHomePage() {
           tone={metrics.bermasalahCoops + metrics.frozenCoops > 0 ? "bad" : "good"}
           icon={<AlertTriangle size={18} />}
         />
+      </div>
+
+      {/* Quick-link cards: Katalog / Logistik / Penerimaan */}
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <Link href="/oversight/agrinas/katalog" className="group block">
+          <div className="flex items-center gap-4 rounded-[14px] border border-border bg-surface p-4 shadow-sm transition-shadow group-hover:shadow-md">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-verdant-100 text-verdant-700">
+              <Package size={18} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-foreground">Katalog Saprotan</p>
+              <p className="text-xs text-muted-foreground">
+                {catalog.length} item,{" "}
+                {stokHabis > 0 ? (
+                  <span className="text-red-600 font-medium">{stokHabis} stok habis</span>
+                ) : (
+                  "stok lengkap"
+                )}
+              </p>
+            </div>
+            <ArrowRight size={16} className="shrink-0 text-muted-foreground group-hover:text-foreground" />
+          </div>
+        </Link>
+        <Link href="/oversight/agrinas/logistik" className="group block">
+          <div className="flex items-center gap-4 rounded-[14px] border border-border bg-surface p-4 shadow-sm transition-shadow group-hover:shadow-md">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-aqua-100 text-aqua-700">
+              <Truck size={18} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-foreground">Logistik Saprotan</p>
+              <p className="text-xs text-muted-foreground">
+                {pendingRequests.length > 0 ? (
+                  <span className="text-amber-600 font-medium">
+                    {pendingRequests.length} antrean dispatch
+                  </span>
+                ) : (
+                  "Tidak ada antrean"
+                )}
+              </p>
+            </div>
+            <ArrowRight size={16} className="shrink-0 text-muted-foreground group-hover:text-foreground" />
+          </div>
+        </Link>
+        <Link href="/oversight/agrinas/penerimaan" className="group block">
+          <div className="flex items-center gap-4 rounded-[14px] border border-border bg-surface p-4 shadow-sm transition-shadow group-hover:shadow-md">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-verdant-100 text-verdant-700">
+              <Inbox size={18} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-foreground">Penerimaan Panen</p>
+              <p className="text-xs text-muted-foreground">
+                {kirimanMenunggu > 0 ? (
+                  <span className="text-amber-600 font-medium">
+                    {kirimanMenunggu} kiriman menunggu
+                  </span>
+                ) : (
+                  "Semua kiriman terkonfirmasi"
+                )}
+              </p>
+            </div>
+            <ArrowRight size={16} className="shrink-0 text-muted-foreground group-hover:text-foreground" />
+          </div>
+        </Link>
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-5">
@@ -240,7 +320,7 @@ export default function AgrinasHomePage() {
               title="Antrean Dispatch Saprotan"
               description="Permintaan gabungan KMP menunggu konfirmasi pengiriman dari Agrinas."
               action={
-                <Link href="/oversight/agrinas/katalog">
+                <Link href="/oversight/agrinas/logistik">
                   <Button variant="ghost" size="sm" rightIcon={<ArrowRight size={13} />}>
                     Kelola
                   </Button>
@@ -270,7 +350,7 @@ export default function AgrinasHomePage() {
                         Total pokok: {formatRupiah(req.grandTotal)}
                       </p>
                     </div>
-                    <Link href="/oversight/agrinas/katalog">
+                    <Link href="/oversight/agrinas/logistik">
                       <Button
                         variant="accent"
                         size="sm"

@@ -26,6 +26,8 @@ Generic, commodity-agnostic, lifecycle-driven, composable. Amounts are `i128` in
 
 **Why the chain earns its place here:** the residu (Agrinas's principal sitting inside KMP's cash) is precisely the multi-party, no-trust accounting the state's moral-hazard concern targets. On-chain split-allocation + dual-confirmation makes it impossible for one party to silently rewrite who is owed what. Everything else stays Postgres.
 
+**Multi-Agrinas readiness (no contract change needed).** The owner asked: if a KMP could choose among several Agrinas operators, do the contract or ERD change? No. `create_agreement` already takes an `agrinas: Address` **per agreement**, not a global singleton, and the ERD already FKs `agreement.agrinas_id` (see `ERD.md` §1). Supporting multiple operators is purely a data + UI question — seed more `AGRINAS` rows and add a picker to the KMP create-agreement form (Screen C) — with zero change to `create_agreement`'s signature, storage keys, or the ERD's relationships. Future UI work, not a v3.1 rework item.
+
 ### 1b. On-chain vs off-chain data (and why)
 
 **On-chain (this contract, §3):** `Agreement` (all fields — parties, the four price variables, volumes, `hpp_per_kg`, status, flag, the three-way split accruals, `residu_status`), `HarvestReceipt` (one per delivery, immutable), `Reputation` (farmer), `CoopReputation` (KMP). Nothing here is a lookup table — every field is either money/volume that moves as part of settlement, a status a human needs to trust wasn't rewritten, or a counter that has to be tamper-proof to mean anything as reputation.
@@ -405,6 +407,35 @@ Explicit, indexed. The indexer (`apps/api/indexer`) builds every dashboard read-
 
 ---
 
+## 8b. Harvest forwarding logistics (off-chain in MVP, on-chain v3.1 roadmap)
+
+**Status: NOT implemented on-chain.** KMP forwards accepted harvest to the **gudang Agrinas** (Agrinas warehouse). As of 2026-07-07 this whole leg is a Postgres feature (`apps/api/src/db/schema.ts`: `harvest_shipment` + `harvest_shipment_line`), with no contract function backing it yet.
+
+**The off-chain design (today):**
+- `harvest_shipment` is a **batch lot** — one row per coop-to-Agrinas dispatch of a commodity, with a `status` enum `Draft → Dikirim → Diterima → Selisih`, a KMP-declared `total_volume_g`, and an Agrinas-confirmed `received_volume_g` (+ `discrepancy_note` when they disagree).
+- `harvest_shipment_line` preserves **per-farmer traceability inside the batch**: each line references the original `delivery` (and therefore the `agreement` and `farmer`) that contributed volume to the lot. Lines with the same grade but different `moisture_bps` are kept separate — the UI rolls them up into a weighted-average moisture per grade-lot, standard grain-logistics practice, rather than collapsing them into one imprecise number.
+- The gate mirrors the residu pattern exactly: KMP marks a shipment **Dikirim** (declares what it sent), Agrinas marks it **Diterima** (confirms) or **Selisih** (flags a discrepancy with a mandatory note). Two independent attestations, neither party can unilaterally finalize the other's side.
+
+**Why this is off-chain right now (golden rule 2 / §1b pattern):** this is a **physical goods movement**, not a money settlement — the same distinction that keeps `saprotan_catalog` and `price_ref` off-chain (§1b above). It has no auto-netting math and touches no dIDR transfer. It is also arriving while the `offtake-registry` contract itself is still mid-rework to the v3.0 party model (§0 header) — adding a fourth write surface before the three-way split lands would be premature. That said, the **Dikirim/Diterima two-party attestation is chain-worthy long-term**: it is exactly the kind of "neither party can rewrite what the other confirmed" record the contract already earns its place for (dispatch_supply/accept_supply, mark_residu_remitted/confirm_remittance).
+
+**Planned v3.1 upgrade (design only, not built):**
+```rust
+/// KMP declares a harvest lot forwarded to Agrinas's warehouse. Off-chain
+/// shipment detail (per-farmer lines, grade/moisture) is hashed into
+/// shipment_hash; only the hash + declared total anchor on-chain.
+/// requires coop auth.
+pub fn forward_harvest(env: Env, coop: Address, shipment_hash: BytesN<32>, total_volume_g: i128) -> u64;
+
+/// Agrinas confirms physical receipt at the warehouse, or records a
+/// mismatch (received_volume_g != declared) — this IS the Selisih case,
+/// surfaced for human resolution, never an automatic accusation.
+/// requires agrinas auth.
+pub fn confirm_harvest_receipt(env: Env, agrinas: Address, id: u64, received_volume_g: i128);
+```
+This mirrors the residu dual-gate: `forward_harvest` ≈ `mark_residu_remitted` (declare, unverified), `confirm_harvest_receipt` ≈ `confirm_remittance` (verify) with a `Selisih`/dispute branch ≈ `flag_remittance_dispute`. When this lands, `harvest_shipment`/`harvest_shipment_line` become the off-chain detail behind an on-chain `shipment_hash`, the same relationship `saprotan_catalog` has to the on-chain `base_price_agrinas` snapshot.
+
+---
+
 ## 9. Auth & roles
 
 | Function | Auth |
@@ -449,6 +480,7 @@ Soroban host handles signature verification + replay protection. Freighter signs
 
 | Layer | Contract change |
 |---|---|
+| v3.1 Harvest logistics | `forward_harvest(coop, shipment_hash, total_volume_g)` + `confirm_harvest_receipt(agrinas, id, received_volume_g)` — dual-gate mirroring residu reconciliation, with a `Selisih` dispute path (§8b). Off-chain `harvest_shipment`/`harvest_shipment_line` today. |
 | L2 Reputation | already emitting farmer + coop reputation; add scoring view fn + credit-unlock tiers |
 | L3 Receivable | add `tokenize_receivable(id)` → mints a transferable claim on the agreement's future net |
 | L4 Liquidity | escrow multisig; adapters to **Blend** (borrow against receivables) / **DeFindex** (idle-float vault, capped) |

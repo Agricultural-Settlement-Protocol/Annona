@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Screen H: Asisten AI (Agrinas view).
+ * Screen H (Agrinas): Asisten AI multi-sesi.
  *
  * Grounding snapshot: serialised protocol metrics (no raw bigint through JSON).
  * Scope: residu, dispatch, commercial operations, coop health.
@@ -17,7 +17,6 @@ import {
 } from "@/lib/oversight-data";
 import { formatRupiah } from "@annona/core";
 import { Alert, Card, CardContent } from "@annona/ui";
-import { Bot, Info } from "lucide-react";
 import { useMemo } from "react";
 
 /** Build grounding snapshot for Agrinas role.
@@ -79,36 +78,21 @@ export default function AgrinasAiPage() {
   const snapshot = useMemo(() => buildAgrinasSnapshot(), []);
 
   return (
-    <div className="flex h-[calc(100vh-6rem)] flex-col gap-6">
+    <div className="flex h-[calc(100vh-6rem)] flex-col gap-4">
       <OversightPageHeader
         title="Asisten AI Agrinas"
-        description="Tanya apa saja tentang data residu, dispatch, dan kinerja koperasi. AI hanya membaca, tidak bisa mengubah data."
+        description="Tanya tentang data residu, dispatch, dan kinerja koperasi. Percakapan disimpan di perangkat Anda. AI hanya membaca, tidak bisa mengubah data."
       />
 
       <Alert tone="info" title="Keterbatasan AI">
         <span className="text-sm">
-          Asisten ini menjawab berdasarkan snapshot data saat halaman ini dimuat.
-          Untuk data terkini, muat ulang halaman. AI tidak bisa melakukan tindakan
-          apa pun di blockchain.
+          Asisten ini menjawab berdasarkan snapshot data saat halaman dimuat.
+          Untuk data terkini, muat ulang halaman. AI tidak dapat melakukan
+          tindakan apapun di blockchain.
         </span>
       </Alert>
 
-      <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div className="flex items-center gap-2 border-b border-border px-5 py-4">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-aqua-100">
-            <Bot size={16} className="text-aqua-700" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-foreground">Asisten AI Agrinas</p>
-            <p className="text-xs text-muted-foreground">
-              Lingkup: residu, dispatch, kinerja koperasi
-            </p>
-          </div>
-          <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-aqua-50 px-2 py-0.5 text-[10px] font-semibold text-aqua-700">
-            <Info size={10} />
-            Hanya Baca Data
-          </span>
-        </div>
+      <Card className="flex min-h-0 flex-1 overflow-hidden">
         <CardContent className="min-h-0 flex-1 p-0">
           <AiChat viewRole="agrinas" groundingSnapshot={snapshot} />
         </CardContent>

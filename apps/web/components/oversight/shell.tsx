@@ -1,19 +1,21 @@
 "use client";
 
-import { Logo, LogoMark, cn } from "@annona/ui";
+import { signOutToAuth } from "@/lib/supabase";
+import { Logo, cn } from "@annona/ui";
 import type { LucideIcon } from "lucide-react";
 import {
   BarChart3,
   Bot,
-  ChevronRight,
   LayoutDashboard,
   Landmark,
   LogOut,
   Menu,
   Package,
+  PackageCheck,
   PanelLeftClose,
   PanelLeftOpen,
   ShieldCheck,
+  Truck,
   Wifi,
   X,
 } from "lucide-react";
@@ -50,7 +52,9 @@ const AGRINAS_NAV: { label: string | null; items: NavItem[] }[] = [
   {
     label: "Operasional",
     items: [
-      { href: "/oversight/agrinas/katalog", label: "Katalog dan Logistik", icon: Package },
+      { href: "/oversight/agrinas/katalog", label: "Katalog Saprotan", icon: Package },
+      { href: "/oversight/agrinas/logistik", label: "Logistik Saprotan", icon: Truck },
+      { href: "/oversight/agrinas/penerimaan", label: "Penerimaan Panen", icon: PackageCheck },
       { href: "/oversight/agrinas/residu", label: "Rekonsiliasi Residu", icon: Landmark },
     ],
   },
@@ -174,26 +178,34 @@ function SidebarContent({
 
   return (
     <div className="flex h-full flex-col">
-      {/* Logo + role badge */}
+      {/* Logo + role badge. Row must never overflow the rail: logo link gets
+          min-w-0, badge + toggle are shrink-0. Collapsed shows toggle only. */}
       <div
         className={cn(
-          "flex items-center pt-5 pb-4",
-          collapsed ? "justify-center px-2" : "gap-2 px-5",
+          "flex items-center overflow-hidden pt-5 pb-4",
+          collapsed ? "justify-center px-2" : "gap-2 px-4",
         )}
       >
-        <Link href="/" onClick={onNavigate} aria-label="Annona">
-          {collapsed ? <LogoMark className="h-7 w-7" /> : <Logo className="h-7 w-auto" />}
-        </Link>
         {collapsed ? null : (
-          <span
-            className={cn(
-              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase",
-              roleBadgeClass,
-            )}
-          >
-            {roleIcon}
-            {roleLabel}
-          </span>
+          <>
+            <Link
+              href="/"
+              onClick={onNavigate}
+              aria-label="Annona"
+              className="min-w-0 overflow-hidden"
+            >
+              <Logo className="h-6 w-auto" />
+            </Link>
+            <span
+              className={cn(
+                "inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold tracking-wide uppercase",
+                roleBadgeClass,
+              )}
+            >
+              {roleIcon}
+              {roleLabel}
+            </span>
+          </>
         )}
         {onToggle ? (
           <button
@@ -201,8 +213,8 @@ function SidebarContent({
             onClick={onToggle}
             aria-label={collapsed ? "Perlebar menu" : "Perkecil menu"}
             className={cn(
-              "hidden rounded-md p-1.5 text-ink-400 transition-colors hover:bg-surface-muted hover:text-foreground lg:block",
-              collapsed ? "mt-2" : "ml-auto",
+              "hidden shrink-0 rounded-md p-1.5 text-ink-400 transition-colors hover:bg-surface-muted hover:text-foreground lg:block",
+              collapsed ? "" : "ml-auto",
             )}
           >
             {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
@@ -265,15 +277,15 @@ function SidebarContent({
             >
               {isAgrinas ? "AG" : "PG"}
             </div>
-            <Link
-              href="/oversight"
-              onClick={onNavigate}
-              title="Ganti Peran"
-              aria-label="Ganti Peran"
-              className="rounded-md p-2 text-ink-500 transition-colors hover:bg-surface-muted hover:text-foreground"
+            <button
+              type="button"
+              onClick={() => void signOutToAuth()}
+              title="Keluar"
+              aria-label="Keluar"
+              className="rounded-md p-2 text-ink-500 transition-colors hover:bg-red-50 hover:text-red-700"
             >
-              <ChevronRight size={16} />
-            </Link>
+              <LogOut size={16} />
+            </button>
           </div>
         ) : (
           <>
@@ -299,14 +311,14 @@ function SidebarContent({
                 Testnet
               </span>
             </div>
-            <Link
-              href="/oversight"
-              onClick={onNavigate}
-              className="mt-3 flex min-h-10 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-ink-600 transition-colors hover:bg-surface-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            <button
+              type="button"
+              onClick={() => void signOutToAuth()}
+              className="mt-3 flex min-h-10 w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-ink-600 transition-colors hover:bg-red-50 hover:text-red-700 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
             >
               <LogOut size={16} />
-              Ganti Peran
-            </Link>
+              Keluar
+            </button>
           </>
         )}
       </div>

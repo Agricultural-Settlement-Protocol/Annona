@@ -15,8 +15,11 @@ import {
   MOCK_AGREEMENTS,
   MOCK_CATALOG,
   MOCK_RESIDU_LEDGER,
+  MOCK_SHIPMENTS,
   type MockCatalogItem,
   type MockResiduRow,
+  type MockShipment,
+  type MockShipmentLine,
   aggregateSaprotanNeeds,
 } from "@/lib/mock-data";
 import type { ResiduStatus } from "@annona/core";
@@ -1024,6 +1027,165 @@ export interface AgrinarActivity {
   txHash: string | null;
   at: string;
 }
+
+// ─── Dispatch history (saprotan logistik desk) ────────────────────────────────
+
+export interface DispatchHistoryItem {
+  name: string;
+  code: string;
+  qty: number;
+  unitLabel: string;
+  principal: bigint;
+}
+
+export interface DispatchHistoryRow {
+  id: string;
+  coopId: string;
+  coopName: string;
+  kabupaten: string;
+  dispatchedAt: string;
+  itemCount: number;
+  totalPokok: bigint;
+  /** Dikirim = dispatched but awaiting KMP accept_supply; Diterima = KMP accepted */
+  status: "Dikirim" | "Diterima";
+  txHash: string;
+  items: DispatchHistoryItem[];
+  acceptedAt: string | null;
+}
+
+export const DISPATCH_HISTORY: DispatchHistoryRow[] = [
+  {
+    id: "dsp-h-001",
+    coopId: "coop-0001",
+    coopName: "KMP Sukamaju",
+    kabupaten: "Cianjur",
+    dispatchedAt: "2026-07-01",
+    itemCount: 2,
+    totalPokok: rupiah(3_360_000),
+    status: "Diterima",
+    txHash: SYNTH_HASH("dsph001"),
+    acceptedAt: "2026-07-02",
+    items: [
+      { name: "Pupuk Urea 50kg", code: "UREA-50", qty: 4, unitLabel: "karung 50kg", principal: rupiah(2_240_000) },
+      { name: "Insektisida Regent 400ml", code: "PES-REGENT", qty: 4, unitLabel: "botol 400ml", principal: rupiah(380_000) },
+    ],
+  },
+  {
+    id: "dsp-h-002",
+    coopId: "coop-0002",
+    coopName: "KMP Mekarjaya",
+    kabupaten: "Subang",
+    dispatchedAt: "2026-06-28",
+    itemCount: 3,
+    totalPokok: rupiah(6_600_000),
+    status: "Diterima",
+    txHash: SYNTH_HASH("dsph002"),
+    acceptedAt: "2026-06-29",
+    items: [
+      { name: "Pupuk Urea 50kg", code: "UREA-50", qty: 5, unitLabel: "karung 50kg", principal: rupiah(2_800_000) },
+      { name: "NPK Phonska 50kg", code: "NPK-PHONSKA-50", qty: 3, unitLabel: "karung 50kg", principal: rupiah(1_920_000) },
+      { name: "Benih Padi Inpari 32", code: "BENIH-INPARI32", qty: 16, unitLabel: "kantong 5kg", principal: rupiah(1_920_000) },
+    ],
+  },
+  {
+    id: "dsp-h-003",
+    coopId: "coop-0003",
+    coopName: "KMP Tani Mandiri",
+    kabupaten: "Tasikmalaya",
+    dispatchedAt: "2026-07-03",
+    itemCount: 2,
+    totalPokok: rupiah(4_600_000),
+    status: "Dikirim",
+    txHash: SYNTH_HASH("dsph003"),
+    acceptedAt: null,
+    items: [
+      { name: "Pupuk Urea 50kg", code: "UREA-50", qty: 5, unitLabel: "karung 50kg", principal: rupiah(2_800_000) },
+      { name: "Benih Jagung BISI-18", code: "BENIH-BISI18", qty: 12, unitLabel: "kantong 5kg", principal: rupiah(1_860_000) },
+    ],
+  },
+];
+
+// ─── Oversight shipments (penerimaan desk) ────────────────────────────────────
+// Extends MOCK_SHIPMENTS (KMP Sukamaju) with synthetic rows from other KMPs.
+
+export interface OversightShipment extends MockShipment {
+  coopId: string;
+}
+
+function makeShipmentLine(overrides: Partial<MockShipmentLine> & { id: string; deliveryId: string; agreementId: string; farmerId: string; volumeKg: number; grade: string; moistureBps: number }): MockShipmentLine {
+  return overrides as MockShipmentLine;
+}
+
+const OVERSIGHT_SYNTH: OversightShipment[] = [
+  // KMP Mekarjaya — Dikirim (awaiting confirmation)
+  {
+    id: "shp-mj-001",
+    ref: "SHP-2026-004",
+    coopId: "coop-0002",
+    coopName: "KMP Mekarjaya",
+    agrinasId: "agr-0001",
+    agrinasName: "Gudang Agrinas Subang",
+    commodityCode: "GABAH",
+    status: "Dikirim",
+    totalVolumeKg: 6_200,
+    receivedVolumeKg: null,
+    discrepancyNote: null,
+    sentAt: "2026-07-04",
+    receivedAt: null,
+    createdAt: "2026-07-04",
+    lines: [
+      makeShipmentLine({ id: "shl-mj-001", deliveryId: "dlv-mj-001", agreementId: "agm-mj-001", farmerId: "frm-mj-001", volumeKg: 3_800, grade: "A", moistureBps: 1300 }),
+      makeShipmentLine({ id: "shl-mj-002", deliveryId: "dlv-mj-002", agreementId: "agm-mj-002", farmerId: "frm-mj-002", volumeKg: 2_400, grade: "B", moistureBps: 1420 }),
+    ],
+  },
+  // KMP Tani Mandiri — Dikirim
+  {
+    id: "shp-tm-001",
+    ref: "SHP-2026-005",
+    coopId: "coop-0003",
+    coopName: "KMP Tani Mandiri",
+    agrinasId: "agr-0001",
+    agrinasName: "Gudang Agrinas Tasikmalaya",
+    commodityCode: "GABAH",
+    status: "Dikirim",
+    totalVolumeKg: 3_900,
+    receivedVolumeKg: null,
+    discrepancyNote: null,
+    sentAt: "2026-07-06",
+    receivedAt: null,
+    createdAt: "2026-07-06",
+    lines: [
+      makeShipmentLine({ id: "shl-tm-001", deliveryId: "dlv-tm-001", agreementId: "agm-tm-001", farmerId: "frm-tm-001", volumeKg: 3_900, grade: "A", moistureBps: 1280 }),
+    ],
+  },
+  // KMP Sumber Makmur — Selisih (discrepancy)
+  {
+    id: "shp-sm-001",
+    ref: "SHP-2026-006",
+    coopId: "coop-0004",
+    coopName: "KMP Sumber Makmur",
+    agrinasId: "agr-0001",
+    agrinasName: "Gudang Agrinas Brebes",
+    commodityCode: "GABAH",
+    status: "Selisih",
+    totalVolumeKg: 5_100,
+    receivedVolumeKg: 4_650,
+    discrepancyNote: "Selisih 450 kg, melebihi toleransi susut timbang normal. Perlu konfirmasi ulang dari KMP.",
+    sentAt: "2026-06-30",
+    receivedAt: "2026-07-01",
+    createdAt: "2026-06-30",
+    lines: [
+      makeShipmentLine({ id: "shl-sm-001", deliveryId: "dlv-sm-001", agreementId: "agm-sm-001", farmerId: "frm-sm-001", volumeKg: 3_000, grade: "A", moistureBps: 1350 }),
+      makeShipmentLine({ id: "shl-sm-002", deliveryId: "dlv-sm-002", agreementId: "agm-sm-002", farmerId: "frm-sm-002", volumeKg: 2_100, grade: "B", moistureBps: 1480 }),
+    ],
+  },
+];
+
+/** All shipments visible on the penerimaan desk: KMP Sukamaju (from mock-data) + multi-KMP synthetics. */
+export const OVERSIGHT_SHIPMENTS: OversightShipment[] = [
+  ...MOCK_SHIPMENTS.map((s) => ({ ...s, coopId: "coop-0001" })),
+  ...OVERSIGHT_SYNTH,
+];
 
 export const AGRINAS_ACTIVITY: AgrinarActivity[] = [
   {

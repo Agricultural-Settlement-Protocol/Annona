@@ -1,8 +1,13 @@
 "use client";
 
 /** Screen E — Agreement Detail (PRD §8.1). Client component so useParams
- *  is available and bigint values from mock-data stay client-side only. */
+ *  is available and bigint values from mock-data stay client-side only.
+ *
+ *  Always renders 8 sections in order. Each section is a Card; when data is
+ *  absent the card renders a designed EmptyNotice inside, never omits the card.
+ *  No em dashes anywhere in this file. */
 
+import { DetailSection, EmptyNotice } from "@/components/kmp/detail-section";
 import { LifecycleTimeline } from "@/components/kmp/lifecycle-timeline";
 import { PageHeader } from "@/components/kmp/page-header";
 import { TBody, THead, Table, TableFrame, Td, Th, Tr } from "@/components/kmp/table";
@@ -14,14 +19,12 @@ import {
   getFarmer,
   residuOfAgreement,
   settlementsOfAgreement,
+  shortAddr,
 } from "@/lib/mock-data";
 import {
   Alert,
   Badge,
   Button,
-  Card,
-  CardContent,
-  CardHeader,
   EmptyState,
   ProgressBar,
   ReputationBadge,
@@ -32,10 +35,10 @@ import {
   TxHashLink,
 } from "@annona/ui";
 import {
-  AlertTriangle,
   ArrowLeft,
   Boxes,
   Calendar,
+  CheckCircle2,
   CloudRain,
   ExternalLink,
   FileText,
@@ -92,12 +95,13 @@ export default function AgreementDetailPage() {
   const settledKg = Number(agreement.settledVolG / 1000n);
 
   // Grade and kadar air: show estimate badge before first delivery, actual badge after.
-  // agreement.grade/moistureBps = default at creation time (SOP estimate).
-  // latest delivery's grade/moistureBps = physical measurement.
   const latestDelivery = deliveries.length > 0 ? deliveries[deliveries.length - 1] : undefined;
   const hasDelivery = deliveries.length > 0;
   const gradeDisplay = latestDelivery?.grade ?? agreement.grade;
   const moistureDisplay = latestDelivery?.moistureBps ?? agreement.moistureBps;
+
+  const isPreActive =
+    agreement.status === "Created" || agreement.status === "SupplyDispatched";
 
   return (
     <div className="space-y-6">
@@ -122,7 +126,7 @@ export default function AgreementDetailPage() {
         }
       />
 
-      {/* Flagged / ForceMajeure alerts — flags indicate, humans decide */}
+      {/* Status alerts — flags indicate, humans decide */}
       {agreement.status === "Flagged" && (
         <Alert tone="warning" title="Perlu Ditinjau">
           Setoran {deliveredKg.toLocaleString("id-ID")} kg dari perkiraan{" "}
@@ -138,55 +142,61 @@ export default function AgreementDetailPage() {
         </Alert>
       )}
 
-      {/* Lifecycle timeline */}
-      <Card>
-        <CardHeader title="Tahapan Perjanjian" />
-        <CardContent>
-          <LifecycleTimeline status={agreement.status} />
-        </CardContent>
-      </Card>
+      {/* ── SECTION 1: Tahapan Perjanjian ── */}
+      <DetailSection
+        title="Tahapan Perjanjian"
+        description="Alur hidup perjanjian dari pembuatan hingga penyelesaian akhir."
+      >
+        <LifecycleTimeline status={agreement.status} />
+      </DetailSection>
 
-      {/* Info grid */}
+      {/* ── SECTIONS 2 + 3: Info Petani & Komoditas (two-column grid) ── */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Petani + identitas */}
-        <Card>
-          <CardHeader
-            title="Info Petani"
-            action={<Leaf size={18} className="text-verdant-400" />}
-          />
-          <CardContent className="space-y-3">
-            <InfoRow label="Nama">
-              <span className="font-semibold">{farmer?.name ?? "(tidak diketahui)"}</span>
-            </InfoRow>
-            <InfoRow label="Reputasi">
-              {farmer ? <ReputationBadge tier={farmer.repTier} /> : null}
-            </InfoRow>
-            <InfoRow label="Kecamatan">{farmer?.kecamatan}</InfoRow>
-            <InfoRow label="Luas Lahan">{farmer?.plotAreaHa.toLocaleString("id-ID")} ha</InfoRow>
-            <InfoRow label="Dompet">
-              <span className="font-mono text-xs text-muted-foreground">
-                {farmer
-                  ? `${farmer.walletAddress.slice(0, 8)}...${farmer.walletAddress.slice(-6)}`
-                  : "-"}
-              </span>
-            </InfoRow>
-            <div className="pt-1">
-              <Link href={farmer ? `/kmp/petani?fokus=${farmer.id}` : "/kmp/petani"}>
-                <Button variant="outline" size="sm" leftIcon={<User size={14} />}>
-                  Lihat profil petani
-                </Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
 
-        {/* Komoditas + harga */}
-        <Card>
-          <CardHeader
-            title="Komoditas dan Harga"
-            action={<Tag size={18} className="text-verdant-400" />}
-          />
-          <CardContent className="space-y-3">
+        {/* SECTION 2: Info Petani */}
+        <DetailSection
+          title="Info Petani"
+          icon={<Leaf size={18} className="text-verdant-400" />}
+        >
+          {farmer ? (
+            <div className="space-y-3">
+              <InfoRow label="Nama">
+                <span className="font-semibold">{farmer.name}</span>
+              </InfoRow>
+              <InfoRow label="Reputasi">
+                <ReputationBadge tier={farmer.repTier} />
+              </InfoRow>
+              <InfoRow label="Kecamatan">{farmer.kecamatan}</InfoRow>
+              <InfoRow label="Luas Lahan">{farmer.plotAreaHa.toLocaleString("id-ID")} ha</InfoRow>
+              <InfoRow label="Dompet">
+                <span className="font-mono text-xs text-muted-foreground">
+                  {shortAddr(farmer.walletAddress)}
+                </span>
+              </InfoRow>
+              <InfoRow label="Hash KTP">
+                <span className="font-mono text-xs text-muted-foreground truncate">
+                  {farmer.ktpHash.slice(0, 16)}...
+                </span>
+              </InfoRow>
+              <div className="pt-1">
+                <Link href={`/kmp/petani?fokus=${farmer.id}`}>
+                  <Button variant="outline" size="sm" leftIcon={<User size={14} />}>
+                    Lihat profil petani
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <EmptyNotice icon={User} message="Data petani tidak tersedia." />
+          )}
+        </DetailSection>
+
+        {/* SECTION 3: Komoditas dan Harga */}
+        <DetailSection
+          title="Komoditas dan Harga"
+          icon={<Tag size={18} className="text-verdant-400" />}
+        >
+          <div className="space-y-3">
             <InfoRow label="Komoditas">
               {agreement.commodityCode === "GABAH" ? "Gabah Kering Panen" : "Jagung Pipilan Kering"}
             </InfoRow>
@@ -208,7 +218,7 @@ export default function AgreementDetailPage() {
               </span>
             </InfoRow>
 
-            {/* Kadar Air: sama, Perkiraan sebelum setoran, Aktual setelahnya */}
+            {/* Kadar Air: Perkiraan sebelum setoran, Aktual setelahnya */}
             <InfoRow label="Kadar Air">
               <span className="flex flex-col gap-1">
                 <span className="flex items-center gap-2">
@@ -226,8 +236,10 @@ export default function AgreementDetailPage() {
             </InfoRow>
 
             <InfoRow label="Harga Pokok Agrinas">
-              <RupiahAmount smallest={agreement.basePriceAgrinas} />
-              <span className="ml-1 text-xs text-muted-foreground">(pokok saprotan)</span>
+              <span className="flex flex-wrap items-center gap-1">
+                <RupiahAmount smallest={agreement.basePriceAgrinas} />
+                <span className="text-xs text-muted-foreground">(pokok saprotan)</span>
+              </span>
             </InfoRow>
             <InfoRow label="Markup Saprotan">{agreement.saprotanMarkupBps / 100}%</InfoRow>
             <InfoRow label="Utang Saprotan">
@@ -237,24 +249,30 @@ export default function AgreementDetailPage() {
               {agreement.hppHandlingFeeBps / 100}% dari hasil
             </InfoRow>
             <InfoRow label="HPP per kg">
-              <RupiahAmount smallest={agreement.hppPerKg} />
-              <span className="ml-1 text-xs text-muted-foreground">
-                (v{agreement.hppVersion}, {priceRef?.hppSource ?? "Inpres"})
+              <span className="flex flex-wrap items-center gap-1">
+                <RupiahAmount smallest={agreement.hppPerKg} />
+                <span className="text-xs text-muted-foreground">
+                  (v{agreement.hppVersion}, {priceRef?.hppSource ?? "Inpres"})
+                </span>
               </span>
             </InfoRow>
             <InfoRow label="Toleransi Setoran">{agreement.toleranceBps / 100}%</InfoRow>
-          </CardContent>
-        </Card>
+          </div>
+        </DetailSection>
       </div>
 
-      {/* Rincian saprotan (inputs) */}
-      <Card>
-        <CardHeader
-          title="Rincian Saprotan"
-          description="Barang yang diterima petani. Harga pokok Agrinas, markup KMP menghasilkan utang saprotan."
-          action={<Boxes size={18} className="text-verdant-400" />}
-        />
-        <CardContent className="p-0 pb-4">
+      {/* ── SECTION 4: Rincian Saprotan ── */}
+      <DetailSection
+        title="Rincian Saprotan"
+        description="Barang yang diterima petani. Harga pokok Agrinas, markup KMP menghasilkan utang saprotan."
+        icon={<Boxes size={18} className="text-verdant-400" />}
+        noPadding
+      >
+        {agreement.inputs.length === 0 ? (
+          <div className="px-4 pb-4">
+            <EmptyNotice icon={Boxes} message="Tidak ada rincian saprotan untuk perjanjian ini." />
+          </div>
+        ) : (
           <TableFrame className="border-0 shadow-none">
             <Table>
               <THead>
@@ -284,7 +302,6 @@ export default function AgreementDetailPage() {
                     </Tr>
                   );
                 })}
-                {/* Totals row */}
                 <tr className="border-t-2 border-border bg-surface-muted">
                   <td colSpan={4} className="px-4 py-3 text-sm font-semibold text-foreground">
                     Total Pokok Agrinas
@@ -304,122 +321,148 @@ export default function AgreementDetailPage() {
               </TBody>
             </Table>
           </TableFrame>
-        </CardContent>
-      </Card>
+        )}
+      </DetailSection>
 
-      {/* Progress setoran */}
-      <Card>
-        <CardHeader
-          title="Progress Setoran"
-          description={`${deliveredKg.toLocaleString("id-ID")} kg dari ${agreement.expectedVolKg.toLocaleString("id-ID")} kg perkiraan`}
-          action={<Percent size={18} className="text-verdant-400" />}
-        />
-        <CardContent>
-          <ProgressBar
-            value={deliveredKg}
-            max={agreement.expectedVolKg}
-            label={`Sudah disetor: ${deliveredKg.toLocaleString("id-ID")} kg`}
-            tone={
-              deliveredKg >= agreement.expectedVolKg * 0.98
-                ? "verdant"
-                : deliveredKg >= agreement.expectedVolKg * 0.8
-                  ? "verdant"
-                  : "aqua"
-            }
+      {/* ── SECTION 5: Progress Setoran ── */}
+      <DetailSection
+        title="Progress Setoran"
+        description={
+          isPreActive
+            ? "Perjanjian belum aktif. Setoran dimulai setelah saprotan diterima."
+            : `${deliveredKg.toLocaleString("id-ID")} kg dari ${agreement.expectedVolKg.toLocaleString("id-ID")} kg perkiraan`
+        }
+        icon={<Percent size={18} className="text-verdant-400" />}
+      >
+        {isPreActive ? (
+          <EmptyNotice
+            icon={Percent}
+            message="Belum ada setoran. Setoran dimulai setelah perjanjian berstatus Berjalan (saprotan diterima KMP)."
           />
-          {settledKg > 0 && settledKg < deliveredKg && (
-            <div className="mt-3">
+        ) : (
+          <div className="space-y-3">
+            <ProgressBar
+              value={deliveredKg}
+              max={agreement.expectedVolKg}
+              label={`Sudah disetor: ${deliveredKg.toLocaleString("id-ID")} kg`}
+              tone={deliveredKg >= agreement.expectedVolKg * 0.8 ? "verdant" : "aqua"}
+            />
+            {settledKg > 0 && settledKg < deliveredKg && (
               <ProgressBar
                 value={settledKg}
                 max={deliveredKg}
                 label={`Sudah diselesaikan: ${settledKg.toLocaleString("id-ID")} kg`}
                 tone="aqua"
               />
+            )}
+            <div className="flex flex-wrap gap-4 text-sm">
+              <div>
+                <span className="text-muted-foreground">Utang tersisa: </span>
+                <RupiahAmount
+                  smallest={agreement.remainingDebt}
+                  tone={agreement.remainingDebt > 0n ? "negative" : "positive"}
+                />
+              </div>
+              <div>
+                <span className="text-muted-foreground">Dibayarkan ke petani: </span>
+                <RupiahAmount smallest={agreement.paidToFarmer} tone="positive" />
+              </div>
             </div>
-          )}
-          <div className="mt-3 flex flex-wrap gap-4 text-sm">
-            <div>
-              <span className="text-muted-foreground">Utang tersisa: </span>
-              <RupiahAmount
-                smallest={agreement.remainingDebt}
-                tone={agreement.remainingDebt > 0n ? "negative" : "positive"}
-              />
-            </div>
-            <div>
-              <span className="text-muted-foreground">Dibayarkan ke petani: </span>
-              <RupiahAmount smallest={agreement.paidToFarmer} tone="positive" />
-            </div>
+            {agreement.expectedHarvestDate && (
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Calendar size={12} />
+                <span>
+                  Perkiraan panen:{" "}
+                  {new Date(agreement.expectedHarvestDate).toLocaleDateString("id-ID", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </span>
+              </div>
+            )}
           </div>
-        </CardContent>
-      </Card>
+        )}
+      </DetailSection>
 
-      {/* Riwayat setoran */}
-      {deliveries.length > 0 && (
-        <Card>
-          <CardHeader
-            title="Riwayat Setoran Panen"
-            description="Setiap setoran memiliki resi on-chain yang dapat diverifikasi."
-            action={<Calendar size={18} className="text-aqua-400" />}
-          />
-          <CardContent className="p-0 pb-4">
-            <TableFrame className="border-0 shadow-none">
-              <Table>
-                <THead>
-                  <Th>Seq</Th>
-                  <Th className="text-right">Volume</Th>
-                  <Th>Grade</Th>
-                  <Th className="text-right">Kadar Air</Th>
-                  <Th>Tanggal</Th>
-                  <Th>Resi On-chain</Th>
-                </THead>
-                <TBody>
-                  {deliveries.map((d) => (
-                    <Tr key={d.id}>
-                      <Td className="font-mono text-xs">{d.seq}</Td>
-                      <Td className="text-right tabular-nums font-medium">
-                        {d.volumeKg.toLocaleString("id-ID")} kg
-                      </Td>
-                      <Td>
-                        <span
-                          className={
-                            d.grade === "A"
-                              ? "font-semibold text-verdant-700"
-                              : d.grade === "B"
-                                ? "font-semibold text-foreground"
-                                : "font-semibold text-amber-600"
-                          }
-                        >
-                          Grade {d.grade}
-                        </span>
-                      </Td>
-                      <Td className="text-right tabular-nums text-muted-foreground">
-                        {(d.moistureBps / 100).toFixed(1)}%
-                      </Td>
-                      <Td className="text-muted-foreground">{d.deliveredAt}</Td>
-                      <Td>
-                        <TxHashLink hash={d.receiptTxHash} />
-                      </Td>
-                    </Tr>
-                  ))}
-                </TBody>
-              </Table>
-            </TableFrame>
-          </CardContent>
-        </Card>
-      )}
+      {/* ── SECTION 6: Riwayat Setoran Panen ── */}
+      <DetailSection
+        title="Riwayat Setoran Panen"
+        description="Setiap setoran memiliki resi on-chain yang dapat diverifikasi."
+        icon={<Calendar size={18} className="text-aqua-400" />}
+        noPadding
+      >
+        {deliveries.length === 0 ? (
+          <div className="px-4 pb-4">
+            <EmptyNotice
+              icon={Calendar}
+              message="Belum ada setoran panen tercatat untuk perjanjian ini."
+            />
+          </div>
+        ) : (
+          <TableFrame className="border-0 shadow-none">
+            <Table>
+              <THead>
+                <Th>Seq</Th>
+                <Th className="text-right">Volume</Th>
+                <Th>Grade</Th>
+                <Th className="text-right">Kadar Air</Th>
+                <Th>Tanggal</Th>
+                <Th>Resi On-chain</Th>
+              </THead>
+              <TBody>
+                {deliveries.map((d) => (
+                  <Tr key={d.id}>
+                    <Td className="font-mono text-xs">{d.seq}</Td>
+                    <Td className="text-right tabular-nums font-medium">
+                      {d.volumeKg.toLocaleString("id-ID")} kg
+                    </Td>
+                    <Td>
+                      <span
+                        className={
+                          d.grade === "A"
+                            ? "font-semibold text-verdant-700"
+                            : d.grade === "B"
+                              ? "font-semibold text-foreground"
+                              : "font-semibold text-amber-600"
+                        }
+                      >
+                        Grade {d.grade}
+                      </span>
+                    </Td>
+                    <Td className="text-right tabular-nums text-muted-foreground">
+                      {(d.moistureBps / 100).toFixed(1)}%
+                    </Td>
+                    <Td className="text-muted-foreground">{d.deliveredAt}</Td>
+                    <Td>
+                      <TxHashLink hash={d.receiptTxHash} />
+                    </Td>
+                  </Tr>
+                ))}
+              </TBody>
+            </Table>
+          </TableFrame>
+        )}
+      </DetailSection>
 
-      {/* Penyelesaian (settlements) */}
-      {settlements.length > 0 && (
-        <Card>
-          <CardHeader
-            title="Catatan Penyelesaian"
-            description="Catatan pembayaran anti-manipulasi. Kas keluar dari BRILink/BRI, split tercatat di Stellar."
-            action={<Landmark size={18} className="text-aqua-400" />}
+      {/* ── SECTION 7: Catatan Penyelesaian ── */}
+      <DetailSection
+        title="Catatan Penyelesaian"
+        description="Catatan pembayaran anti-manipulasi. Kas keluar dari BRILink/BRI, split tercatat di Stellar."
+        icon={<Landmark size={18} className="text-aqua-400" />}
+      >
+        {settlements.length === 0 ? (
+          <EmptyNotice
+            icon={Landmark}
+            message="Belum ada transaksi pembayaran untuk perjanjian ini."
           />
-          <CardContent className="space-y-6">
+        ) : (
+          <div className="space-y-6">
             {settlements.map((s) => (
-              <div key={s.id} className="rounded-lg border border-border bg-surface-muted/40 p-4">
-                {/* Settlement meta */}
+              <div
+                key={s.id}
+                className="rounded-lg border border-border bg-surface-muted/40 p-4"
+              >
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold text-foreground">
@@ -431,8 +474,6 @@ export default function AgreementDetailPage() {
                   </div>
                   <TxHashLink hash={s.txHash} />
                 </div>
-
-                {/* SplitSettlementCard for the three-way split */}
                 <SplitSettlementCard
                   gross={s.gross}
                   handlingCut={s.handlingCut}
@@ -442,19 +483,23 @@ export default function AgreementDetailPage() {
                 />
               </div>
             ))}
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        )}
+      </DetailSection>
 
-      {/* Residu pokok Agrinas */}
-      {residu && (
-        <Card>
-          <CardHeader
-            title="Residu Pokok Agrinas"
-            description="Bagian Agrinas dari pembayaran. Wajib disetor balik ke Agrinas."
-            action={<Landmark size={18} className="text-aqua-400" />}
+      {/* ── SECTION 8: Residu Pokok Agrinas ── */}
+      <DetailSection
+        title="Residu Pokok Agrinas"
+        description="Bagian Agrinas dari pembayaran. Wajib disetor balik ke Agrinas setelah penyelesaian."
+        icon={<Landmark size={18} className="text-aqua-400" />}
+      >
+        {!residu ? (
+          <EmptyNotice
+            icon={CheckCircle2}
+            message="Tidak ada residu untuk perjanjian ini. Residu muncul setelah penyelesaian pembayaran pertama."
           />
-          <CardContent className="space-y-4">
+        ) : (
+          <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <ResiduStatusBadge status={residu.status} />
@@ -468,7 +513,8 @@ export default function AgreementDetailPage() {
 
             {residu.bankRef && (
               <div className="text-sm text-muted-foreground">
-                Referensi bank: <span className="font-mono text-foreground">{residu.bankRef}</span>
+                Referensi bank:{" "}
+                <span className="font-mono text-foreground">{residu.bankRef}</span>
               </div>
             )}
 
@@ -486,16 +532,16 @@ export default function AgreementDetailPage() {
 
             {residu.status === "Pending" && (
               <Alert tone="warning" title="Residu belum disetor">
-                Sebesar <RupiahAmount smallest={residu.principalAmount} className="text-sm" />{" "}
-                adalah uang Agrinas yang tersimpan di kas koperasi. Segera remitkan ke rekening
-                Agrinas untuk menyelesaikan kewajiban.
+                Sebesar <RupiahAmount smallest={residu.principalAmount} className="text-sm" /> adalah
+                uang Agrinas yang tersimpan di kas koperasi. Segera remitkan ke rekening Agrinas
+                untuk menyelesaikan kewajiban.
               </Alert>
             )}
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        )}
+      </DetailSection>
 
-      {/* Tautan explorer */}
+      {/* Explorer link */}
       <div className="flex items-center gap-2 rounded-lg border border-border bg-aqua-50/50 px-4 py-3 text-sm text-aqua-700">
         <a
           href={`https://stellar.expert/explorer/testnet/tx/${agreement.createTxHash}`}

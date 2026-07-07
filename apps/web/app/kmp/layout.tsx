@@ -1,3 +1,4 @@
+import { AuthGuard } from "@/components/auth-guard";
 import { KmpShell } from "@/components/kmp/shell";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
@@ -8,5 +9,9 @@ export const metadata: Metadata = {
 };
 
 export default function KmpLayout({ children }: { children: ReactNode }) {
-  return <KmpShell>{children}</KmpShell>;
+  return (
+    <AuthGuard requiredRole="kmp">
+      <KmpShell>{children}</KmpShell>
+    </AuthGuard>
+  );
 }

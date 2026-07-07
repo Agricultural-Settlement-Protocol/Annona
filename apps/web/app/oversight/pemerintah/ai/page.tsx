@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Screen H: Asisten AI (Pemerintah view).
+ * Screen H (Pemerintah): Asisten AI multi-sesi, tampilan hanya baca.
  *
  * Read-only grounding: regional production, leaderboard, flag queue, macro metrics.
  * Scope: produksi, kinerja koperasi, flag queue, kebijakan.
@@ -18,7 +18,6 @@ import {
 } from "@/lib/oversight-data";
 import { formatRupiah } from "@annona/core";
 import { Alert, Card, CardContent } from "@annona/ui";
-import { Bot, Info } from "lucide-react";
 import { useMemo } from "react";
 
 function buildPemerintahSnapshot(): GroundingSnapshot {
@@ -37,7 +36,8 @@ function buildPemerintahSnapshot(): GroundingSnapshot {
     totalSuccessHarvest + totalFailedHarvest === 0
       ? 0
       : Math.round(
-          (totalSuccessHarvest / (totalSuccessHarvest + totalFailedHarvest)) * 100,
+          (totalSuccessHarvest / (totalSuccessHarvest + totalFailedHarvest)) *
+            100,
         );
 
   return {
@@ -98,39 +98,22 @@ export default function PemerintahAiPage() {
   const snapshot = useMemo(() => buildPemerintahSnapshot(), []);
 
   return (
-    <div className="flex h-[calc(100vh-6rem)] flex-col gap-6">
+    <div className="flex h-[calc(100vh-6rem)] flex-col gap-4">
       <OversightPageHeader
         title="Asisten AI Pengawasan"
-        description="Analisis data produksi, kinerja koperasi, dan flag berdasarkan data yang tersedia. Tampilan hanya baca."
+        description="Analisis data produksi, kinerja koperasi, dan flag. Percakapan disimpan di perangkat Anda. Tampilan hanya baca."
       />
 
       <Alert tone="info" title="AI hanya membaca data, tidak bisa menulis">
         <span className="text-sm">
-          Asisten ini tidak dapat melakukan tindakan apa pun di blockchain. Semua
-          jawaban berdasarkan data snapshot yang tersedia saat halaman dimuat.
-          Flag yang disebutkan AI adalah indikator untuk peninjauan manusia, bukan
+          Asisten ini tidak dapat melakukan tindakan apapun di blockchain. Semua
+          jawaban berdasarkan snapshot data saat halaman dimuat. Flag yang
+          disebutkan AI adalah indikator untuk peninjauan manusia, bukan
           tuduhan otomatis.
         </span>
       </Alert>
 
-      <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div className="flex items-center gap-2 border-b border-border px-5 py-4">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-verdant-100">
-            <Bot size={16} className="text-verdant-700" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-foreground">
-              Asisten AI Pengawasan Pemerintah
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Lingkup: produksi, kinerja koperasi, antrean flag
-            </p>
-          </div>
-          <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-verdant-50 px-2 py-0.5 text-[10px] font-semibold text-verdant-700">
-            <Info size={10} />
-            Hanya Baca
-          </span>
-        </div>
+      <Card className="flex min-h-0 flex-1 overflow-hidden">
         <CardContent className="min-h-0 flex-1 p-0">
           <AiChat viewRole="pemerintah" groundingSnapshot={snapshot} />
         </CardContent>
