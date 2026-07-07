@@ -50,6 +50,17 @@ export const flagReason = pgEnum("flag_reason", [
 
 export const residuStatus = pgEnum("residu_status", ["Pending", "Remitted", "Cleared", "Disputed"]);
 
+export const stockStatus = pgEnum("stock_status", ["Tersedia", "Menipis", "Habis"]);
+
+export const appRole = pgEnum("app_role", ["kmp", "agrinas", "pemerintah"]);
+
+export const shipmentStatus = pgEnum("shipment_status", [
+  "Draft",
+  "Dikirim",
+  "Diterima",
+  "Selisih",
+]);
+
 /* ────────────────────────── parties ────────────────────────── */
 
 /** PT Agrinas Pangan Nusantara — the operator. Owns the master catalog,
@@ -144,6 +155,9 @@ export const saprotanCatalog = pgTable(
     basePriceAgrinas: bigint("base_price_agrinas", { mode: "bigint" }).notNull(),
     subsidiFlag: boolean("subsidi_flag").notNull().default(false),
     source: text("source"),
+    /** availability signal for KMP requests; no numeric inventory ledger in MVP */
+    stockStatus: stockStatus("stock_status").notNull().default("Tersedia"),
+    unitLabel: text("unit_label").notNull().default("unit"),
     effectiveFrom: timestamp("effective_from", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -428,6 +442,76 @@ export const eventLog = pgTable(
     index("event_log_type_idx").on(t.type),
     index("event_log_ledger_idx").on(t.ledger),
   ],
+);
+
+/* ────────────────────────── auth + logistics (v3.1 off-chain) ────────────── */
+
+/** Email-login profile (MVP RBAC). id references auth.users. */
+export const appUser = pgTable("app_user", {
+  id: uuid("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  role: appRole("role").notNull(),
+  displayName: text("display_name").notNull(),
+  coopId: uuid("coop_id").references(() => coop.id),
+  agrinasId: uuid("agrinas_id").references(() => agrinas.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** KMP forwards stored harvest to gudang Agrinas. Off-chain for MVP; the
+ *  Dikirim -> Diterima double gate is the designed v3.1 on-chain upgrade
+ *  path (SMART-CONTRACT.md roadmap). */
+export const harvestShipment = pgTable(
+  "harvest_shipment",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    coopId: uuid("coop_id")
+      .notNull()
+      .references(() => coop.id),
+    agrinasId: uuid("agrinas_id")
+      .notNull()
+      .references(() => agrinas.id),
+    commodityCode: text("commodity_code")
+      .notNull()
+      .references(() => commodity.code),
+    status: shipmentStatus("status").notNull().default("Draft"),
+    /** sender-declared total */
+    totalVolumeG: bigint("total_volume_g", { mode: "bigint" }).notNull().default(0n),
+    /** receiver-confirmed total; null until Agrinas confirms */
+    receivedVolumeG: bigint("received_volume_g", { mode: "bigint" }),
+    discrepancyNote: text("discrepancy_note"),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    receivedAt: timestamp("received_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("harvest_shipment_coop_idx").on(t.coopId),
+    index("harvest_shipment_agrinas_idx").on(t.agrinasId),
+    index("harvest_shipment_status_idx").on(t.status),
+  ],
+);
+
+/** Lot lines keep per-farmer traceability: which deliveries compose the
+ *  shipment. Grade + kadar air per line; UI shows weighted-average moisture
+ *  per grade-lot (standard grain-logistics practice). */
+export const harvestShipmentLine = pgTable(
+  "harvest_shipment_line",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    shipmentId: uuid("shipment_id")
+      .notNull()
+      .references(() => harvestShipment.id, { onDelete: "cascade" }),
+    deliveryId: uuid("delivery_id").references(() => delivery.id),
+    agreementId: uuid("agreement_id")
+      .notNull()
+      .references(() => agreement.id),
+    farmerId: uuid("farmer_id")
+      .notNull()
+      .references(() => farmer.id),
+    volumeG: bigint("volume_g", { mode: "bigint" }).notNull(),
+    grade: text("grade").notNull(),
+    moistureBps: integer("moisture_bps").notNull(),
+  },
+  (t) => [index("harvest_shipment_line_shipment_idx").on(t.shipmentId)],
 );
 
 /** Indexer poll cursor — single row per contract, so restarts resume

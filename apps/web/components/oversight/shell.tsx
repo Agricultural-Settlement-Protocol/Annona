@@ -1,28 +1,21 @@
 "use client";
 
-import { WalletBadge } from "@/components/kmp/wallet-badge";
-import { fetchCoop } from "@/lib/api";
-import { useApi } from "@/lib/use-api";
-import { shortAddr } from "@/lib/mock-data";
 import { signOutToAuth } from "@/lib/supabase";
-import { Logo, LogoMark } from "@annona/ui";
-import { cn } from "@annona/ui";
+import { Logo, cn } from "@annona/ui";
 import type { LucideIcon } from "lucide-react";
 import {
-  Banknote,
-  ClipboardList,
-  FileText,
-  Landmark,
+  BarChart3,
+  Bot,
   LayoutDashboard,
+  Landmark,
   LogOut,
   Menu,
+  Package,
   PackageCheck,
   PanelLeftClose,
   PanelLeftOpen,
-  Settings,
-  Users,
+  ShieldCheck,
   Truck,
-  Warehouse,
   Wifi,
   X,
 } from "lucide-react";
@@ -30,10 +23,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
 
-/** KMP dashboard shell: collapsible sidebar (desktop) + drawer (mobile) +
- *  topbar. Calm cream background, white surfaces, no mesh behind data
- *  (DESIGN_GUIDE section 8, "Coop dashboard" archetype). Collapsed state
- *  persists in localStorage; main content widens to fill the reclaimed space. */
+/** Shared oversight shell for Agrinas (operator) and Pemerintah (regulator).
+ *  Visual identity: aqua/teal for Agrinas, neutral (ink/verdant) for Pemerintah.
+ *  Mirrors KMP shell: collapsible sidebar, localStorage persistence, mobile drawer.
+ *  "Ganti Peran" returns to /oversight role select. */
+
+export type OversightRole = "agrinas" | "pemerintah";
 
 type NavItem = {
   href: string;
@@ -42,35 +37,52 @@ type NavItem = {
   exact?: boolean;
 };
 
-const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
+const AGRINAS_NAV: { label: string | null; items: NavItem[] }[] = [
   {
     label: null,
     items: [
-      { href: "/kmp", label: "Beranda", icon: LayoutDashboard, exact: true },
-      { href: "/kmp/petani", label: "Petani", icon: Users },
-      { href: "/kmp/perjanjian", label: "Perjanjian", icon: FileText },
+      {
+        href: "/oversight/agrinas",
+        label: "Ringkasan",
+        icon: LayoutDashboard,
+        exact: true,
+      },
     ],
   },
   {
-    label: "Transaksi",
+    label: "Operasional",
     items: [
-      { href: "/kmp/permintaan", label: "Permintaan Saprotan", icon: ClipboardList },
-      { href: "/kmp/setor", label: "Setor Panen", icon: PackageCheck },
-      { href: "/kmp/pembayaran", label: "Pembayaran", icon: Banknote },
-      { href: "/kmp/residu", label: "Residu Agrinas", icon: Landmark },
+      { href: "/oversight/agrinas/katalog", label: "Katalog Saprotan", icon: Package },
+      { href: "/oversight/agrinas/logistik", label: "Logistik Saprotan", icon: Truck },
+      { href: "/oversight/agrinas/penerimaan", label: "Penerimaan Panen", icon: PackageCheck },
+      { href: "/oversight/agrinas/residu", label: "Rekonsiliasi Residu", icon: Landmark },
     ],
   },
   {
-    label: "Lainnya",
-    items: [
-      { href: "/kmp/gudang", label: "Gudang & Pasokan", icon: Warehouse },
-      { href: "/kmp/logistik", label: "Logistik ke Agrinas", icon: Truck },
-      { href: "/kmp/pengaturan", label: "Pengaturan", icon: Settings },
-    ],
+    label: "Asisten",
+    items: [{ href: "/oversight/agrinas/ai", label: "Asisten AI", icon: Bot }],
   },
 ];
 
-const STORAGE_KEY = "annona.kmp.sidebar.collapsed";
+const PEMERINTAH_NAV: { label: string | null; items: NavItem[] }[] = [
+  {
+    label: null,
+    items: [
+      {
+        href: "/oversight/pemerintah",
+        label: "Pengawasan Regional",
+        icon: BarChart3,
+        exact: true,
+      },
+    ],
+  },
+  {
+    label: "Alat Analisis",
+    items: [{ href: "/oversight/pemerintah/ai", label: "Asisten AI", icon: Bot }],
+  },
+];
+
+const STORAGE_KEY = "annona.oversight.sidebar.collapsed";
 
 function isActive(pathname: string, item: NavItem) {
   if (item.exact) return pathname === item.href;
@@ -81,14 +93,17 @@ function NavLink({
   item,
   active,
   collapsed,
+  viewRole: role,
   onNavigate,
 }: {
   item: NavItem;
   active: boolean;
   collapsed: boolean;
+  viewRole: OversightRole;
   onNavigate?: () => void;
 }) {
   const Icon = item.icon;
+  const isAgrinas = role === "agrinas";
   return (
     <Link
       href={item.href}
@@ -100,16 +115,34 @@ function NavLink({
         "transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
         collapsed ? "justify-center px-2 py-2" : "gap-3 px-3 py-2",
         active
-          ? "bg-verdant-50 text-verdant-800"
+          ? isAgrinas
+            ? "bg-aqua-50 text-aqua-800"
+            : "bg-verdant-50 text-verdant-800"
           : "text-ink-600 hover:bg-surface-muted hover:text-foreground",
       )}
     >
-      <Icon size={18} className={cn("shrink-0", active ? "text-verdant-700" : "text-ink-400")} />
+      <Icon
+        size={18}
+        className={cn(
+          "shrink-0",
+          active
+            ? isAgrinas
+              ? "text-aqua-700"
+              : "text-verdant-700"
+            : "text-ink-400",
+        )}
+      />
       {collapsed ? null : (
         <>
           {item.label}
           {active ? (
-            <span className="ml-auto h-5 w-1 rounded-full bg-verdant-500" aria-hidden />
+            <span
+              className={cn(
+                "ml-auto h-5 w-1 rounded-full",
+                isAgrinas ? "bg-aqua-500" : "bg-verdant-500",
+              )}
+              aria-hidden
+            />
           ) : null}
         </>
       )}
@@ -118,32 +151,61 @@ function NavLink({
 }
 
 function SidebarContent({
+  viewRole: role,
   collapsed = false,
   onNavigate,
   onToggle,
 }: {
+  viewRole: OversightRole;
   collapsed?: boolean;
   onNavigate?: () => void;
   onToggle?: () => void;
 }) {
   const pathname = usePathname();
-  const { data: coopData } = useApi(fetchCoop);
-  const coop = coopData?.coop;
+  const navGroups = role === "agrinas" ? AGRINAS_NAV : PEMERINTAH_NAV;
+  const isAgrinas = role === "agrinas";
+
+  const roleBadgeClass = isAgrinas
+    ? "bg-aqua-50 text-aqua-700"
+    : "bg-verdant-50 text-verdant-700";
+
+  const roleLabel = isAgrinas ? "AGRINAS" : "PEMERINTAH";
+  const roleIcon = isAgrinas ? (
+    <Package size={10} />
+  ) : (
+    <ShieldCheck size={10} />
+  );
+
   return (
     <div className="flex h-full flex-col">
+      {/* Logo + role badge. Row must never overflow the rail: logo link gets
+          min-w-0, badge + toggle are shrink-0. Collapsed shows toggle only. */}
       <div
         className={cn(
-          "flex items-center pt-5 pb-4",
-          collapsed ? "justify-center px-2" : "gap-2 px-5",
+          "flex items-center overflow-hidden pt-5 pb-4",
+          collapsed ? "justify-center px-2" : "gap-2 px-4",
         )}
       >
-        <Link href="/" onClick={onNavigate} aria-label="Annona">
-          {collapsed ? <LogoMark className="h-7 w-7" /> : <Logo className="h-7 w-auto" />}
-        </Link>
         {collapsed ? null : (
-          <span className="rounded-full bg-aqua-50 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-aqua-700 uppercase">
-            KMP
-          </span>
+          <>
+            <Link
+              href="/"
+              onClick={onNavigate}
+              aria-label="Annona"
+              className="min-w-0 overflow-hidden"
+            >
+              <Logo className="h-6 w-auto" />
+            </Link>
+            <span
+              className={cn(
+                "inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold tracking-wide uppercase",
+                roleBadgeClass,
+              )}
+            >
+              {roleIcon}
+              {roleLabel}
+            </span>
+          </>
         )}
         {onToggle ? (
           <button
@@ -151,8 +213,8 @@ function SidebarContent({
             onClick={onToggle}
             aria-label={collapsed ? "Perlebar menu" : "Perkecil menu"}
             className={cn(
-              "hidden rounded-md p-1.5 text-ink-400 transition-colors hover:bg-surface-muted hover:text-foreground lg:block",
-              collapsed ? "mt-2" : "ml-auto",
+              "hidden shrink-0 rounded-md p-1.5 text-ink-400 transition-colors hover:bg-surface-muted hover:text-foreground lg:block",
+              collapsed ? "" : "ml-auto",
             )}
           >
             {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
@@ -160,30 +222,33 @@ function SidebarContent({
         ) : null}
       </div>
 
+      {/* Role context card */}
       {collapsed ? null : (
         <div className="mx-4 mb-4 rounded-lg border border-border bg-surface-muted px-3 py-2.5">
-          <p className="text-sm font-semibold text-foreground">{coop?.name ?? "Koperasi"}</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {coop ? `${coop.kecamatan}, ${coop.kabupaten}` : ""}
+          <p className="text-sm font-semibold text-foreground">
+            {isAgrinas ? "PT Agrinas Pangan Nusantara" : "Kementerian Pertanian RI"}
           </p>
-          <p className="mt-1 font-mono text-[11px] text-aqua-700">
-            {coop ? shortAddr(coop.walletAddress) : ""}
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {isAgrinas ? "Operator protokol offtake" : "Pengawas regulasi (hanya baca)"}
           </p>
         </div>
       )}
 
+      {/* Navigation */}
       <nav
         className={cn("flex-1 space-y-4 overflow-y-auto", collapsed ? "px-2" : "px-3")}
-        aria-label="Menu utama"
+        aria-label="Menu pengawasan"
       >
-        {NAV_GROUPS.map((group) => (
+        {navGroups.map((group) => (
           <div key={group.label ?? "utama"}>
             {group.label && !collapsed ? (
               <p className="px-3 pb-1 text-[10px] font-semibold tracking-[0.14em] text-ink-400 uppercase">
                 {group.label}
               </p>
             ) : null}
-            {group.label && collapsed ? <div className="mx-2 mb-1 border-t border-border" /> : null}
+            {group.label && collapsed ? (
+              <div className="mx-2 mb-1 border-t border-border" />
+            ) : null}
             <div className="space-y-1">
               {group.items.map((item) => (
                 <NavLink
@@ -191,6 +256,7 @@ function SidebarContent({
                   item={item}
                   active={isActive(pathname, item)}
                   collapsed={collapsed}
+                  viewRole={role}
                   onNavigate={onNavigate}
                 />
               ))}
@@ -199,11 +265,17 @@ function SidebarContent({
         ))}
       </nav>
 
+      {/* Footer: ganti peran + user info */}
       <div className={cn("border-t border-border py-4", collapsed ? "px-2" : "px-4")}>
         {collapsed ? (
           <div className="flex flex-col items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-verdant-100 text-sm font-bold text-verdant-800">
-              HU
+            <div
+              className={cn(
+                "flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold",
+                isAgrinas ? "bg-aqua-100 text-aqua-800" : "bg-verdant-100 text-verdant-800",
+              )}
+            >
+              {isAgrinas ? "AG" : "PG"}
             </div>
             <button
               type="button"
@@ -218,19 +290,27 @@ function SidebarContent({
         ) : (
           <>
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-verdant-100 text-sm font-bold text-verdant-800">
-                HU
+              <div
+                className={cn(
+                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold",
+                  isAgrinas ? "bg-aqua-100 text-aqua-800" : "bg-verdant-100 text-verdant-800",
+                )}
+              >
+                {isAgrinas ? "AG" : "PG"}
               </div>
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-foreground">H. Usman</p>
-                <p className="text-xs text-muted-foreground">Pengurus KMP</p>
+                <p className="truncate text-sm font-semibold text-foreground">
+                  {isAgrinas ? "Operator Agrinas" : "Petugas Pengawas"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {isAgrinas ? "Akses penuh operator" : "Hanya baca"}
+                </p>
               </div>
               <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-aqua-50 px-2 py-0.5 text-[10px] font-semibold text-aqua-700">
                 <Wifi size={10} />
                 Testnet
               </span>
             </div>
-            <WalletBadge />
             <button
               type="button"
               onClick={() => void signOutToAuth()}
@@ -246,7 +326,13 @@ function SidebarContent({
   );
 }
 
-export function KmpShell({ children }: { children: ReactNode }) {
+export function OversightShell({
+  viewRole: role,
+  children,
+}: {
+  viewRole: OversightRole;
+  children: ReactNode;
+}) {
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [hydrated, setHydrated] = useState(false);
@@ -277,7 +363,7 @@ export function KmpShell({ children }: { children: ReactNode }) {
           railW,
         )}
       >
-        <SidebarContent collapsed={collapsed} onToggle={toggleCollapsed} />
+        <SidebarContent viewRole={role} collapsed={collapsed} onToggle={toggleCollapsed} />
       </aside>
 
       {/* Mobile drawer */}
@@ -298,7 +384,7 @@ export function KmpShell({ children }: { children: ReactNode }) {
             >
               <X size={18} />
             </button>
-            <SidebarContent onNavigate={() => setOpen(false)} />
+            <SidebarContent viewRole={role} onNavigate={() => setOpen(false)} />
           </aside>
         </div>
       ) : null}
@@ -314,8 +400,13 @@ export function KmpShell({ children }: { children: ReactNode }) {
           <Menu size={20} />
         </button>
         <Logo className="h-6 w-auto" />
-        <span className="ml-auto rounded-full bg-aqua-50 px-2 py-0.5 text-[10px] font-semibold text-aqua-700">
-          Testnet
+        <span
+          className={cn(
+            "ml-auto inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase",
+            role === "agrinas" ? "bg-aqua-50 text-aqua-700" : "bg-verdant-50 text-verdant-700",
+          )}
+        >
+          {role === "agrinas" ? "AGRINAS" : "PEMERINTAH"}
         </span>
       </header>
 

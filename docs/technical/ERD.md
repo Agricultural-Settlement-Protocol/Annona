@@ -26,7 +26,16 @@ erDiagram
     COMMODITY ||--o{ AGREEMENT : "for"
     COMMODITY ||--o{ PRICE_REF : "priced by"
     COMMODITY ||--o{ YIELD_TABLE : "estimated by"
+    COMMODITY ||--o{ HARVEST_SHIPMENT : "batches"
     DELIVERY ||--o| SETTLEMENT : triggers
+    COOP ||--o{ HARVEST_SHIPMENT : sends
+    AGRINAS ||--o{ HARVEST_SHIPMENT : receives
+    HARVEST_SHIPMENT ||--o{ HARVEST_SHIPMENT_LINE : contains
+    DELIVERY ||--o{ HARVEST_SHIPMENT_LINE : composes
+    AGREEMENT ||--o{ HARVEST_SHIPMENT_LINE : traces
+    FARMER ||--o{ HARVEST_SHIPMENT_LINE : traces
+    COOP ||--o{ APP_USER : "staffs (kmp role)"
+    AGRINAS ||--o{ APP_USER : "staffs (agrinas role)"
 
     AGRINAS {
         uuid id PK
@@ -79,6 +88,8 @@ erDiagram
         numeric base_price_agrinas "PRINCIPAL, Agrinas-set, read-only to KMP"
         bool subsidi_flag
         string source "Pupuk Indonesia/.."
+        string stock_status "Tersedia/Menipis/Habis - availability signal, not a qty ledger"
+        string unit_label "e.g. sak/karung/liter"
         timestamptz effective_from
     }
 
@@ -96,6 +107,7 @@ erDiagram
         numeric input_debt "DERIVED = base * (1 + markup)"
         int hpp_handling_fee_bps "KMP handling cut, e.g. 500 = 5%"
         numeric expected_vol_g
+        date expected_harvest_date "off-chain estimate captured at creation - see §3 gap note"
         numeric hpp_per_kg
         int hpp_version
         int tolerance_bps
@@ -196,7 +208,47 @@ erDiagram
         int score "derived"
         timestamptz synced_at "from chain"
     }
+
+    HARVEST_SHIPMENT {
+        uuid id PK
+        uuid coop_id FK "sender"
+        uuid agrinas_id FK "receiver, gudang Agrinas"
+        string commodity_code FK
+        string status "Draft/Dikirim/Diterima/Selisih"
+        numeric total_volume_g "KMP-declared"
+        numeric received_volume_g "Agrinas-confirmed, null until Diterima"
+        string discrepancy_note "mandatory when status=Selisih"
+        timestamptz sent_at
+        timestamptz received_at
+        timestamptz created_at
+    }
+
+    HARVEST_SHIPMENT_LINE {
+        uuid id PK
+        uuid shipment_id FK
+        uuid delivery_id FK "nullable, original delivery this line traces to"
+        uuid agreement_id FK
+        uuid farmer_id FK "per-farmer traceability inside the batch lot"
+        numeric volume_g
+        string grade
+        int moisture_bps "same grade + different moisture stays a separate line"
+    }
+
+    APP_USER {
+        uuid id PK_FK "references auth.users"
+        string email UK
+        string role "kmp/agrinas/pemerintah"
+        string display_name
+        uuid coop_id FK "set when role=kmp"
+        uuid agrinas_id FK "set when role=agrinas"
+        timestamptz created_at
+    }
 ```
+
+**Off-chain-only additions worth a note (2026-07-07):**
+- `HARVEST_SHIPMENT` / `HARVEST_SHIPMENT_LINE` — KMP → gudang Agrinas forwarding logistics, entirely off-chain in MVP. See `SMART-CONTRACT.md` §8b for the design and the planned v3.1 on-chain dual-gate (`forward_harvest` / `confirm_harvest_receipt`).
+- `SAPROTAN_CATALOG.stock_status` / `.unit_label` — `stock_status` is a coarse availability signal (Tersedia/Menipis/Habis), deliberately **not** a numeric inventory ledger in MVP; the catalog is now fully CRUD-managed by Agrinas (Oversight → Katalog screen), so the field only needs to answer "can KMP still request this," not track exact quantity.
+- `APP_USER` — Supabase Auth email+password profile backing the single `/auth` login; `role` routes the signed-in user to `/kmp`, `/oversight/agrinas`, or `/oversight/pemerintah` (replaces the earlier manual role-select at `/oversight`).
 
 ---
 
@@ -293,6 +345,8 @@ COOP_REPUTATION_CACHE      ◄═════  COOP_REPUTATION_ONCHAIN       (in
 
 **Authority rule:** for any money/volume/status value, on-chain wins. Off-chain mirrors are caches for fast reads (rebuildable from events). PII + line-item detail + bank proofs exist ONLY off-chain.
 
+**Read-model gap, by design:** `AGREEMENT.expected_harvest_date` is the one AGREEMENT field that is **not** a chain mirror and never will be — it is an off-chain estimate captured at `create_agreement` time (KMP's best guess at when the plot will be harvested), it powers `mv_upcoming_harvest` ("Panen Minggu Ini"), and it is never a settlement input. There is no chain event to derive it from because no on-chain concept corresponds to it; unlike `status`/`flag`/`residu_status`, this column is authoritative off-chain, not a cache of anything.
+
 **Integrity rule:** `ktp_hash` is computed off-chain, stored both places. Anyone can re-hash the off-chain KTP and compare to chain → proves the record wasn't swapped without exposing the KTP.
 
 **Split-allocation rule:** `base_price_agrinas` is snapshotted from the catalog at `create_agreement` and locked on-chain; `input_debt` is derived on-chain from it + markup. Off-chain cannot alter the principal after the chain locks it — that is the anti-moral-hazard guarantee for Agrinas's money.
@@ -307,6 +361,7 @@ The indexer consumes events (§7 of `SMART-CONTRACT.md`) into derived tables tha
 |---|---|---|
 | `mv_coop_exposure` | AgreementCreated, Settled | KMP home stat cards, outstanding debt |
 | `mv_upcoming_harvest` | AgreementCreated + estimator | "Panen minggu ini" panel |
+| `mv_harvest_logistics` | `harvest_shipment` / `harvest_shipment_line` (off-chain tables directly, no chain events yet — see §8b) | KMP Logistik screen (shipment history); Agrinas Penerimaan Hasil Panen receiving desk |
 | `mv_inbound_supply` | SupplyDispatched, SupplyAccepted | KMP inbound cargo monitor (Screen F) |
 | `mv_bulk_request_queue` | AgreementCreated (status=Created) | Agrinas KMP bulk-request terminal (Screen M) |
 | `mv_residu_ledger` | Settled, ResiduRemitted, RemittanceCleared, RemittanceDisputed | Agrinas residu reconciliation desk (Screen I) |
