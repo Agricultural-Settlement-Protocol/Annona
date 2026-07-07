@@ -15,7 +15,9 @@
 import { fetchResidu } from "@/lib/api";
 import { PageHeader } from "@/components/kmp/page-header";
 import { TBody, THead, Table, TableFrame, Td, Th, Tr } from "@/components/kmp/table";
-import { useMockTx } from "@/components/kmp/use-mock-tx";
+import { useTx } from "@/components/kmp/use-tx";
+import { sha256Hex } from "@/lib/hash";
+import { markResiduRemitted } from "@/lib/invocations";
 import { useApi } from "@/lib/use-api";
 import { formatRupiah } from "@annona/core";
 import type { ResiduStatus } from "@annona/core";
@@ -57,8 +59,8 @@ export default function ResiduPage() {
   const [bankRefInput, setBankRefInput] = useState("");
   const [fileName, setFileName] = useState("");
 
-  /* ── TX hook for the remit action ───────────────────────────────────── */
-  const txRemit = useMockTx();
+  /* ── TX hook for the remit action (mark_residu_remitted, coop-signed) ── */
+  const txRemit = useTx();
 
   /* ── Computed stats ──────────────────────────────────────────────────── */
   const stats = useMemo(() => {
@@ -91,10 +93,15 @@ export default function ResiduPage() {
 
   function handleConfirmRemit(rowId: string) {
     if (!bankRefInput.trim()) return;
-    txRemit.run();
-    // Update row state after tx completes. We watch txRemit in the JSX.
-    // The effect is handled in the success branch below.
-    void rowId; // used in JSX branch
+    const row = rows.find((r) => r.id === rowId);
+    if (!row) return;
+    // Anchor a hash of the bank ref + proof filename as the on-chain ref_hash.
+    txRemit.run(async (coop) => {
+      const refHash = await sha256Hex(`${bankRefInput.trim()}:${fileName}`);
+      return markResiduRemitted(coop, row.agreementOnchainId, refHash);
+    });
+    // Row state is updated in the JSX success branch (watches txRemit).
+    void rowId;
   }
 
   /* ── JSX ─────────────────────────────────────────────────────────────── */

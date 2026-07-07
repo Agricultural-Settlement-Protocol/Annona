@@ -372,6 +372,27 @@ export async function fetchCatalog(): Promise<ApiCatalogItem[]> {
   }));
 }
 
+export interface ApiYieldRow {
+  commodityCode: string;
+  kabupaten: string;
+  avgYieldTPerHa: number;
+  source: string;
+  year: number;
+}
+
+export async function fetchYield(): Promise<ApiYieldRow[]> {
+  const { items } = await getJSON<{ items: (Record<string, unknown> & { year: number })[] }>(
+    "/reference/yield",
+  );
+  return items.map((r) => ({
+    commodityCode: String(r.commodityCode),
+    kabupaten: String(r.kabupaten),
+    avgYieldTPerHa: Number(r.avgYieldTPerHa),
+    source: String(r.source),
+    year: Number(r.year),
+  }));
+}
+
 export async function fetchHpp(): Promise<ApiPriceRef[]> {
   const { items } = await getJSON<{ items: (Raw<ApiPriceRef> & Record<string, unknown>)[] }>(
     "/reference/hpp",

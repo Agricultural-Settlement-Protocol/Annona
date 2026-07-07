@@ -1,5 +1,6 @@
 "use client";
 
+import { WalletBadge } from "@/components/kmp/wallet-badge";
 import { fetchCoop } from "@/lib/api";
 import { useApi } from "@/lib/use-api";
 import { shortAddr } from "@/lib/mock-data";
@@ -226,6 +227,7 @@ function SidebarContent({
                 Testnet
               </span>
             </div>
+            <WalletBadge />
             <Link
               href="/"
               onClick={onNavigate}

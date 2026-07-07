@@ -17,7 +17,8 @@ import { PageHeader } from "@/components/kmp/page-header";
 import { PaymentHistoryTable } from "@/components/kmp/payment-history-table";
 import { SearchSelect } from "@/components/kmp/search-select";
 import type { SearchSelectItem } from "@/components/kmp/search-select";
-import { useMockTx } from "@/components/kmp/use-mock-tx";
+import { useTx } from "@/components/kmp/use-tx";
+import { settle } from "@/lib/invocations";
 import { useApi } from "@/lib/use-api";
 import { formatKg } from "@/lib/mock-data";
 import { computeSplitSettlement, formatRupiah, gramsToKg } from "@annona/core";
@@ -58,7 +59,14 @@ export default function PembayaranPage() {
   const [showHistory, setShowHistory] = useState(false);
 
   /* ── TX hook — gradient button: the ONE allowed use across setor trio ── */
-  const txSettle = useMockTx();
+  const txSettle = useTx();
+
+  // settle(caller, id): the coop signs; the contract applies the §5 three-way
+  // split, nets debt, and pays only net_to_farmer.
+  function handleSettle() {
+    if (!agreement) return;
+    txSettle.run((coop) => settle(coop, agreement.onchainId));
+  }
 
   /* ── Derived ─────────────────────────────────────────────────────────── */
 
@@ -253,7 +261,7 @@ export default function PembayaranPage() {
               size="md"
               leftIcon={<Banknote size={16} />}
               disabled={!canSettle}
-              onClick={txSettle.run}
+              onClick={handleSettle}
               className="w-full sm:w-auto"
             >
               {txSettle.state === "signing"

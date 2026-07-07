@@ -7,7 +7,8 @@
 import { type ApiAgreement, fetchOverview } from "@/lib/api";
 import { PageHeader } from "@/components/kmp/page-header";
 import { TBody, THead, Table, TableFrame, Td, Th, Tr } from "@/components/kmp/table";
-import { type MockTxState, useMockTx } from "@/components/kmp/use-mock-tx";
+import { type TxState, useTx } from "@/components/kmp/use-tx";
+import { acceptSupply } from "@/lib/invocations";
 import { useApi } from "@/lib/use-api";
 import { MOCK_STOCK, formatKg } from "@/lib/mock-data";
 import {
@@ -56,7 +57,7 @@ function InboundCard({
   farmerName: string;
   isAnyProcessing: boolean;
   onAccept: () => void;
-  state: MockTxState;
+  state: TxState;
   txHash: string | null;
   isDone: boolean;
   doneTxHash: string | null;
@@ -159,8 +160,8 @@ export default function GudangPage() {
   // One tx instance at a time; track which card is processing and which are done.
   const [activeId, setActiveId] = useState<string | null>(null);
   const [doneMap, setDoneMap] = useState<Record<string, string>>({}); // agreementId -> txHash
-  const txAccept = useMockTx();
-  const prevState = useRef<MockTxState>("idle");
+  const txAccept = useTx();
+  const prevState = useRef<TxState>("idle");
 
   useEffect(() => {
     const prev = prevState.current;
@@ -171,10 +172,11 @@ export default function GudangPage() {
     }
   }, [txAccept.state, txAccept.txHash, activeId]);
 
-  function handleAccept(id: string) {
+  function handleAccept(id: string, onchainId: bigint) {
     if (txAccept.state !== "idle") return;
     setActiveId(id);
-    txAccept.run();
+    // GATE 2: KMP confirms physical receipt of dispatched supply -> Active.
+    txAccept.run((coop) => acceptSupply(coop, onchainId));
   }
 
   const isAnyProcessing = txAccept.state !== "idle" && txAccept.state !== "success";
@@ -255,7 +257,7 @@ export default function GudangPage() {
                   agreement={a}
                   farmerName={a.farmerName}
                   isAnyProcessing={isAnyProcessing}
-                  onAccept={() => handleAccept(a.id)}
+                  onAccept={() => handleAccept(a.id, a.onchainId)}
                   state={activeId === a.id ? txAccept.state : "idle"}
                   txHash={activeId === a.id ? txAccept.txHash : null}
                   isDone={!!doneMap[a.id]}

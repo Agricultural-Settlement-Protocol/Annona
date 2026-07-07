@@ -3,17 +3,18 @@
 // Screen C helper — Create Offtake Agreement form (PRD §8.1).
 // Two-column layout: form steps left, sticky summary ledger right.
 // All money via RupiahAmount/formatRupiah. No em dashes. No hardcoded hex.
+//
+// Reads come live from the REST read-model (farmers/catalog/hpp/yield/coop).
+// Submit signs create_agreement through Freighter (coop-bound). Grade + moisture
+// are ESTIMATES at creation (house rule: unknown until the first delivery), so
+// we anchor placeholder estimates the contract overwrites on record_delivery.
 
 import { SearchSelect, type SearchSelectItem } from "@/components/kmp/search-select";
-import { useMockTx } from "@/components/kmp/use-mock-tx";
+import { useTx } from "@/components/kmp/use-tx";
 import { ScrollArea } from "@/components/scroll-area";
-import {
-  MOCK_CATALOG,
-  MOCK_FARMERS,
-  MOCK_PRICE_REFS,
-  MOCK_YIELD_TABLE,
-  formatKg,
-} from "@/lib/mock-data";
+import { fetchCatalog, fetchCoop, fetchFarmers, fetchHpp, fetchYield } from "@/lib/api";
+import { createAgreement } from "@/lib/invocations";
+import { useApi } from "@/lib/use-api";
 import { deriveInputDebt, formatRupiah } from "@annona/core";
 import {
   Alert,
@@ -38,7 +39,26 @@ const CATEGORY_LABEL: Record<string, string> = {
   alsintan: "Alsintan",
 };
 
+// HPP decree version anchored on the commodity struct (Inpres no.). The
+// reference feed does not carry a per-price version, so we anchor the current
+// decree as a constant; it is on-chain metadata, not settlement math.
+const HPP_VERSION = 4;
+// Placeholder harvest-quality estimates at creation (overwritten on first
+// delivery). See the house rule on grade/moisture being unknown up front.
+const GRADE_ESTIMATE = "B";
+const MOISTURE_BPS_ESTIMATE = 1400; // 14.00%
+
 export function CreateAgreementForm() {
+  // ─── Live reference data ─────────────────────────────────────────────────
+  const { data, loading, error } = useApi(() =>
+    Promise.all([fetchFarmers(), fetchCatalog(), fetchHpp(), fetchYield(), fetchCoop()]),
+  );
+  const farmers = data?.[0] ?? [];
+  const catalog = data?.[1] ?? [];
+  const priceRefs = data?.[2] ?? [];
+  const yieldTable = data?.[3] ?? [];
+  const agrinas = data?.[4]?.agrinas ?? null;
+
   // Step 1: Farmer
   const [farmerId, setFarmerId] = useState<string | null>(null);
 
@@ -53,59 +73,61 @@ export function CreateAgreementForm() {
   const [handlingPct, setHandlingPct] = useState(5);
   const [tolerancePct, setTolerancePct] = useState(20);
 
-  // TX simulation
-  const { state: txState, txHash, run: runTx, reset: resetTx } = useMockTx();
+  // TX (create_agreement, coop-signed)
+  const { state: txState, txHash, error: txError, run: runTx, reset: resetTx } = useTx();
 
   // ─── Derived values ────────────────────────────────────────────────────────
 
   const selectedFarmer = useMemo(
-    () => MOCK_FARMERS.find((f) => f.id === farmerId) ?? null,
-    [farmerId],
+    () => farmers.find((f) => f.id === farmerId) ?? null,
+    [farmers, farmerId],
   );
 
   // SearchSelect items: one per farmer, with reputation badge as extra
   const farmerItems: SearchSelectItem[] = useMemo(
     () =>
-      MOCK_FARMERS.map((f) => ({
+      farmers.map((f) => ({
         id: f.id,
         label: f.name,
         sublabel: `${f.kecamatan} · ${f.plotAreaHa} ha`,
         keywords: `${f.defaultCommodityCode === "GABAH" ? "gabah padi" : "jagung"} ${f.kecamatan}`,
         extra: <ReputationBadge tier={f.repTier} />,
       })),
-    [],
+    [farmers],
   );
 
   // Catalog filtered by search
   const filteredCatalog = useMemo(() => {
     const q = catalogSearch.trim().toLowerCase();
-    if (!q) return MOCK_CATALOG;
-    return MOCK_CATALOG.filter((cat) =>
-      `${cat.name} ${cat.code} ${cat.category} ${CATEGORY_LABEL[cat.category] ?? ""}`.toLowerCase().includes(q),
+    if (!q) return catalog;
+    return catalog.filter((cat) =>
+      `${cat.name} ${cat.code} ${cat.category} ${CATEGORY_LABEL[cat.category] ?? ""}`
+        .toLowerCase()
+        .includes(q),
     );
-  }, [catalogSearch]);
+  }, [catalog, catalogSearch]);
 
   // When the farmer changes, use their default commodity
   const commodityCode = selectedFarmer?.defaultCommodityCode ?? "GABAH";
 
   const priceRef = useMemo(
-    () => MOCK_PRICE_REFS.find((p) => p.commodityCode === commodityCode) ?? null,
-    [commodityCode],
+    () => priceRefs.find((p) => p.commodityCode === commodityCode) ?? null,
+    [priceRefs, commodityCode],
   );
 
   const yieldRow = useMemo(
-    () => MOCK_YIELD_TABLE.find((y) => y.commodityCode === commodityCode) ?? null,
-    [commodityCode],
+    () => yieldTable.find((y) => y.commodityCode === commodityCode) ?? null,
+    [yieldTable, commodityCode],
   );
 
   // Sum of (qty * basePriceAgrinas) for all selected items
   const basePrincipal = useMemo(
     () =>
-      MOCK_CATALOG.reduce((sum, cat) => {
+      catalog.reduce((sum, cat) => {
         const qty = cart[cat.id] ?? 0;
         return qty > 0 ? sum + cat.basePriceAgrinas * BigInt(qty) : sum;
       }, 0n),
-    [cart],
+    [catalog, cart],
   );
 
   const markupBps = markupPct * 100; // e.g. 10% -> 1000 bps
@@ -120,16 +142,48 @@ export function CreateAgreementForm() {
   const markupAmount = inputDebt - basePrincipal; // always >= 0 for markupBps >= 0
 
   // Harvest estimate: plotAreaHa x avgYieldTPerHa x 1000 kg
+  const plotAreaHa = selectedFarmer ? Number(selectedFarmer.plotAreaHa) : 0;
   const expectedVolKg = useMemo(
-    () =>
-      selectedFarmer && yieldRow
-        ? Math.round(selectedFarmer.plotAreaHa * yieldRow.avgYieldTPerHa * 1000)
-        : 0,
-    [selectedFarmer, yieldRow],
+    () => (selectedFarmer && yieldRow ? Math.round(plotAreaHa * yieldRow.avgYieldTPerHa * 1000) : 0),
+    [selectedFarmer, yieldRow, plotAreaHa],
   );
 
-  const canSubmit = farmerId !== null && basePrincipal > 0n && txState === "idle";
+  const canSubmit =
+    farmerId !== null &&
+    basePrincipal > 0n &&
+    selectedFarmer !== null &&
+    agrinas !== null &&
+    priceRef !== null &&
+    expectedVolKg > 0 &&
+    txState === "idle";
   const isLoading = txState === "signing" || txState === "submitting";
+
+  // ─── Submit ────────────────────────────────────────────────────────────────
+
+  function handleCreate() {
+    if (!selectedFarmer || !agrinas || !priceRef || basePrincipal <= 0n) return;
+    const expectedVolG = BigInt(expectedVolKg) * 1000n;
+    runTx((coop) =>
+      createAgreement({
+        coop,
+        farmer: selectedFarmer.walletAddress,
+        agrinas: agrinas.walletAddress,
+        commodity: {
+          code: commodityCode,
+          grade: GRADE_ESTIMATE,
+          moistureBps: MOISTURE_BPS_ESTIMATE,
+          hppVersion: HPP_VERSION,
+        },
+        basePriceAgrinas: basePrincipal,
+        saprotanMarkupBps: markupBps,
+        hppHandlingFeeBps: handlingBps,
+        expectedVolG,
+        hppPerKg: priceRef.hpp,
+        toleranceBps,
+        ktpHashHex: selectedFarmer.ktpHash,
+      }),
+    );
+  }
 
   // ─── Cart helpers ──────────────────────────────────────────────────────────
 
@@ -152,6 +206,19 @@ export function CreateAgreementForm() {
     setHandlingPct(5);
     setTolerancePct(20);
     resetTx();
+  }
+
+  // ─── Loading / error ─────────────────────────────────────────────────────
+
+  if (loading) {
+    return <p className="text-sm text-muted-foreground">Memuat data referensi...</p>;
+  }
+  if (error) {
+    return (
+      <Alert tone="warning" title="Gagal memuat data referensi">
+        {error}
+      </Alert>
+    );
   }
 
   // ─── Success view ──────────────────────────────────────────────────────────
@@ -281,11 +348,11 @@ export function CreateAgreementForm() {
                             {cat.name}
                           </span>
                           <span className="block text-xs text-muted-foreground">
-                            {CATEGORY_LABEL[cat.category] ?? cat.category}, {cat.unitLabel}
+                            {CATEGORY_LABEL[cat.category] ?? cat.category}
                           </span>
                           <span className="mt-0.5 block text-xs text-muted-foreground">
-                            <RupiahAmount smallest={cat.basePriceAgrinas} className="text-xs" /> per{" "}
-                            {cat.unitLabel}
+                            <RupiahAmount smallest={cat.basePriceAgrinas} className="text-xs" /> per
+                            satuan
                           </span>
                         </label>
                         <div className="flex shrink-0 flex-col items-end gap-1.5">
@@ -464,16 +531,17 @@ export function CreateAgreementForm() {
                 <p className="text-xs font-semibold text-muted-foreground">Formula (transparan)</p>
                 <p className="mt-1 text-sm text-foreground">
                   {selectedFarmer.plotAreaHa} ha &times; {yieldRow.avgYieldTPerHa} t/ha &times;
-                  1.000 = <span className="font-semibold">{formatKg(expectedVolKg)}</span>
+                  1.000 = <span className="font-semibold">{expectedVolKg.toLocaleString("id-ID")} kg</span>
                 </p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  Sumber: {yieldRow.source}, Kab. Cianjur {yieldRow.year}. Bukan prediksi AI.
+                  Sumber: {yieldRow.source}, Kab. {yieldRow.kabupaten} {yieldRow.year}. Bukan
+                  prediksi AI.
                 </p>
               </div>
               <div className="border-t border-border pt-3">
                 <p className="text-xs font-semibold text-muted-foreground">Harga HPP</p>
                 <p className="mt-1 text-sm text-foreground">
-                  <RupiahAmount smallest={priceRef.hppPerKg} />
+                  <RupiahAmount smallest={priceRef.hpp} />
                   /kg
                 </p>
                 <p className="mt-0.5 text-xs text-muted-foreground">{priceRef.hppSource}</p>
@@ -502,7 +570,7 @@ export function CreateAgreementForm() {
                 Bapak/Ibu <span className="font-semibold">{selectedFarmer.name}</span> menerima
                 saprotan senilai <span className="font-semibold">{formatRupiah(inputDebt)}</span>.
                 Setelah panen, KMP membeli hasil dengan harga{" "}
-                <span className="font-semibold">{formatRupiah(priceRef.hppPerKg)}/kg</span>. Utang
+                <span className="font-semibold">{formatRupiah(priceRef.hpp)}/kg</span>. Utang
                 dipotong otomatis dari pembayaran panen.
               </p>
             </CardContent>
@@ -522,7 +590,13 @@ export function CreateAgreementForm() {
             </div>
           ) : null}
 
-          <Button className="w-full" variant="primary" disabled={!canSubmit} onClick={runTx}>
+          {txError ? (
+            <Alert tone="warning" title="Transaksi gagal">
+              {txError}
+            </Alert>
+          ) : null}
+
+          <Button className="w-full" variant="primary" disabled={!canSubmit} onClick={handleCreate}>
             Buat Perjanjian
           </Button>
 

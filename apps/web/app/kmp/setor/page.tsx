@@ -17,6 +17,8 @@ import { PageHeader } from "@/components/kmp/page-header";
 import { SearchSelect } from "@/components/kmp/search-select";
 import type { SearchSelectItem } from "@/components/kmp/search-select";
 import { useMockTx } from "@/components/kmp/use-mock-tx";
+import { useTx } from "@/components/kmp/use-tx";
+import { markForceMajeure, recordDelivery } from "@/lib/invocations";
 import { useApi } from "@/lib/use-api";
 import { classifyFlag } from "@annona/core";
 import type { Status } from "@annona/core";
@@ -47,6 +49,17 @@ import { useRef, useState } from "react";
 
 /** Agreements that can receive a new deposit. */
 const DEPOSIT_ELIGIBLE: Status[] = ["Active", "PartiallyDelivered"];
+
+/** Free-text force-majeure reason -> a Soroban Symbol-safe token (<=32 chars,
+ *  [A-Z0-9_]). The full narrative stays off-chain; only this tag is anchored. */
+function toReasonSymbol(reason: string): string {
+  const tag = reason
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 32);
+  return tag || "FORCE_MAJEURE";
+}
 
 /** Flag banner metadata for a given classification. No em dashes. */
 function flagMeta(flag: ReturnType<typeof classifyFlag> | null): {
@@ -122,9 +135,12 @@ export default function SetorPage() {
   const [showHistory, setShowHistory] = useState(false);
 
   /* ── TX hooks ────────────────────────────────────────────────────────── */
-  const txDeliver = useMockTx(); // catat setoran
-  const txFinalize = useMockTx(); // tandai setoran selesai
-  const txFm = useMockTx(); // force majeure
+  const txDeliver = useTx(); // catat setoran -> record_delivery (coop-signed)
+  // "Tandai Setoran Selesai" closes the harvest window. It has NO contract fn:
+  // status/flag are auto-computed inside record_delivery via classify() on every
+  // delivery, so finalize is a LOCAL coop-bookkeeping action, not a signed tx.
+  const txFinalize = useMockTx();
+  const txFm = useTx(); // force majeure -> mark_force_majeure (coop-signed)
 
   /* ── Derived ─────────────────────────────────────────────────────────── */
   const eligibleAgreements = agreements.filter((a) => DEPOSIT_ELIGIBLE.includes(a.status));
@@ -418,7 +434,13 @@ export default function SetorPage() {
                   size="md"
                   leftIcon={<Wheat size={16} />}
                   disabled={!canDeliver || txDeliver.state !== "idle"}
-                  onClick={txDeliver.run}
+                  onClick={() => {
+                    if (!agreement) return;
+                    const volG = BigInt(Math.round(inputKgNum * 1000));
+                    txDeliver.run((coop) =>
+                      recordDelivery(coop, agreement.onchainId, volG, grade),
+                    );
+                  }}
                   className="w-full sm:w-auto"
                 >
                   {txDeliver.state === "signing"
@@ -598,7 +620,12 @@ export default function SetorPage() {
                         size="sm"
                         leftIcon={<CloudRain size={14} />}
                         disabled={!fmReason.trim() || txFm.state !== "idle"}
-                        onClick={txFm.run}
+                        onClick={() => {
+                          if (!agreement) return;
+                          txFm.run((coop) =>
+                            markForceMajeure(coop, agreement.onchainId, toReasonSymbol(fmReason)),
+                          );
+                        }}
                       >
                         {txFm.state === "signing"
                           ? "Menandatangani..."
