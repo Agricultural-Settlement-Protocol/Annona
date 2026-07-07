@@ -539,7 +539,9 @@ export const MOCK_AGREEMENTS: MockAgreement[] = [
     createdAt: "2026-03-15",
     expectedHarvestDate: "2026-07-06",
   }),
-  // 3 — Joko: PARTIALLY DELIVERED, staged settlement in progress.
+  // 3 — Joko: FLAGGED, delivered 35.8% of expected (below the 40% band, so
+  // Suspected: a human reviews, never an automatic accusation). Staged payout
+  // already ran on the delivered volume.
   makeAgreement({
     n: 3,
     farmerId: "frm-003",
@@ -548,7 +550,8 @@ export const MOCK_AGREEMENTS: MockAgreement[] = [
     expectedVolKg: 6_700,
     deliveredKg: 2_400,
     settledKg: 2_400,
-    status: "PartiallyDelivered",
+    status: "Flagged",
+    flag: "Suspected",
     inputs: [
       { catalogId: "cat-urea", qty: 3, basePriceAgrinas: rupiah(560_000) },
       { catalogId: "cat-npk", qty: 2, basePriceAgrinas: rupiah(640_000) },
@@ -630,8 +633,8 @@ export const MOCK_AGREEMENTS: MockAgreement[] = [
     expectedHarvestDate: "2026-06-18",
     grade: "A",
   }),
-  // 8 — Sri: FLAGGED, delivered 45% of expected (PartialDelivery band; a
-  // human reviews, never an automatic accusation).
+  // 8 — Sri: PARTIALLY DELIVERED, delivered 45% of expected (the PartialDelivery
+  // band, 40 to 80%); staged settlement in progress on the delivered volume.
   makeAgreement({
     n: 8,
     farmerId: "frm-008",
@@ -640,7 +643,7 @@ export const MOCK_AGREEMENTS: MockAgreement[] = [
     expectedVolKg: 3_900,
     deliveredKg: 1_750,
     settledKg: 1_750,
-    status: "Flagged",
+    status: "PartiallyDelivered",
     flag: "PartialDelivery",
     inputs: [
       { catalogId: "cat-urea", qty: 2, basePriceAgrinas: rupiah(560_000) },
