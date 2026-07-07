@@ -12,12 +12,14 @@
  * cash moves via kas koperasi / BRILink.
  */
 
+import { fetchAgreements, fetchFarmers, farmerMap } from "@/lib/api";
 import { PageHeader } from "@/components/kmp/page-header";
 import { PaymentHistoryTable } from "@/components/kmp/payment-history-table";
 import { SearchSelect } from "@/components/kmp/search-select";
 import type { SearchSelectItem } from "@/components/kmp/search-select";
 import { useMockTx } from "@/components/kmp/use-mock-tx";
-import { MOCK_AGREEMENTS, formatKg, getFarmer } from "@/lib/mock-data";
+import { useApi } from "@/lib/use-api";
+import { formatKg } from "@/lib/mock-data";
 import { computeSplitSettlement, formatRupiah, gramsToKg } from "@annona/core";
 import type { Status } from "@annona/core";
 import {
@@ -40,6 +42,14 @@ import { useRef, useState } from "react";
 const PAYABLE_STATUSES: Status[] = ["Delivered", "PartiallyDelivered", "Flagged"];
 
 export default function PembayaranPage() {
+  /* ── Live data ───────────────────────────────────────────────────────── */
+  const { data, loading, error } = useApi(
+    () => Promise.all([fetchAgreements(), fetchFarmers()]),
+    [],
+  );
+  const agreements = data?.[0] ?? [];
+  const fmap = farmerMap(data?.[1] ?? []);
+
   /* ── Agreement selection ─────────────────────────────────────────────── */
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -53,18 +63,18 @@ export default function PembayaranPage() {
   /* ── Derived ─────────────────────────────────────────────────────────── */
 
   // Agreements that have unsettled delivered volume.
-  const payableAgreements = MOCK_AGREEMENTS.filter((a) => {
+  const payableAgreements = agreements.filter((a) => {
     const hasUnsettled = a.deliveredVolG > a.settledVolG;
     return hasUnsettled && PAYABLE_STATUSES.includes(a.status);
   });
 
   const selectItems: SearchSelectItem[] = payableAgreements.map((a) => {
-    const farmer = getFarmer(a.farmerId);
+    const farmer = fmap.get(a.farmerId);
     const unsettledKg = gramsToKg(a.deliveredVolG - a.settledVolG);
     const isDisabled = a.status === "Flagged";
     return {
       id: a.id,
-      label: farmer?.name ?? "(petani)",
+      label: a.farmerName,
       sublabel: `Perjanjian #${a.onchainId}, ${formatKg(unsettledKg)} belum dibayar`,
       keywords: `${a.commodityCode} ${farmer?.kecamatan ?? ""}`,
       disabled: isDisabled,
@@ -72,8 +82,8 @@ export default function PembayaranPage() {
     };
   });
 
-  const agreement = MOCK_AGREEMENTS.find((a) => a.id === selectedId) ?? null;
-  const farmer = agreement ? getFarmer(agreement.farmerId) : null;
+  const agreement = agreements.find((a) => a.id === selectedId) ?? null;
+  const farmer = agreement ? (fmap.get(agreement.farmerId) ?? null) : null;
 
   // Staged: pay for exactly the volume that has been delivered but not yet settled.
   const split = agreement
@@ -131,6 +141,15 @@ export default function PembayaranPage() {
           </Button>
         }
       />
+
+      {loading && (
+        <p className="text-sm text-muted-foreground">Memuat perjanjian siap bayar...</p>
+      )}
+      {error && (
+        <Alert tone="warning" title="Gagal memuat perjanjian">
+          {error}
+        </Alert>
+      )}
 
       {/* Step 1: Pilih perjanjian */}
       <Card>

@@ -1,16 +1,8 @@
 import { ActivityFeed } from "@/components/kmp/activity-feed";
 import { PageHeader } from "@/components/kmp/page-header";
 import { ScrollArea } from "@/components/scroll-area";
-import {
-  MOCK_ACTIVITY,
-  MOCK_COOP,
-  cashNeededThisWeek,
-  coopOverview,
-  formatKg,
-  getFarmer,
-  harvestThisWeek,
-  inboundSupply,
-} from "@/lib/mock-data";
+import { fetchCoop, fetchOverview } from "@/lib/api";
+import { MOCK_ACTIVITY, formatKg } from "@/lib/mock-data";
 import { formatRupiah } from "@annona/core";
 import {
   Badge,
@@ -39,12 +31,13 @@ import Link from "next/link";
 
 /** Screen A — Home / Overview (PRD §8.1). At-a-glance offtaker-book +
  *  cash-agent health. Big color-coded numbers, plain Bahasa. */
-export default function KmpHomePage() {
-  const overview = coopOverview();
-  const harvest = harvestThisWeek();
-  const cashNeeded = cashNeededThisWeek();
-  const inbound = inboundSupply();
-  const cashFunded = MOCK_COOP.prefundedCashBalance >= cashNeeded;
+export default async function KmpHomePage() {
+  const [ov, { coop }] = await Promise.all([fetchOverview(), fetchCoop()]);
+  const overview = ov.coopOverview;
+  const harvest = ov.harvestThisWeek;
+  const cashNeeded = ov.cashNeededThisWeek;
+  const inbound = ov.inboundSupply;
+  const cashFunded = coop.prefundedCashBalance >= cashNeeded;
 
   return (
     <div>
@@ -90,7 +83,7 @@ export default function KmpHomePage() {
           </p>
           <p className="mt-0.5 text-sm text-muted-foreground">
             Perlu disiapkan {formatRupiah(cashNeeded)} untuk pembayaran petani. Saldo kas saat ini{" "}
-            {formatRupiah(MOCK_COOP.prefundedCashBalance)}.
+            {formatRupiah(coop.prefundedCashBalance)}.
           </p>
         </div>
         <Badge tone={cashFunded ? "success" : "danger"}>
@@ -143,7 +136,6 @@ export default function KmpHomePage() {
             />
             <CardContent className="space-y-4">
               {harvest.rows.map((a) => {
-                const farmer = getFarmer(a.farmerId);
                 const deliveredKg = Number(a.deliveredVolG / 1000n);
                 return (
                   <Link
@@ -153,7 +145,7 @@ export default function KmpHomePage() {
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
-                        <p className="text-sm font-semibold text-foreground">{farmer?.name}</p>
+                        <p className="text-sm font-semibold text-foreground">{a.farmerName}</p>
                         <p className="text-xs text-muted-foreground">
                           {a.commodityCode === "GABAH" ? "Gabah" : "Jagung"}, perkiraan{" "}
                           {formatKg(a.expectedVolKg)}, panen {a.expectedHarvestDate}
@@ -191,7 +183,6 @@ export default function KmpHomePage() {
             />
             <CardContent className="space-y-3">
               {inbound.map((a) => {
-                const farmer = getFarmer(a.farmerId);
                 return (
                   <div
                     key={a.id}
@@ -199,7 +190,7 @@ export default function KmpHomePage() {
                   >
                     <div>
                       <p className="text-sm font-semibold text-foreground">
-                        Perjanjian #{String(a.onchainId)}, {farmer?.name}
+                        Perjanjian #{String(a.onchainId)}, {a.farmerName}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Nilai pokok {formatRupiah(a.basePriceAgrinas)}, utang belum aktif sebelum

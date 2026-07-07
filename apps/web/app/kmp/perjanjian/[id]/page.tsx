@@ -7,14 +7,14 @@ import { LifecycleTimeline } from "@/components/kmp/lifecycle-timeline";
 import { PageHeader } from "@/components/kmp/page-header";
 import { TBody, THead, Table, TableFrame, Td, Th, Tr } from "@/components/kmp/table";
 import {
-  MOCK_PRICE_REFS,
-  deliveriesOfAgreement,
-  getAgreement,
-  getCatalogItem,
-  getFarmer,
-  residuOfAgreement,
-  settlementsOfAgreement,
-} from "@/lib/mock-data";
+  fetchAgreement,
+  fetchCatalog,
+  fetchFarmers,
+  fetchHpp,
+  fetchResidu,
+  fetchSettlements,
+} from "@/lib/api";
+import { useApi } from "@/lib/use-api";
 import {
   Alert,
   Badge,
@@ -61,15 +61,36 @@ function InfoRow({ label, children }: { label: string; children: React.ReactNode
 
 export default function AgreementDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const agreement = getAgreement(id);
+  const { data, loading, error } = useApi(
+    () =>
+      Promise.all([
+        fetchAgreement(id),
+        fetchFarmers(),
+        fetchCatalog(),
+        fetchHpp(),
+        fetchSettlements(),
+        fetchResidu(),
+      ]),
+    [id],
+  );
 
-  if (!agreement) {
+  if (loading) {
+    return (
+      <div className="py-16 text-center text-sm text-muted-foreground">Memuat perjanjian...</div>
+    );
+  }
+
+  if (error || !data) {
     return (
       <div className="py-16">
         <EmptyState
           icon={<FileText size={36} />}
           title="Perjanjian tidak ditemukan"
-          description={`Tidak ada perjanjian dengan ID "${id}". Periksa kembali daftar perjanjian.`}
+          description={
+            error
+              ? `Gagal memuat perjanjian: ${error}`
+              : `Tidak ada perjanjian dengan ID "${id}". Periksa kembali daftar perjanjian.`
+          }
           action={
             <Link href="/kmp/perjanjian">
               <Button variant="outline" leftIcon={<ArrowLeft size={16} />}>
@@ -82,11 +103,13 @@ export default function AgreementDetailPage() {
     );
   }
 
-  const farmer = getFarmer(agreement.farmerId);
-  const deliveries = deliveriesOfAgreement(agreement.id);
-  const settlements = settlementsOfAgreement(agreement.id);
-  const residu = residuOfAgreement(agreement.id);
-  const priceRef = MOCK_PRICE_REFS.find((p) => p.commodityCode === agreement.commodityCode);
+  const [agreement, farmers, catalog, hppRefs, allSettlements, allResidu] = data;
+  const farmer = farmers.find((f) => f.id === agreement.farmerId);
+  const catalogById = new Map(catalog.map((c) => [c.id, c]));
+  const deliveries = agreement.deliveries;
+  const settlements = allSettlements.filter((s) => s.agreementId === agreement.id);
+  const residu = allResidu.find((r) => r.agreementId === agreement.id);
+  const priceRef = hppRefs.find((p) => p.commodityCode === agreement.commodityCode);
 
   const deliveredKg = Number(agreement.deliveredVolG / 1000n);
   const settledKg = Number(agreement.settledVolG / 1000n);
@@ -162,7 +185,9 @@ export default function AgreementDetailPage() {
               {farmer ? <ReputationBadge tier={farmer.repTier} /> : null}
             </InfoRow>
             <InfoRow label="Kecamatan">{farmer?.kecamatan}</InfoRow>
-            <InfoRow label="Luas Lahan">{farmer?.plotAreaHa.toLocaleString("id-ID")} ha</InfoRow>
+            <InfoRow label="Luas Lahan">
+              {Number(farmer?.plotAreaHa ?? 0).toLocaleString("id-ID")} ha
+            </InfoRow>
             <InfoRow label="Dompet">
               <span className="font-mono text-xs text-muted-foreground">
                 {farmer
@@ -266,14 +291,14 @@ export default function AgreementDetailPage() {
               </THead>
               <TBody>
                 {agreement.inputs.map((inp) => {
-                  const item = getCatalogItem(inp.catalogId);
-                  const lineTotal = BigInt(inp.qty) * inp.basePriceAgrinas;
+                  const item = catalogById.get(inp.catalogId);
+                  const lineTotal = inp.lineTotalPrincipal;
                   return (
                     <Tr key={inp.catalogId}>
                       <Td className="font-medium">{item?.name ?? inp.catalogId}</Td>
                       <Td className="text-muted-foreground capitalize">{item?.category ?? "-"}</Td>
                       <Td className="text-right tabular-nums">
-                        {inp.qty} {item?.unitLabel ?? "unit"}
+                        {inp.qty} unit
                       </Td>
                       <Td className="text-right">
                         <RupiahAmount smallest={inp.basePriceAgrinas} />
@@ -377,7 +402,7 @@ export default function AgreementDetailPage() {
                     <Tr key={d.id}>
                       <Td className="font-mono text-xs">{d.seq}</Td>
                       <Td className="text-right tabular-nums font-medium">
-                        {d.volumeKg.toLocaleString("id-ID")} kg
+                        {Number(d.volumeG / 1000n).toLocaleString("id-ID")} kg
                       </Td>
                       <Td>
                         <span
@@ -393,11 +418,15 @@ export default function AgreementDetailPage() {
                         </span>
                       </Td>
                       <Td className="text-right tabular-nums text-muted-foreground">
-                        {(d.moistureBps / 100).toFixed(1)}%
+                        {d.moistureBps != null ? `${(d.moistureBps / 100).toFixed(1)}%` : "-"}
                       </Td>
                       <Td className="text-muted-foreground">{d.deliveredAt}</Td>
                       <Td>
-                        <TxHashLink hash={d.receiptTxHash} />
+                        {d.receiptOnchainRef ? (
+                          <TxHashLink hash={d.receiptOnchainRef} />
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
                       </Td>
                     </Tr>
                   ))}
@@ -423,13 +452,13 @@ export default function AgreementDetailPage() {
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold text-foreground">
-                      Penyelesaian {s.settledVolKg.toLocaleString("id-ID")} kg
+                      Penyelesaian {Number(s.settledVolG / 1000n).toLocaleString("id-ID")} kg
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Tanggal {s.settledAt}. Ref bank: {s.rupiahRef}
+                      Tanggal {s.settledAt}. Ref bank: {s.rupiahRef ?? "-"}
                     </p>
                   </div>
-                  <TxHashLink hash={s.txHash} />
+                  {s.txHash && <TxHashLink hash={s.txHash} />}
                 </div>
 
                 {/* SplitSettlementCard for the three-way split */}
@@ -496,18 +525,20 @@ export default function AgreementDetailPage() {
       )}
 
       {/* Tautan explorer */}
-      <div className="flex items-center gap-2 rounded-lg border border-border bg-aqua-50/50 px-4 py-3 text-sm text-aqua-700">
-        <a
-          href={`https://stellar.expert/explorer/testnet/tx/${agreement.createTxHash}`}
-          target="_blank"
-          rel="noreferrer"
-          className="flex items-center gap-1 font-medium hover:underline"
-        >
-          <ExternalLink size={14} />
-          Lihat perjanjian di Stellar Explorer
-        </a>
-        <span className="text-muted-foreground">(testnet)</span>
-      </div>
+      {agreement.createTxHash && (
+        <div className="flex items-center gap-2 rounded-lg border border-border bg-aqua-50/50 px-4 py-3 text-sm text-aqua-700">
+          <a
+            href={`https://stellar.expert/explorer/testnet/tx/${agreement.createTxHash}`}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-1 font-medium hover:underline"
+          >
+            <ExternalLink size={14} />
+            Lihat perjanjian di Stellar Explorer
+          </a>
+          <span className="text-muted-foreground">(testnet)</span>
+        </div>
+      )}
     </div>
   );
 }

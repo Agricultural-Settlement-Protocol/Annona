@@ -1,17 +1,21 @@
 import { PageHeader } from "@/components/kmp/page-header";
 import { TBody, THead, Table, TableFrame, Td, Th, Tr } from "@/components/kmp/table";
-import { MOCK_AGREEMENTS, getFarmer } from "@/lib/mock-data";
+import { fetchAgreements, fetchFarmers, farmerMap } from "@/lib/api";
 import { Button, ResiduStatusBadge, RupiahAmount, StatCard, StatusBadge } from "@annona/ui";
 import { AlertTriangle, CheckCircle2, FilePlus2, FileText } from "lucide-react";
 import Link from "next/link";
 
-/** Agreement list — entry point to Screen E (PRD §8.1). Server component,
- *  read-only. No bigint crosses a client-component prop boundary here because
- *  RupiahAmount / StatusBadge are not "use client" components. */
-export default function PerjanjianPage() {
-  const total = MOCK_AGREEMENTS.length;
-  const settled = MOCK_AGREEMENTS.filter((a) => a.status === "Settled").length;
-  const flagged = MOCK_AGREEMENTS.filter((a) => a.status === "Flagged").length;
+/** Agreement list — entry point to Screen E (PRD §8.1). Async server component,
+ *  read-only, backed by the live REST API. No bigint crosses a client-component
+ *  prop boundary here because RupiahAmount / StatusBadge are not "use client"
+ *  and the fetch/parse happens server-side. */
+export default async function PerjanjianPage() {
+  const [agreements, farmers] = await Promise.all([fetchAgreements(), fetchFarmers()]);
+  const farmers_ = farmerMap(farmers);
+
+  const total = agreements.length;
+  const settled = agreements.filter((a) => a.status === "Settled").length;
+  const flagged = agreements.filter((a) => a.status === "Flagged").length;
 
   return (
     <div>
@@ -62,8 +66,8 @@ export default function PerjanjianPage() {
             <Th>Residu</Th>
           </THead>
           <TBody>
-            {MOCK_AGREEMENTS.map((a) => {
-              const farmer = getFarmer(a.farmerId);
+            {agreements.map((a) => {
+              const farmer = farmers_.get(a.farmerId);
               const deliveredKg = Number(a.deliveredVolG / 1000n);
 
               return (

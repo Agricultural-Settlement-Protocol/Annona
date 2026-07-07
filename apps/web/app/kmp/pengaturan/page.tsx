@@ -5,8 +5,10 @@
  *  Sections: profil koperasi, dompet, preferensi perjanjian, bahasa/tampilan,
  *  notifikasi, tim pengurus. */
 
+import { type ApiCoop, fetchCoop } from "@/lib/api";
 import { PageHeader } from "@/components/kmp/page-header";
-import { MOCK_COOP, shortAddr } from "@/lib/mock-data";
+import { useApi } from "@/lib/use-api";
+import { shortAddr } from "@/lib/mock-data";
 import {
   Alert,
   Badge,
@@ -30,11 +32,11 @@ import { useState } from "react";
 
 // ─── Section 1: Profil Koperasi ──────────────────────────────────────────────
 
-function ProfilSection() {
-  const [name, setName] = useState<string>(MOCK_COOP.name);
-  const [kecamatan, setKecamatan] = useState<string>(MOCK_COOP.kecamatan);
-  const [kabupaten, setKabupaten] = useState<string>(MOCK_COOP.kabupaten);
-  const [provinsi, setProvinsi] = useState<string>(MOCK_COOP.provinsi);
+function ProfilSection({ coop }: { coop: ApiCoop }) {
+  const [name, setName] = useState<string>(coop.name);
+  const [kecamatan, setKecamatan] = useState<string>(coop.kecamatan);
+  const [kabupaten, setKabupaten] = useState<string>(coop.kabupaten);
+  const [provinsi, setProvinsi] = useState<string>(coop.provinsi);
   const [saved, setSaved] = useState(false);
 
   function handleSave() {
@@ -106,7 +108,7 @@ function ProfilSection() {
 
 // ─── Section 2: Dompet dan Jaringan ─────────────────────────────────────────
 
-function DompetSection() {
+function DompetSection({ coop }: { coop: ApiCoop }) {
   const [disconnecting, setDisconnecting] = useState(false);
   const [disconnected, setDisconnected] = useState(false);
 
@@ -132,12 +134,12 @@ function DompetSection() {
             <p className="text-xs font-medium text-muted-foreground">Alamat Dompet</p>
             <p
               className="mt-0.5 font-mono text-sm text-foreground"
-              title={MOCK_COOP.walletAddress}
+              title={coop.walletAddress}
             >
-              {MOCK_COOP.walletAddress}
+              {coop.walletAddress}
             </p>
             <p className="mt-0.5 font-mono text-xs text-muted-foreground">
-              ({shortAddr(MOCK_COOP.walletAddress)})
+              ({shortAddr(coop.walletAddress)})
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -433,6 +435,8 @@ function TimSection() {
 // ─── Main page ───────────────────────────────────────────────────────────────
 
 export default function PengaturanPage() {
+  const { data, loading, error } = useApi(fetchCoop);
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -440,8 +444,15 @@ export default function PengaturanPage() {
         description="Konfigurasi koperasi, dompet, preferensi, dan tim pengurus."
       />
 
-      <ProfilSection />
-      <DompetSection />
+      {loading && <p className="text-sm text-muted-foreground">Memuat pengaturan koperasi...</p>}
+      {error && (
+        <Alert tone="warning" title="Gagal memuat data koperasi">
+          {error}
+        </Alert>
+      )}
+
+      {data && <ProfilSection coop={data.coop} />}
+      {data && <DompetSection coop={data.coop} />}
       <PreferensiSection />
       <BahasaSection />
       <NotifikasiSection />
