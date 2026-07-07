@@ -475,7 +475,8 @@ export const harvestShipment = pgTable(
       .references(() => commodity.code),
     status: shipmentStatus("status").notNull().default("Draft"),
     /** sender-declared total */
-    totalVolumeG: bigint("total_volume_g", { mode: "bigint" }).notNull().default(0n),
+    // SQL-side default (drizzle-kit 0.31 cannot serialize a `0n` BigInt literal into its snapshot)
+    totalVolumeG: bigint("total_volume_g", { mode: "bigint" }).notNull().default(sql`0`),
     /** receiver-confirmed total; null until Agrinas confirms */
     receivedVolumeG: bigint("received_volume_g", { mode: "bigint" }),
     discrepancyNote: text("discrepancy_note"),
