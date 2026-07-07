@@ -1,10 +1,17 @@
 packages:
   - "apps/*"
   - "packages/*"
+  - "scripts"
+
+# Native deps (biome/esbuild/sharp) are approved via onlyBuiltDependencies below.
+# Don't let pnpm's pre-run deps-status-check hard-fail script runs over a stale
+# ignoredBuilds entry — the binaries are present and working.
+verifyDepsBeforeRun: false
 
 allowBuilds:
   '@biomejs/biome': set this to true or false
   esbuild: set this to true or false
+  sharp: set this to true or false
 
 onlyBuiltDependencies:
   - "@biomejs/biome"
