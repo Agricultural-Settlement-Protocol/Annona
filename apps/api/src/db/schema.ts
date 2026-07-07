@@ -238,6 +238,11 @@ export const agreement = pgTable(
     flag: flagReason("flag").notNull().default("None"),
     residuStatus: residuStatus("residu_status").notNull().default("Pending"),
 
+    /** Off-chain-only estimate: expected harvest window start (drives "Panen
+     *  Minggu Ini"). NOT carried by any on-chain event — written by the KMP
+     *  create flow / seed, never the indexer. Nullable for legacy rows. */
+    expectedHarvestDate: date("expected_harvest_date"),
+
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -295,9 +300,14 @@ export const settlement = pgTable(
   "settlement",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    deliveryId: uuid("delivery_id")
+    /** Owning agreement. v3 settle() nets the delta across ALL unsettled
+     *  deliveries, so a settlement keys on the agreement, not a single delivery. */
+    agreementId: uuid("agreement_id")
       .notNull()
-      .references(() => delivery.id),
+      .references(() => agreement.id),
+    /** The latest delivery at settle time (context only; a settle may span
+     *  several deliveries). Nullable because the link is informational. */
+    deliveryId: uuid("delivery_id").references(() => delivery.id),
     gross: bigint("gross", { mode: "bigint" }).notNull(),
     /** KMP keeps */
     handlingCut: bigint("handling_cut", { mode: "bigint" }).notNull(),
@@ -308,12 +318,19 @@ export const settlement = pgTable(
     coopMargin: bigint("coop_margin", { mode: "bigint" }).notNull(),
     /** cash out to farmer */
     netPaid: bigint("net_paid", { mode: "bigint" }).notNull(),
+    /** volume settled by THIS settle call (per-settle delta). The Settled event
+     *  carries the cumulative total; the indexer stores the delta = cumulative
+     *  minus prior SUM so per-payment volume renders in the payment history. */
+    settledVolG: bigint("settled_vol_g", { mode: "bigint" }).notNull(),
     /** Path A: bank / BRILink reference */
     rupiahRef: text("rupiah_ref"),
     settlementTxHash: text("settlement_tx_hash"),
     settledAt: timestamp("settled_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("settlement_delivery_id_idx").on(t.deliveryId)],
+  (t) => [
+    index("settlement_agreement_id_idx").on(t.agreementId),
+    index("settlement_delivery_id_idx").on(t.deliveryId),
+  ],
 );
 
 /* ────────────────────────── residu reconciliation ────────────────────────── */

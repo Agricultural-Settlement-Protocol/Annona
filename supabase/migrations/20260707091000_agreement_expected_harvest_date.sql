@@ -1,0 +1,1 @@
+ALTER TABLE "agreement" ADD COLUMN "expected_harvest_date" date;
