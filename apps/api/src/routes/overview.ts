@@ -1,5 +1,5 @@
 import { computeSplitSettlement, kgToGrams } from "@annona/core";
-import { ne } from "drizzle-orm";
+import { inArray, ne } from "drizzle-orm";
 import { Hono } from "hono";
 import { getDb, schema } from "../db/client.js";
 import { type EnrichedAgreement, jsonSafe, listAgreements } from "../lib/read-model.js";
@@ -82,15 +82,29 @@ export const overviewRoute = new Hono().get("/", async (c) => {
 
   const inboundSupply = agreements.filter((a) => a.status === "SupplyDispatched");
 
-  const supplyRequestRows = agreements
-    .filter((a) => SUPPLY_REQUEST.has(a.status))
-    .map((a) => ({
-      agreement: a,
-      farmerId: a.farmerId,
-      farmerName: a.farmerName,
-      status:
-        a.status === "Created" ? "Draft" : a.status === "SupplyDispatched" ? "Dikirim" : "Diterima",
-    }));
+  const supplyAgreements = agreements.filter((a) => SUPPLY_REQUEST.has(a.status));
+  // Batch-load the saprotan input baskets for exactly these agreements (the
+  // permintaan desk aggregates them); one query, grouped by agreement id.
+  const supplyIds = supplyAgreements.map((a) => a.id);
+  const inputRows = supplyIds.length
+    ? await db
+        .select()
+        .from(schema.agreementInput)
+        .where(inArray(schema.agreementInput.agreementId, supplyIds))
+    : [];
+  const inputsByAgreement = new Map<string, (typeof inputRows)[number][]>();
+  for (const row of inputRows) {
+    const list = inputsByAgreement.get(row.agreementId) ?? [];
+    list.push(row);
+    inputsByAgreement.set(row.agreementId, list);
+  }
+  const supplyRequestRows = supplyAgreements.map((a) => ({
+    agreement: { ...a, inputs: inputsByAgreement.get(a.id) ?? [] },
+    farmerId: a.farmerId,
+    farmerName: a.farmerName,
+    status:
+      a.status === "Created" ? "Draft" : a.status === "SupplyDispatched" ? "Dikirim" : "Diterima",
+  }));
 
   return c.json(
     jsonSafe({

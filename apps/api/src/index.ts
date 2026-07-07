@@ -3,6 +3,7 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { agreementsRoute } from "./routes/agreements.js";
+import { deliveriesRoute } from "./routes/deliveries.js";
 import { farmersRoute } from "./routes/farmers.js";
 import { healthRoute } from "./routes/health.js";
 import { coopRoute, overviewRoute } from "./routes/overview.js";
@@ -26,6 +27,7 @@ app.use("*", cors());
 
 app.route("/health", healthRoute);
 app.route("/agreements", agreementsRoute);
+app.route("/deliveries", deliveriesRoute);
 app.route("/farmers", farmersRoute);
 app.route("/reference", referenceRoute);
 app.route("/overview", overviewRoute);
