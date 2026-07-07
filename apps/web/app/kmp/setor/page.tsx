@@ -11,13 +11,16 @@
  * No gradient button here — that lives solely on /kmp/pembayaran.
  */
 
+import { fetchAgreements, fetchDeliveries, fetchFarmers, farmerMap } from "@/lib/api";
 import { DepositHistoryTable } from "@/components/kmp/deposit-history-table";
 import { PageHeader } from "@/components/kmp/page-header";
 import { SearchSelect } from "@/components/kmp/search-select";
 import type { SearchSelectItem } from "@/components/kmp/search-select";
 import { useMockTx } from "@/components/kmp/use-mock-tx";
-import { MOCK_AGREEMENTS, deliveriesOfAgreement, getFarmer } from "@/lib/mock-data";
-import { classifyFlag, formatRupiah, kgToGrams } from "@annona/core";
+import { useTx } from "@/components/kmp/use-tx";
+import { markForceMajeure, recordDelivery } from "@/lib/invocations";
+import { useApi } from "@/lib/use-api";
+import { classifyFlag } from "@annona/core";
 import type { Status } from "@annona/core";
 import {
   Alert,
@@ -46,6 +49,17 @@ import { useRef, useState } from "react";
 
 /** Agreements that can receive a new deposit. */
 const DEPOSIT_ELIGIBLE: Status[] = ["Active", "PartiallyDelivered"];
+
+/** Free-text force-majeure reason -> a Soroban Symbol-safe token (<=32 chars,
+ *  [A-Z0-9_]). The full narrative stays off-chain; only this tag is anchored. */
+function toReasonSymbol(reason: string): string {
+  const tag = reason
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 32);
+  return tag || "FORCE_MAJEURE";
+}
 
 /** Flag banner metadata for a given classification. No em dashes. */
 function flagMeta(flag: ReturnType<typeof classifyFlag> | null): {
@@ -92,6 +106,15 @@ function finalStatusLabel(flag: ReturnType<typeof classifyFlag>): string {
 }
 
 export default function SetorPage() {
+  /* ── Live data ───────────────────────────────────────────────────────── */
+  const { data, loading, error } = useApi(
+    () => Promise.all([fetchAgreements(), fetchFarmers(), fetchDeliveries()]),
+    [],
+  );
+  const agreements = data?.[0] ?? [];
+  const fmap = farmerMap(data?.[1] ?? []);
+  const allDeliveries = data?.[2] ?? [];
+
   /* ── Agreement selection ─────────────────────────────────────────────── */
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -112,29 +135,34 @@ export default function SetorPage() {
   const [showHistory, setShowHistory] = useState(false);
 
   /* ── TX hooks ────────────────────────────────────────────────────────── */
-  const txDeliver = useMockTx(); // catat setoran
-  const txFinalize = useMockTx(); // tandai setoran selesai
-  const txFm = useMockTx(); // force majeure
+  const txDeliver = useTx(); // catat setoran -> record_delivery (coop-signed)
+  // "Tandai Setoran Selesai" closes the harvest window. It has NO contract fn:
+  // status/flag are auto-computed inside record_delivery via classify() on every
+  // delivery, so finalize is a LOCAL coop-bookkeeping action, not a signed tx.
+  const txFinalize = useMockTx();
+  const txFm = useTx(); // force majeure -> mark_force_majeure (coop-signed)
 
   /* ── Derived ─────────────────────────────────────────────────────────── */
-  const eligibleAgreements = MOCK_AGREEMENTS.filter((a) => DEPOSIT_ELIGIBLE.includes(a.status));
+  const eligibleAgreements = agreements.filter((a) => DEPOSIT_ELIGIBLE.includes(a.status));
 
   const selectItems: SearchSelectItem[] = eligibleAgreements.map((a) => {
-    const farmer = getFarmer(a.farmerId);
+    const farmer = fmap.get(a.farmerId);
     const deliveredKg = Number(a.deliveredVolG / 1000n);
     const remainKg = a.expectedVolKg - deliveredKg;
     return {
       id: a.id,
-      label: farmer?.name ?? "(petani)",
+      label: a.farmerName,
       sublabel: `Perjanjian #${a.onchainId}, sisa perkiraan ${remainKg.toLocaleString("id-ID")} kg`,
       keywords: `${a.commodityCode} ${farmer?.kecamatan ?? ""}`,
     };
   });
 
-  const agreement = MOCK_AGREEMENTS.find((a) => a.id === selectedId) ?? null;
-  const farmer = agreement ? getFarmer(agreement.farmerId) : null;
+  const agreement = agreements.find((a) => a.id === selectedId) ?? null;
+  const farmer = agreement ? (fmap.get(agreement.farmerId) ?? null) : null;
 
-  const existingDeliveries = agreement ? deliveriesOfAgreement(agreement.id) : [];
+  const existingDeliveries = agreement
+    ? allDeliveries.filter((d) => d.agreementId === agreement.id)
+    : [];
   const deliveredSoFarKg = agreement ? Number(agreement.deliveredVolG / 1000n) : 0;
   const inputKgNum = Number.parseFloat(volumeKg) || 0;
   const totalDeliveredKg = deliveredSoFarKg + inputKgNum;
@@ -214,6 +242,15 @@ export default function SetorPage() {
           </Button>
         }
       />
+
+      {loading && (
+        <p className="text-sm text-muted-foreground">Memuat perjanjian aktif...</p>
+      )}
+      {error && (
+        <Alert tone="warning" title="Gagal memuat perjanjian">
+          {error}
+        </Alert>
+      )}
 
       {/* Step 1: Pilih perjanjian */}
       <Card>
@@ -397,7 +434,13 @@ export default function SetorPage() {
                   size="md"
                   leftIcon={<Wheat size={16} />}
                   disabled={!canDeliver || txDeliver.state !== "idle"}
-                  onClick={txDeliver.run}
+                  onClick={() => {
+                    if (!agreement) return;
+                    const volG = BigInt(Math.round(inputKgNum * 1000));
+                    txDeliver.run((coop) =>
+                      recordDelivery(coop, agreement.onchainId, volG, grade),
+                    );
+                  }}
                   className="w-full sm:w-auto"
                 >
                   {txDeliver.state === "signing"
@@ -577,7 +620,12 @@ export default function SetorPage() {
                         size="sm"
                         leftIcon={<CloudRain size={14} />}
                         disabled={!fmReason.trim() || txFm.state !== "idle"}
-                        onClick={txFm.run}
+                        onClick={() => {
+                          if (!agreement) return;
+                          txFm.run((coop) =>
+                            markForceMajeure(coop, agreement.onchainId, toReasonSymbol(fmReason)),
+                          );
+                        }}
                       >
                         {txFm.state === "signing"
                           ? "Menandatangani..."

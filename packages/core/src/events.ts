@@ -16,6 +16,7 @@ export type AnnonaEventType =
   | "ResiduRemitted"
   | "RemittanceCleared"
   | "RemittanceDisputed"
+  | "RemittanceResolved"
   | "ReputationUpdated"
   | "CoopReputationUpdated";
 
@@ -104,6 +105,15 @@ export interface RemittanceDisputedData {
   id: bigint;
   coop: string;
   reason: string;
+}
+
+/** Admin cleared a dispute; the agreement's residu returns to Remitted.
+ *  Agreement-scoped (unlike CoopReputationUpdated) so the indexer can move the
+ *  specific residu read-model row off Disputed. */
+export interface RemittanceResolvedData {
+  id: bigint;
+  coop: string;
+  admin: string;
 }
 
 export interface ReputationUpdatedData {

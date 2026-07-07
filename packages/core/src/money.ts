@@ -30,8 +30,9 @@ export function computeSettlement(params: {
   remainingDebt: bigint;
 }): { grossSmallest: bigint; debtNetted: bigint; netToFarmer: bigint } {
   const unsettledG = params.deliveredVolG - params.settledVolG;
-  const unsettledKg = unsettledG / GRAMS_PER_KG;
-  const grossSmallest = unsettledKg * params.hppPerKg;
+  // Multiply BEFORE dividing by 1000 to preserve sub-kg precision, matching the
+  // contract's `gross = delta_g * hpp_per_kg / 1000` (SMART-CONTRACT.md §5).
+  const grossSmallest = (unsettledG * params.hppPerKg) / GRAMS_PER_KG;
   const debtNetted = grossSmallest >= params.remainingDebt ? params.remainingDebt : grossSmallest;
   const netToFarmer = grossSmallest - debtNetted;
   return { grossSmallest, debtNetted, netToFarmer };
@@ -69,8 +70,9 @@ export function computeSplitSettlement(params: {
   coopMargin: bigint;
 } {
   const unsettledG = params.deliveredVolG - params.settledVolG;
-  const unsettledKg = unsettledG / GRAMS_PER_KG;
-  const grossSmallest = unsettledKg * params.hppPerKg;
+  // Multiply BEFORE dividing by 1000 to preserve sub-kg precision, matching the
+  // contract's `gross = delta_g * hpp_per_kg / 1000` (SMART-CONTRACT.md §5).
+  const grossSmallest = (unsettledG * params.hppPerKg) / GRAMS_PER_KG;
   const handlingCut = (grossSmallest * BigInt(params.hppHandlingFeeBps)) / BPS_DENOM;
   const netBeforeDebt = grossSmallest - handlingCut;
   const debtPaid = netBeforeDebt >= params.remainingDebt ? params.remainingDebt : netBeforeDebt;

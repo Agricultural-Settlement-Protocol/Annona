@@ -1,6 +1,10 @@
 "use client";
 
-import { MOCK_COOP, shortAddr } from "@/lib/mock-data";
+import { WalletBadge } from "@/components/kmp/wallet-badge";
+import { fetchCoop } from "@/lib/api";
+import { useApi } from "@/lib/use-api";
+import { shortAddr } from "@/lib/mock-data";
+import { signOutToAuth } from "@/lib/supabase";
 import { Logo, LogoMark } from "@annona/ui";
 import { cn } from "@annona/ui";
 import type { LucideIcon } from "lucide-react";
@@ -17,6 +21,7 @@ import {
   PanelLeftOpen,
   Settings,
   Users,
+  Truck,
   Warehouse,
   Wifi,
   X,
@@ -59,6 +64,7 @@ const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
     label: "Lainnya",
     items: [
       { href: "/kmp/gudang", label: "Gudang & Pasokan", icon: Warehouse },
+      { href: "/kmp/logistik", label: "Logistik ke Agrinas", icon: Truck },
       { href: "/kmp/pengaturan", label: "Pengaturan", icon: Settings },
     ],
   },
@@ -121,6 +127,8 @@ function SidebarContent({
   onToggle?: () => void;
 }) {
   const pathname = usePathname();
+  const { data: coopData } = useApi(fetchCoop);
+  const coop = coopData?.coop;
   return (
     <div className="flex h-full flex-col">
       <div
@@ -154,12 +162,12 @@ function SidebarContent({
 
       {collapsed ? null : (
         <div className="mx-4 mb-4 rounded-lg border border-border bg-surface-muted px-3 py-2.5">
-          <p className="text-sm font-semibold text-foreground">{MOCK_COOP.name}</p>
+          <p className="text-sm font-semibold text-foreground">{coop?.name ?? "Koperasi"}</p>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            {MOCK_COOP.kecamatan}, {MOCK_COOP.kabupaten}
+            {coop ? `${coop.kecamatan}, ${coop.kabupaten}` : ""}
           </p>
           <p className="mt-1 font-mono text-[11px] text-aqua-700">
-            {shortAddr(MOCK_COOP.walletAddress)}
+            {coop ? shortAddr(coop.walletAddress) : ""}
           </p>
         </div>
       )}
@@ -197,15 +205,15 @@ function SidebarContent({
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-verdant-100 text-sm font-bold text-verdant-800">
               HU
             </div>
-            <Link
-              href="/"
-              onClick={onNavigate}
+            <button
+              type="button"
+              onClick={() => void signOutToAuth()}
               title="Keluar"
               aria-label="Keluar"
               className="rounded-md p-2 text-ink-500 transition-colors hover:bg-red-50 hover:text-red-700"
             >
               <LogOut size={16} />
-            </Link>
+            </button>
           </div>
         ) : (
           <>
@@ -222,14 +230,15 @@ function SidebarContent({
                 Testnet
               </span>
             </div>
-            <Link
-              href="/"
-              onClick={onNavigate}
-              className="mt-3 flex min-h-10 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-ink-600 transition-colors hover:bg-red-50 hover:text-red-700 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            <WalletBadge />
+            <button
+              type="button"
+              onClick={() => void signOutToAuth()}
+              className="mt-3 flex min-h-10 w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-ink-600 transition-colors hover:bg-red-50 hover:text-red-700 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
             >
               <LogOut size={16} />
               Keluar
-            </Link>
+            </button>
           </>
         )}
       </div>

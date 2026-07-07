@@ -102,6 +102,8 @@ export const MOCK_YIELD_TABLE: MockYieldRow[] = [
 
 // ─── Saprotan catalog (ERD: SAPROTAN_CATALOG, Agrinas-owned) ────────────────
 
+export type StockStatus = "Tersedia" | "Menipis" | "Habis";
+
 export interface MockCatalogItem {
   id: string;
   code: string;
@@ -113,6 +115,8 @@ export interface MockCatalogItem {
   unitLabel: string;
   subsidiFlag: boolean;
   source: string;
+  /** availability signal for KMP requests; no numeric ledger in MVP */
+  stockStatus: StockStatus;
 }
 
 export const MOCK_CATALOG: MockCatalogItem[] = [
@@ -126,6 +130,7 @@ export const MOCK_CATALOG: MockCatalogItem[] = [
     unitLabel: "karung 50kg",
     subsidiFlag: true,
     source: "Pupuk Indonesia",
+    stockStatus: "Tersedia",
   },
   {
     id: "cat-npk",
@@ -137,6 +142,7 @@ export const MOCK_CATALOG: MockCatalogItem[] = [
     unitLabel: "karung 50kg",
     subsidiFlag: true,
     source: "Pupuk Indonesia",
+    stockStatus: "Menipis",
   },
   {
     id: "cat-inpari",
@@ -148,6 +154,7 @@ export const MOCK_CATALOG: MockCatalogItem[] = [
     unitLabel: "kantong 5kg",
     subsidiFlag: false,
     source: "Sang Hyang Seri",
+    stockStatus: "Habis",
   },
   {
     id: "cat-bisi",
@@ -159,6 +166,7 @@ export const MOCK_CATALOG: MockCatalogItem[] = [
     unitLabel: "kantong 5kg",
     subsidiFlag: false,
     source: "BISI International",
+    stockStatus: "Tersedia",
   },
   {
     id: "cat-pest",
@@ -170,6 +178,7 @@ export const MOCK_CATALOG: MockCatalogItem[] = [
     unitLabel: "botol 400ml",
     subsidiFlag: false,
     source: "BASF",
+    stockStatus: "Tersedia",
   },
 ];
 
@@ -539,7 +548,9 @@ export const MOCK_AGREEMENTS: MockAgreement[] = [
     createdAt: "2026-03-15",
     expectedHarvestDate: "2026-07-06",
   }),
-  // 3 — Joko: PARTIALLY DELIVERED, staged settlement in progress.
+  // 3 — Joko: FLAGGED, delivered 35.8% of expected (below the 40% band, so
+  // Suspected: a human reviews, never an automatic accusation). Staged payout
+  // already ran on the delivered volume.
   makeAgreement({
     n: 3,
     farmerId: "frm-003",
@@ -548,7 +559,8 @@ export const MOCK_AGREEMENTS: MockAgreement[] = [
     expectedVolKg: 6_700,
     deliveredKg: 2_400,
     settledKg: 2_400,
-    status: "PartiallyDelivered",
+    status: "Flagged",
+    flag: "Suspected",
     inputs: [
       { catalogId: "cat-urea", qty: 3, basePriceAgrinas: rupiah(560_000) },
       { catalogId: "cat-npk", qty: 2, basePriceAgrinas: rupiah(640_000) },
@@ -630,8 +642,8 @@ export const MOCK_AGREEMENTS: MockAgreement[] = [
     expectedHarvestDate: "2026-06-18",
     grade: "A",
   }),
-  // 8 — Sri: FLAGGED, delivered 45% of expected (PartialDelivery band; a
-  // human reviews, never an automatic accusation).
+  // 8 — Sri: PARTIALLY DELIVERED, delivered 45% of expected (the PartialDelivery
+  // band, 40 to 80%); staged settlement in progress on the delivered volume.
   makeAgreement({
     n: 8,
     farmerId: "frm-008",
@@ -640,7 +652,7 @@ export const MOCK_AGREEMENTS: MockAgreement[] = [
     expectedVolKg: 3_900,
     deliveredKg: 1_750,
     settledKg: 1_750,
-    status: "Flagged",
+    status: "PartiallyDelivered",
     flag: "PartialDelivery",
     inputs: [
       { catalogId: "cat-urea", qty: 2, basePriceAgrinas: rupiah(560_000) },
@@ -1239,6 +1251,106 @@ export interface DeliveryHistoryRow {
   paid: boolean;
 }
 
+// ─── Card-grid selectors (Setor + Pembayaran pages) ─────────────────────────
+
+/** Agreements currently open for new deposits: Active or PartiallyDelivered. */
+export function depositPendingAgreements(): Array<{
+  agreement: MockAgreement;
+  farmer: MockFarmer;
+}> {
+  const eligible: Status[] = ["Active", "PartiallyDelivered"];
+  return MOCK_AGREEMENTS.filter((a) => eligible.includes(a.status))
+    .map((a) => {
+      const farmer = getFarmer(a.farmerId);
+      if (!farmer) return null;
+      return { agreement: a, farmer };
+    })
+    .filter((r): r is { agreement: MockAgreement; farmer: MockFarmer } => r !== null);
+}
+
+/** Agreements whose deposit window is closed: Delivered, Flagged, Settled, ForceMajeure. */
+export function depositCompletedAgreements(): Array<{
+  agreement: MockAgreement;
+  farmer: MockFarmer;
+}> {
+  const complete: Status[] = ["Delivered", "Flagged", "Settled", "ForceMajeure"];
+  return MOCK_AGREEMENTS.filter((a) => complete.includes(a.status))
+    .map((a) => {
+      const farmer = getFarmer(a.farmerId);
+      if (!farmer) return null;
+      return { agreement: a, farmer };
+    })
+    .filter((r): r is { agreement: MockAgreement; farmer: MockFarmer } => r !== null);
+}
+
+/** Agreements with unsettled delivered volume: the payment queue. */
+export function paymentPendingAgreements(): Array<{
+  agreement: MockAgreement;
+  farmer: MockFarmer;
+}> {
+  const eligible: Status[] = ["Delivered", "PartiallyDelivered", "Flagged"];
+  return MOCK_AGREEMENTS.filter(
+    (a) => eligible.includes(a.status) && a.deliveredVolG > a.settledVolG,
+  )
+    .map((a) => {
+      const farmer = getFarmer(a.farmerId);
+      if (!farmer) return null;
+      return { agreement: a, farmer };
+    })
+    .filter((r): r is { agreement: MockAgreement; farmer: MockFarmer } => r !== null);
+}
+
+/** Settled agreements for the "Sudah Dibayar / Lunas" section. */
+export function paymentSettledAgreements(): Array<{
+  agreement: MockAgreement;
+  farmer: MockFarmer;
+  residu: MockResiduRow | undefined;
+}> {
+  return MOCK_AGREEMENTS.filter((a) => a.status === "Settled")
+    .map((a) => {
+      const farmer = getFarmer(a.farmerId);
+      if (!farmer) return null;
+      return { agreement: a, farmer, residu: residuOfAgreement(a.id) };
+    })
+    .filter(
+      (
+        r,
+      ): r is { agreement: MockAgreement; farmer: MockFarmer; residu: MockResiduRow | undefined } =>
+        r !== null,
+    );
+}
+
+/** Summary stats for the Setor Panen page header. */
+export function setorStats() {
+  const menunggu = MOCK_AGREEMENTS.filter((a) =>
+    (["Active", "PartiallyDelivered"] as Status[]).includes(a.status),
+  ).length;
+  const totalSetorKg = MOCK_DELIVERIES.reduce((sum, d) => sum + d.volumeKg, 0);
+  const selesai = MOCK_AGREEMENTS.filter((a) =>
+    (["Delivered", "Flagged", "Settled", "ForceMajeure"] as Status[]).includes(a.status),
+  ).length;
+  const totalAgreements = MOCK_AGREEMENTS.length;
+  return { menunggu, totalSetorKg, selesai, totalAgreements };
+}
+
+/** Summary stats for the Pembayaran page header. */
+export function pembayaranStats() {
+  const eligible: Status[] = ["Delivered", "PartiallyDelivered", "Flagged"];
+  const payable = MOCK_AGREEMENTS.filter(
+    (a) => eligible.includes(a.status) && a.deliveredVolG > a.settledVolG,
+  );
+  const totalBelumDibayarRp = payable.reduce((sum, a) => {
+    const unsettledKg = (a.deliveredVolG - a.settledVolG) / 1000n;
+    return sum + unsettledKg * a.hppPerKg;
+  }, 0n);
+  const residuPending = MOCK_RESIDU_LEDGER.filter((r) => r.status === "Pending").reduce(
+    (sum, r) => sum + r.principalAmount,
+    0n,
+  );
+  const sudahLunas = MOCK_AGREEMENTS.filter((a) => a.status === "Settled").length;
+  return { totalBelumDibayarRp, residuPending, sudahLunas };
+}
+
 export function deliveryHistoryRows(): DeliveryHistoryRow[] {
   return MOCK_DELIVERIES.map((d) => {
     const agreement = getAgreement(d.agreementId);
@@ -1255,3 +1367,198 @@ export function deliveryHistoryRows(): DeliveryHistoryRow[] {
     .filter((r): r is DeliveryHistoryRow => r !== null)
     .sort((a, b) => (a.delivery.deliveredAt < b.delivery.deliveredAt ? 1 : -1));
 }
+
+// ─── Harvest logistics: KMP -> gudang Agrinas (ERD: HARVEST_SHIPMENT) ───────
+// Off-chain for MVP. Double gate: KMP sets Dikirim, Agrinas confirms Diterima
+// (or Selisih with a discrepancy note). Lot lines keep per-farmer traceability;
+// UI shows weighted-average kadar air per grade-lot.
+
+export type ShipmentStatus = "Draft" | "Dikirim" | "Diterima" | "Selisih";
+
+export interface MockShipmentLine {
+  id: string;
+  deliveryId: string;
+  agreementId: string;
+  farmerId: string;
+  volumeKg: number;
+  grade: string;
+  moistureBps: number;
+}
+
+export interface MockShipment {
+  id: string;
+  /** human ref shown in UI, e.g. SHP-2026-001 */
+  ref: string;
+  coopName: string;
+  agrinasId: string;
+  agrinasName: string;
+  commodityCode: string;
+  status: ShipmentStatus;
+  totalVolumeKg: number;
+  /** receiver-confirmed; null until Agrinas confirms */
+  receivedVolumeKg: number | null;
+  discrepancyNote: string | null;
+  sentAt: string | null;
+  receivedAt: string | null;
+  createdAt: string;
+  lines: MockShipmentLine[];
+}
+
+export const MOCK_SHIPMENTS: MockShipment[] = [
+  {
+    id: "shp-001",
+    ref: "SHP-2026-001",
+    coopName: "KMP Sukamaju",
+    agrinasId: "agr-0001",
+    agrinasName: "Gudang Agrinas Cianjur",
+    commodityCode: "GABAH",
+    status: "Diterima",
+    totalVolumeKg: 8_400,
+    receivedVolumeKg: 8_400,
+    discrepancyNote: null,
+    sentAt: "2026-06-13",
+    receivedAt: "2026-06-14",
+    createdAt: "2026-06-13",
+    lines: [
+      {
+        id: "shl-001",
+        deliveryId: "dlv-007",
+        agreementId: "agm-009",
+        farmerId: "frm-009",
+        volumeKg: 8_400,
+        grade: "A",
+        moistureBps: 1320,
+      },
+    ],
+  },
+  {
+    id: "shp-002",
+    ref: "SHP-2026-002",
+    coopName: "KMP Sukamaju",
+    agrinasId: "agr-0001",
+    agrinasName: "Gudang Agrinas Cianjur",
+    commodityCode: "JAGUNG",
+    status: "Diterima",
+    totalVolumeKg: 4_580,
+    receivedVolumeKg: 4_560,
+    discrepancyNote: "Susut timbang 20 kg dalam toleransi",
+    sentAt: "2026-06-21",
+    receivedAt: "2026-06-22",
+    createdAt: "2026-06-21",
+    lines: [
+      {
+        id: "shl-002",
+        deliveryId: "dlv-005",
+        agreementId: "agm-007",
+        farmerId: "frm-007",
+        volumeKg: 4_580,
+        grade: "A",
+        moistureBps: 1300,
+      },
+    ],
+  },
+  {
+    id: "shp-003",
+    ref: "SHP-2026-003",
+    coopName: "KMP Sukamaju",
+    agrinasId: "agr-0001",
+    agrinasName: "Gudang Agrinas Cianjur",
+    commodityCode: "GABAH",
+    status: "Dikirim",
+    totalVolumeKg: 4_350,
+    receivedVolumeKg: null,
+    discrepancyNote: null,
+    sentAt: "2026-07-05",
+    receivedAt: null,
+    createdAt: "2026-07-05",
+    lines: [
+      {
+        id: "shl-003",
+        deliveryId: "dlv-001",
+        agreementId: "agm-001",
+        farmerId: "frm-001",
+        volumeKg: 2_600,
+        grade: "A",
+        moistureBps: 1350,
+      },
+      {
+        id: "shl-004",
+        deliveryId: "dlv-006",
+        agreementId: "agm-008",
+        farmerId: "frm-008",
+        volumeKg: 1_750,
+        grade: "C",
+        moistureBps: 1550,
+      },
+    ],
+  },
+];
+
+/** Weighted-average moisture (bps) for a set of shipment lines. */
+export function weightedMoistureBps(lines: MockShipmentLine[]): number {
+  const totalKg = lines.reduce((s, l) => s + l.volumeKg, 0);
+  if (totalKg === 0) return 0;
+  return Math.round(lines.reduce((s, l) => s + l.moistureBps * l.volumeKg, 0) / totalKg);
+}
+
+/** Delivered volume sitting in KMP storage, not yet shipped to Agrinas.
+ *  deliveries minus volumes already included in non-Draft shipments. */
+export function unshippedDeliveries(): MockDelivery[] {
+  const shippedDeliveryIds = new Set(
+    MOCK_SHIPMENTS.filter((s) => s.status !== "Draft")
+      .flatMap((s) => s.lines)
+      .map((l) => l.deliveryId),
+  );
+  return MOCK_DELIVERIES.filter((d) => !shippedDeliveryIds.has(d.id));
+}
+
+// ─── KMP income aggregates (Pembayaran page top stat row) ───────────────────
+
+/** Revenue the KMP has actually earned (handling fee + saprotan markup margin).
+ *  These are KMP's own money; never confuse with residuPrincipal (Agrinas's). */
+export function kmpIncomeStats() {
+  const totalMarginSaprotan = MOCK_AGREEMENTS.reduce(
+    (sum, a) => sum + a.coopMarginAccrued,
+    0n,
+  );
+  const totalBiayaTangani = MOCK_AGREEMENTS.reduce(
+    (sum, a) => sum + a.coopHandlingAccrued,
+    0n,
+  );
+  return {
+    totalMarginSaprotan,
+    totalBiayaTangani,
+    estimasiPendapatanKMP: totalMarginSaprotan + totalBiayaTangani,
+  };
+}
+
+// ─── Demo login accounts (Supabase Auth, seeded 2026-07-07) ─────────────────
+// Passwords live only in README + Supabase; this mirror powers UI hints.
+
+export interface DemoAccount {
+  email: string;
+  role: "kmp" | "agrinas" | "pemerintah";
+  displayName: string;
+  homePath: string;
+}
+
+export const DEMO_ACCOUNTS: DemoAccount[] = [
+  {
+    email: "kmp@annona.id",
+    role: "kmp",
+    displayName: "Pengurus KMP Sukamaju",
+    homePath: "/kmp",
+  },
+  {
+    email: "agrinas@annona.id",
+    role: "agrinas",
+    displayName: "Operator Agrinas",
+    homePath: "/oversight/agrinas",
+  },
+  {
+    email: "pemerintah@annona.id",
+    role: "pemerintah",
+    displayName: "Petugas Pengawas Kementan",
+    homePath: "/oversight/pemerintah",
+  },
+];

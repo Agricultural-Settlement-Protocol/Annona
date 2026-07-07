@@ -5,17 +5,19 @@
  *  Agrinas. Agrinas reads the same mv_bulk_request_queue; no email or Excel
  *  needed. CSV export exists as offline fallback. */
 
+import {
+  type ApiAgreement,
+  type ApiAgreementInput,
+  type ApiCatalogItem,
+  fetchCatalog,
+  fetchFarmers,
+  fetchOverview,
+  farmerMap,
+} from "@/lib/api";
 import { PageHeader } from "@/components/kmp/page-header";
 import { TBody, THead, Table, TableFrame, Td, Th, Tr } from "@/components/kmp/table";
 import { useMockTx } from "@/components/kmp/use-mock-tx";
-import {
-  type MockAgreement,
-  type SupplyRequestRow,
-  type SupplyRequestStatus,
-  aggregateSaprotanNeeds,
-  getCatalogItem,
-  supplyRequestRows,
-} from "@/lib/mock-data";
+import { useApi } from "@/lib/use-api";
 import { formatRupiah } from "@annona/core";
 import {
   Alert,
@@ -40,6 +42,17 @@ import {
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+type SupplyRequestStatus = "Draft" | "Terkirim" | "Dikirim" | "Diterima";
+type SupplyAgreement = ApiAgreement & { inputs: ApiAgreementInput[] };
+type EffectiveRow = {
+  agreement: SupplyAgreement;
+  farmerId: string;
+  farmerName: string;
+  kecamatan: string;
+  effectiveStatus: SupplyRequestStatus;
+};
+type CatalogMap = Map<string, ApiCatalogItem>;
+
 // ─── Status badge helper ─────────────────────────────────────────────────────
 
 function RequestStatusBadge({ status }: { status: SupplyRequestStatus }) {
@@ -55,28 +68,47 @@ function RequestStatusBadge({ status }: { status: SupplyRequestStatus }) {
 
 // ─── Compact item summary helper ────────────────────────────────────────────
 
-function compactItems(agreement: MockAgreement): string {
+function compactItems(agreement: SupplyAgreement, catalog: CatalogMap): string {
   const parts = agreement.inputs.map((inp) => {
-    const item = getCatalogItem(inp.catalogId);
+    const item = catalog.get(inp.catalogId);
     const shortName = item ? item.name.replace(/\s*\d+.*$/, "").trim() : inp.catalogId;
     return `${inp.qty}x ${shortName}`;
   });
   return parts.join(", ");
 }
 
+/** Sum saprotan input baskets across the given agreements, grouped by catalog item. */
+function aggregateSaprotan(
+  agreements: SupplyAgreement[],
+  catalog: CatalogMap,
+): { item: ApiCatalogItem; qty: number; principal: bigint }[] {
+  const acc = new Map<string, { item: ApiCatalogItem; qty: number; principal: bigint }>();
+  for (const a of agreements) {
+    for (const inp of a.inputs) {
+      const item = catalog.get(inp.catalogId);
+      if (!item) continue;
+      const cur = acc.get(inp.catalogId) ?? { item, qty: 0, principal: 0n };
+      cur.qty += inp.qty;
+      cur.principal += inp.lineTotalPrincipal;
+      acc.set(inp.catalogId, cur);
+    }
+  }
+  return [...acc.values()];
+}
+
 // ─── CSV export ──────────────────────────────────────────────────────────────
 
-function buildCsv(rows: (SupplyRequestRow & { effectiveStatus: SupplyRequestStatus })[]): string {
+function buildCsv(rows: EffectiveRow[], catalog: CatalogMap): string {
   const headers = ["Petani", "No. Perjanjian", "Rincian Barang", "Nilai Pokok (Rp)", "Perkiraan Panen", "Status"];
   const lines = rows.map((r) => {
-    const items = compactItems(r.agreement);
+    const items = compactItems(r.agreement, catalog);
     const principal = formatRupiah(r.agreement.basePriceAgrinas);
     return [
-      r.farmer.name,
+      r.farmerName,
       `#${String(r.agreement.onchainId)}`,
       items,
       principal,
-      r.agreement.expectedHarvestDate,
+      r.agreement.expectedHarvestDate ?? "",
       r.effectiveStatus,
     ]
       .map((v) => `"${String(v).replace(/"/g, '""')}"`)
@@ -85,8 +117,8 @@ function buildCsv(rows: (SupplyRequestRow & { effectiveStatus: SupplyRequestStat
   return [headers.join(","), ...lines].join("\n");
 }
 
-function downloadCsv(rows: (SupplyRequestRow & { effectiveStatus: SupplyRequestStatus })[]) {
-  const csv = buildCsv(rows);
+function downloadCsv(rows: EffectiveRow[], catalog: CatalogMap) {
+  const csv = buildCsv(rows, catalog);
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -99,14 +131,34 @@ function downloadCsv(rows: (SupplyRequestRow & { effectiveStatus: SupplyRequestS
 // ─── Main page ───────────────────────────────────────────────────────────────
 
 export default function PermintaanPage() {
-  // Base rows from mock read-model
-  const baseRows = useMemo(() => supplyRequestRows(), []);
+  const { data, loading, error } = useApi(
+    () => Promise.all([fetchOverview(), fetchCatalog(), fetchFarmers()]),
+    [],
+  );
+  const catalog: CatalogMap = useMemo(
+    () => new Map((data?.[1] ?? []).map((c) => [c.id, c])),
+    [data],
+  );
+  const fmap = useMemo(() => farmerMap(data?.[2] ?? []), [data]);
+
+  // Base rows from the live /overview supply-request queue (with input baskets).
+  const baseRows = useMemo(
+    () =>
+      (data?.[0].supplyRequestRows ?? []).map((r) => ({
+        agreement: r.agreement,
+        farmerId: r.farmerId,
+        farmerName: r.farmerName,
+        kecamatan: fmap.get(r.farmerId)?.kecamatan ?? "",
+        status: r.status as SupplyRequestStatus,
+      })),
+    [data, fmap],
+  );
 
   // Local state: set of agreementIds that have been submitted (flipped to Terkirim)
   const [submittedIds, setSubmittedIds] = useState<Set<string>>(new Set());
 
   // Effective rows with local-state override
-  const rows = useMemo(
+  const rows: EffectiveRow[] = useMemo(
     () =>
       baseRows.map((r) => ({
         ...r,
@@ -120,7 +172,7 @@ export default function PermintaanPage() {
   const filteredRows = useMemo(() => {
     if (!search.trim()) return rows;
     const q = search.toLowerCase();
-    return rows.filter((r) => r.farmer.name.toLowerCase().includes(q));
+    return rows.filter((r) => r.farmerName.toLowerCase().includes(q));
   }, [rows, search]);
 
   // Checkbox selection (only Draft rows are selectable)
@@ -170,8 +222,8 @@ export default function PermintaanPage() {
   }, [rows, selectedIds]);
 
   const aggregated = useMemo(
-    () => aggregateSaprotanNeeds(aggregationSource.map((r) => r.agreement)),
-    [aggregationSource],
+    () => aggregateSaprotan(aggregationSource.map((r) => r.agreement), catalog),
+    [aggregationSource, catalog],
   );
 
   const grandTotal = useMemo(
@@ -226,12 +278,21 @@ export default function PermintaanPage() {
             variant="outline"
             size="sm"
             leftIcon={<Download size={14} />}
-            onClick={() => downloadCsv(filteredRows)}
+            onClick={() => downloadCsv(filteredRows, catalog)}
           >
             Ekspor CSV
           </Button>
         }
       />
+
+      {loading && (
+        <p className="text-sm text-muted-foreground">Memuat antrean permintaan saprotan...</p>
+      )}
+      {error && (
+        <Alert tone="warning" title="Gagal memuat permintaan saprotan">
+          {error}
+        </Alert>
+      )}
 
       {/* 4 stat cards */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -325,7 +386,7 @@ export default function PermintaanPage() {
                               type="checkbox"
                               checked={checked}
                               onChange={() => toggleRow(r.agreement.id)}
-                              aria-label={`Pilih perjanjian ${r.farmer.name}`}
+                              aria-label={`Pilih perjanjian ${r.farmerName}`}
                               className="h-4 w-4 rounded border-border text-primary accent-primary"
                             />
                           ) : (
@@ -333,8 +394,8 @@ export default function PermintaanPage() {
                           )}
                         </Td>
                         <Td>
-                          <p className="font-medium text-foreground">{r.farmer.name}</p>
-                          <p className="text-xs text-muted-foreground">{r.farmer.kecamatan}</p>
+                          <p className="font-medium text-foreground">{r.farmerName}</p>
+                          <p className="text-xs text-muted-foreground">{r.kecamatan}</p>
                         </Td>
                         <Td>
                           <Link
@@ -346,7 +407,7 @@ export default function PermintaanPage() {
                         </Td>
                         <Td>
                           <span className="text-xs text-muted-foreground">
-                            {compactItems(r.agreement)}
+                            {compactItems(r.agreement, catalog)}
                           </span>
                         </Td>
                         <Td className="text-right">
@@ -404,9 +465,7 @@ export default function PermintaanPage() {
                           <p className="truncate text-sm font-medium text-foreground">
                             {item.name}
                           </p>
-                          <p className="text-xs text-muted-foreground">
-                            {qty} {item.unitLabel}
-                          </p>
+                          <p className="text-xs text-muted-foreground">{qty} unit</p>
                         </div>
                         <RupiahAmount smallest={principal} className="shrink-0 text-sm" />
                       </div>

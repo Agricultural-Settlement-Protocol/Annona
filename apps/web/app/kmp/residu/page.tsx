@@ -12,10 +12,13 @@
  * status updates. No gradient button here.
  */
 
+import { fetchResidu } from "@/lib/api";
 import { PageHeader } from "@/components/kmp/page-header";
 import { TBody, THead, Table, TableFrame, Td, Th, Tr } from "@/components/kmp/table";
-import { useMockTx } from "@/components/kmp/use-mock-tx";
-import { MOCK_RESIDU_LEDGER, getAgreement, getFarmer } from "@/lib/mock-data";
+import { useTx } from "@/components/kmp/use-tx";
+import { sha256Hex } from "@/lib/hash";
+import { markResiduRemitted } from "@/lib/invocations";
+import { useApi } from "@/lib/use-api";
 import { formatRupiah } from "@annona/core";
 import type { ResiduStatus } from "@annona/core";
 import {
@@ -42,34 +45,29 @@ interface ResiduRowState {
 }
 
 export default function ResiduPage() {
+  /* ── Live ledger from the REST read-model ────────────────────────────── */
+  const { data: ledger, loading, error } = useApi(fetchResidu);
+  const rows = ledger ?? [];
+
   /* ── Local state for each row's overrides (after Tandai Disetor) ─────── */
-  const [rowStates, setRowStates] = useState<Record<string, ResiduRowState>>(() => {
-    const init: Record<string, ResiduRowState> = {};
-    for (const r of MOCK_RESIDU_LEDGER) {
-      init[r.id] = {
-        status: r.status,
-        bankRef: r.bankRef,
-        remittedAt: r.remittedAt,
-        txHash: r.txHash,
-      };
-    }
-    return init;
-  });
+  /* Starts empty; each cell falls back to the row's own server value until
+   * the officer records a remittance (write path stays mock for the demo). */
+  const [rowStates, setRowStates] = useState<Record<string, ResiduRowState>>({});
 
   /* ── Which row's action panel is open ───────────────────────────────── */
   const [activeRowId, setActiveRowId] = useState<string | null>(null);
   const [bankRefInput, setBankRefInput] = useState("");
   const [fileName, setFileName] = useState("");
 
-  /* ── TX hook for the remit action ───────────────────────────────────── */
-  const txRemit = useMockTx();
+  /* ── TX hook for the remit action (mark_residu_remitted, coop-signed) ── */
+  const txRemit = useTx();
 
   /* ── Computed stats ──────────────────────────────────────────────────── */
   const stats = useMemo(() => {
     let pending = 0n;
     let remitted = 0n;
     let cleared = 0n;
-    for (const r of MOCK_RESIDU_LEDGER) {
+    for (const r of rows) {
       const state = rowStates[r.id];
       const status = state?.status ?? r.status;
       if (status === "Pending") pending += r.principalAmount;
@@ -77,7 +75,7 @@ export default function ResiduPage() {
       else if (status === "Cleared") cleared += r.principalAmount;
     }
     return { pending, remitted, cleared };
-  }, [rowStates]);
+  }, [rowStates, rows]);
 
   function handleOpenRemit(rowId: string) {
     setActiveRowId(rowId);
@@ -95,10 +93,15 @@ export default function ResiduPage() {
 
   function handleConfirmRemit(rowId: string) {
     if (!bankRefInput.trim()) return;
-    txRemit.run();
-    // Update row state after tx completes. We watch txRemit in the JSX.
-    // The effect is handled in the success branch below.
-    void rowId; // used in JSX branch
+    const row = rows.find((r) => r.id === rowId);
+    if (!row) return;
+    // Anchor a hash of the bank ref + proof filename as the on-chain ref_hash.
+    txRemit.run(async (coop) => {
+      const refHash = await sha256Hex(`${bankRefInput.trim()}:${fileName}`);
+      return markResiduRemitted(coop, row.agreementOnchainId, refHash);
+    });
+    // Row state is updated in the JSX success branch (watches txRemit).
+    void rowId;
   }
 
   /* ── JSX ─────────────────────────────────────────────────────────────── */
@@ -108,6 +111,13 @@ export default function ResiduPage() {
         title="Residu Agrinas"
         description="Residu pokok adalah uang Agrinas yang dikumpulkan saat panen, disimpan sementara di kas KMP, dan wajib disetor balik."
       />
+
+      {loading && <Alert tone="info">Memuat ledger residu...</Alert>}
+      {error && (
+        <Alert tone="warning" title="Gagal memuat ledger residu">
+          {error}
+        </Alert>
+      )}
 
       {/* Top alert: mandatory, prominent */}
       <Alert tone="warning" title="Residu pokok bukan milik koperasi">
@@ -162,32 +172,26 @@ export default function ResiduPage() {
                 <Th>Aksi</Th>
               </THead>
               <TBody>
-                {MOCK_RESIDU_LEDGER.map((row) => {
+                {rows.map((row) => {
                   const state = rowStates[row.id];
                   const currentStatus = state?.status ?? row.status;
                   const currentBankRef = state?.bankRef ?? row.bankRef;
                   const currentRemittedAt = state?.remittedAt ?? row.remittedAt;
                   const currentTxHash = state?.txHash ?? row.txHash;
-                  const agreement = getAgreement(row.agreementId);
-                  const farmer = agreement ? getFarmer(agreement.farmerId) : undefined;
                   const isActiveRow = activeRowId === row.id;
 
                   return (
                     <>
                       <Tr key={row.id}>
                         <Td>
-                          {agreement ? (
-                            <Link
-                              href={`/kmp/perjanjian/${agreement.id}`}
-                              className="text-accent hover:underline"
-                            >
-                              #{String(agreement.onchainId)}
-                            </Link>
-                          ) : (
-                            row.agreementId
-                          )}
+                          <Link
+                            href={`/kmp/perjanjian/${row.agreementId}`}
+                            className="text-accent hover:underline"
+                          >
+                            #{String(row.agreementOnchainId)}
+                          </Link>
                         </Td>
-                        <Td className="font-medium">{farmer?.name ?? "(petani)"}</Td>
+                        <Td className="font-medium">{row.farmerName}</Td>
                         <Td>
                           <RupiahAmount smallest={row.principalAmount} className="font-semibold" />
                         </Td>

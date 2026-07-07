@@ -70,7 +70,7 @@ Managed with **Turborepo** + **pnpm workspaces**. Internal deps use `workspace:*
 | Data | Supabase / Postgres 16, Drizzle ORM |
 | Contract | Rust, soroban-sdk 22 (Stellar testnet) |
 | Wallet | Freighter |
-| AI | Gemini Flash (read-only, grounded, cuttable) |
+| AI | Groq `llama-3.3-70b` (chat) + `llama-4-scout` (vision, file/image import), read-only, grounded, cuttable |
 | Lint/format | Biome |
 
 Full version table: [`docs/technical/TECH-STACK.md`](./docs/technical/TECH-STACK.md).
@@ -112,6 +112,20 @@ pnpm --filter @annona/api dev
 
 ---
 
+## Demo accounts
+
+Auth is Supabase email+password behind one shared `/auth` page. `app_user.role` routes the signed-in user to the matching dashboard:
+
+| Email | Password | Role | Dashboard |
+|---|---|---|---|
+| `kmp@annona.id` | `AnnonaKMP2026!` | KMP (koperasi) | `/kmp` |
+| `agrinas@annona.id` | `AnnonaAgrinas2026!` | Agrinas (operator) | `/oversight/agrinas` |
+| `pemerintah@annona.id` | `AnnonaGov2026!` | Pemerintah (read-only) | `/oversight/pemerintah` |
+
+These are seeded testnet-demo accounts only, fine to publish.
+
+---
+
 ## How it works (the core loop)
 
 ```
@@ -144,10 +158,12 @@ RWA is the result of the flow, not the headline. Full detail: [PRD section 11](.
 
 ## Status
 
-- ✅ Docs (PRD + technical/)
+- ✅ Docs (PRD + technical/) — v3.0 multi-party model (PMK 15/2026)
 - ✅ Turborepo scaffold (apps + packages, boots + type-checks)
-- ⬜ Soroban contract (`contracts/`)
-- ⬜ Indexer, dashboards, SDK wiring
+- 🟡 Soroban contract (`contracts/offtake-registry`) scaffolded, 26 unit tests green — v2 two-party model, needs rework to v3.0
+- ✅ Supabase Auth (email+password, `/auth`) + `app_user` RBAC live; KMP and Oversight dashboards built on mock data
+- ✅ Off-chain logistics tables live (`harvest_shipment`, `harvest_shipment_line`) — KMP → gudang Agrinas forwarding, off-chain in MVP
+- ⬜ Indexer, on-chain-wired dashboards, SDK
 
 ---
 

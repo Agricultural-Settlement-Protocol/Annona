@@ -1,14 +1,14 @@
-//! Contract events — the composability surface. The indexer
+//! Contract events — the composability surface (v3.0, PMK 15/2026). The indexer
 //! (`apps/api/src/indexer`) builds every dashboard read-model from these, and
 //! any third party can subscribe. Emission is mandatory.
 //!
 //! Each event uses the `#[contractevent]` macro: `topics = ["name"]` sets the
 //! topic[0] symbol the indexer filters on (matching spec section 7 exactly),
-//! `#[topic]` fields become the additional indexed topics (id / farmer / coop),
-//! and the remaining fields are emitted as a named-field Map that mirrors
-//! `packages/core/src/events.ts`.
+//! `#[topic]` fields become the additional indexed topics (id / farmer / coop /
+//! agrinas), and the remaining fields are emitted as a named-field Map that
+//! mirrors `packages/core/src/events.ts` (camelCase there, snake_case here).
 
-use soroban_sdk::{contractevent, Address, Symbol};
+use soroban_sdk::{contractevent, Address, BytesN, Symbol};
 
 use crate::types::{Commodity, FlagReason};
 
@@ -21,11 +21,35 @@ pub struct AgreementCreated {
     pub farmer: Address,
     #[topic]
     pub coop: Address,
+    pub agrinas: Address,
     pub commodity: Commodity,
+    pub base_price_agrinas: i128,
+    pub saprotan_markup_bps: u32,
     pub input_debt: i128,
+    pub hpp_handling_fee_bps: u32,
     pub expected_vol_g: i128,
     pub hpp_per_kg: i128,
     pub tolerance_bps: u32,
+}
+
+/// topics: ["dispatched", id, agrinas]. GATE 1 — Agrinas released logistics.
+#[contractevent(topics = ["dispatched"])]
+pub struct SupplyDispatched {
+    #[topic]
+    pub id: u64,
+    #[topic]
+    pub agrinas: Address,
+    pub coop: Address,
+}
+
+/// topics: ["accepted", id, coop]. GATE 2 — KMP confirmed receipt; debt active.
+#[contractevent(topics = ["accepted"])]
+pub struct SupplyAccepted {
+    #[topic]
+    pub id: u64,
+    #[topic]
+    pub coop: Address,
+    pub input_debt: i128,
 }
 
 /// topics: ["delivery", id]
@@ -52,7 +76,7 @@ pub struct HarvestReceiptMinted {
     pub timestamp: u64,
 }
 
-/// topics: ["settled", id, farmer]
+/// topics: ["settled", id, farmer]. Three-way split payload.
 #[contractevent(topics = ["settled"])]
 pub struct Settled {
     #[topic]
@@ -60,7 +84,10 @@ pub struct Settled {
     #[topic]
     pub farmer: Address,
     pub gross: i128,
+    pub handling_cut: i128,
     pub debt_netted: i128,
+    pub principal_to_agrinas: i128,
+    pub coop_margin: i128,
     pub net_paid: i128,
     pub settled_vol_g: i128,
 }
@@ -81,6 +108,51 @@ pub struct ForceMajeure {
     pub reason: Symbol,
 }
 
+/// topics: ["residu_remitted", id, coop]. KMP claims off-chain bank transfer done.
+#[contractevent(topics = ["residu_remitted"])]
+pub struct ResiduRemitted {
+    #[topic]
+    pub id: u64,
+    #[topic]
+    pub coop: Address,
+    pub amount: i128,
+    pub ref_hash: BytesN<32>,
+}
+
+/// topics: ["remittance_cleared", id, coop]. Agrinas verified the bank mutation.
+#[contractevent(topics = ["remittance_cleared"])]
+pub struct RemittanceCleared {
+    #[topic]
+    pub id: u64,
+    #[topic]
+    pub coop: Address,
+    pub principal: i128,
+    pub agrinas: Address,
+}
+
+/// topics: ["remittance_disputed", id, coop]. Agrinas found a mismatch.
+#[contractevent(topics = ["remittance_disputed"])]
+pub struct RemittanceDisputed {
+    #[topic]
+    pub id: u64,
+    #[topic]
+    pub coop: Address,
+    pub reason: Symbol,
+}
+
+/// topics: ["remittance_resolved", id, coop]. Admin cleared a dispute; the
+/// agreement's residu returns to Remitted (awaiting Agrinas re-verification).
+/// Agreement-scoped so the indexer can un-strand the residu read-model row —
+/// `CoopReputationUpdated` alone carries no agreement id.
+#[contractevent(topics = ["remittance_resolved"])]
+pub struct RemittanceResolved {
+    #[topic]
+    pub id: u64,
+    #[topic]
+    pub coop: Address,
+    pub admin: Address,
+}
+
 /// topics: ["reputation", farmer]. Mirrors `packages/core` (no
 /// force_majeure_events field there).
 #[contractevent(topics = ["reputation"])]
@@ -91,4 +163,15 @@ pub struct ReputationUpdated {
     pub on_time: u32,
     pub total_settled_g: i128,
     pub flags: u32,
+}
+
+/// topics: ["coop_reputation", coop]. The anti-moral-hazard signal.
+#[contractevent(topics = ["coop_reputation"])]
+pub struct CoopReputationUpdated {
+    #[topic]
+    pub coop: Address,
+    pub settlements: u32,
+    pub total_residu_cleared: i128,
+    pub disputes: u32,
+    pub frozen: bool,
 }

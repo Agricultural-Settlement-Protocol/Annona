@@ -1,0 +1,12 @@
+{
+  "extends": "@annona/config/tsconfig/library.json",
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    "types": ["node"],
+    "jsx": "react-jsx",
+    "noEmit": true,
+    "declaration": false,
+    "declarationMap": false
+  },
+  "include": ["*.ts"]
+}

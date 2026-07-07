@@ -8,16 +8,12 @@
 // useSearchParams is isolated inside PetaniPageInner, wrapped in <Suspense> so the
 // production build does not fail (Next.js App Router requirement).
 
+import { type ApiAgreement, type ApiFarmer, fetchAgreements, fetchFarmers } from "@/lib/api";
 import { PageHeader } from "@/components/kmp/page-header";
 import { RegistryRegisterPanel } from "@/components/kmp/registry-register-panel";
 import { TBody, THead, Table, TableFrame, Td, Th, Tr } from "@/components/kmp/table";
-import {
-  MOCK_AGREEMENTS,
-  MOCK_FARMERS,
-  type MockFarmer,
-  agreementsOfFarmer,
-  shortAddr,
-} from "@/lib/mock-data";
+import { useApi } from "@/lib/use-api";
+import { type MockFarmer, shortAddr } from "@/lib/mock-data";
 import type { Status } from "@annona/core";
 import {
   Alert,
@@ -41,16 +37,34 @@ const DEBT_STATUSES: Status[] = ["Active", "PartiallyDelivered", "Delivered", "F
 // Statuses that count as an "active" agreement (shown in the count pill)
 const ACTIVE_STATUSES: Status[] = ["SupplyDispatched", "Active", "PartiallyDelivered", "Delivered"];
 
-function farmerRunningDebt(farmerId: string): bigint {
-  return MOCK_AGREEMENTS.filter(
-    (a) => a.farmerId === farmerId && DEBT_STATUSES.includes(a.status),
-  ).reduce((sum, a) => sum + a.remainingDebt, 0n);
+function farmerRunningDebt(agreements: ApiAgreement[], farmerId: string): bigint {
+  return agreements
+    .filter((a) => a.farmerId === farmerId && DEBT_STATUSES.includes(a.status))
+    .reduce((sum, a) => sum + a.remainingDebt, 0n);
 }
 
-function farmerActiveAgreementCount(farmerId: string): number {
-  return MOCK_AGREEMENTS.filter(
+function farmerActiveAgreementCount(agreements: ApiAgreement[], farmerId: string): number {
+  return agreements.filter(
     (a) => a.farmerId === farmerId && ACTIVE_STATUSES.includes(a.status),
   ).length;
+}
+
+/** Adapt a locally-registered MockFarmer (demo write path) to the ApiFarmer shape. */
+function mockToApiFarmer(f: MockFarmer): ApiFarmer {
+  return {
+    id: f.id,
+    coopId: "",
+    name: f.name,
+    ktpHash: f.ktpHash,
+    walletAddress: f.walletAddress,
+    plotAreaHa: String(f.plotAreaHa),
+    defaultCommodityCode: f.defaultCommodityCode,
+    kecamatan: f.kecamatan,
+    kabupaten: "",
+    createdAt: new Date().toISOString(),
+    repTier: f.repTier,
+    reputation: { ...f.reputation, score: 0 },
+  };
 }
 
 /** Skeleton shown while the Suspense boundary resolves useSearchParams. */
@@ -69,13 +83,23 @@ function PetaniPageInner() {
   const searchParams = useSearchParams();
   const fokusId = searchParams.get("fokus") ?? null;
 
+  const { data, loading, error } = useApi(
+    () => Promise.all([fetchFarmers(), fetchAgreements()]),
+    [],
+  );
+  const farmers = data?.[0] ?? [];
+  const agreements = data?.[1] ?? [];
+
   const [search, setSearch] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showRegister, setShowRegister] = useState(false);
-  const [registeredFarmers, setRegisteredFarmers] = useState<MockFarmer[]>([]);
+  const [registeredFarmers, setRegisteredFarmers] = useState<ApiFarmer[]>([]);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const allFarmers = useMemo(() => [...MOCK_FARMERS, ...registeredFarmers], [registeredFarmers]);
+  const allFarmers = useMemo(
+    () => [...farmers, ...registeredFarmers],
+    [farmers, registeredFarmers],
+  );
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
@@ -107,7 +131,7 @@ function PetaniPageInner() {
   }
 
   function handleRegisterSuccess(farmer: MockFarmer) {
-    setRegisteredFarmers((prev) => [...prev, farmer]);
+    setRegisteredFarmers((prev) => [...prev, mockToApiFarmer(farmer)]);
     setShowRegister(false);
     setSuccessMessage(`Petani ${farmer.name} berhasil didaftarkan (demo lokal).`);
     setTimeout(() => setSuccessMessage(null), 6000);
@@ -134,6 +158,13 @@ function PetaniPageInner() {
 
       {successMessage ? <Alert tone="success" title={successMessage} className="mb-6" /> : null}
 
+      {loading ? <PetaniPageSkeleton /> : null}
+      {error ? (
+        <Alert tone="warning" title="Gagal memuat daftar petani" className="mb-6">
+          {error}
+        </Alert>
+      ) : null}
+
       {showRegister ? (
         <div className="mb-6">
           <RegistryRegisterPanel
@@ -143,6 +174,8 @@ function PetaniPageInner() {
         </div>
       ) : null}
 
+      {!loading && !error ? (
+        <>
       {/* Search bar */}
       <div className="mb-4 max-w-xs">
         <Input
@@ -188,11 +221,11 @@ function PetaniPageInner() {
             </THead>
             <TBody>
               {filtered.map((farmer) => {
-                const activeCount = farmerActiveAgreementCount(farmer.id);
-                const debt = farmerRunningDebt(farmer.id);
+                const activeCount = farmerActiveAgreementCount(agreements, farmer.id);
+                const debt = farmerRunningDebt(agreements, farmer.id);
                 const isExpanded = expandedId === farmer.id;
                 const isFocused = fokusId === farmer.id;
-                const farmerAgreements = agreementsOfFarmer(farmer.id);
+                const farmerAgreements = agreements.filter((a) => a.farmerId === farmer.id);
 
                 return (
                   <Fragment key={farmer.id}>
@@ -207,7 +240,7 @@ function PetaniPageInner() {
                     >
                       <Td className="font-medium">{farmer.name}</Td>
                       <Td className="text-muted-foreground">{farmer.kecamatan}</Td>
-                      <Td>{farmer.plotAreaHa.toFixed(2)}</Td>
+                      <Td>{Number(farmer.plotAreaHa).toFixed(2)}</Td>
                       <Td className="text-muted-foreground">
                         {farmer.defaultCommodityCode === "GABAH" ? "Gabah" : "Jagung"}
                       </Td>
@@ -344,6 +377,8 @@ function PetaniPageInner() {
       <p className="mt-3 text-xs text-muted-foreground">
         {filtered.length} dari {allFarmers.length} petani ditampilkan.
       </p>
+        </>
+      ) : null}
     </div>
   );
 }
