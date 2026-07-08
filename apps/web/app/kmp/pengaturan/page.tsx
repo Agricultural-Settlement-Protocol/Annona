@@ -45,13 +45,14 @@ function ProfilSection({ coop }: { coop: ApiCoop }) {
   }
 
   return (
-    <Card>
+    <Card className="rounded-[2rem] border-gray-100 bg-white shadow-sm overflow-hidden p-5 sm:p-6">
       <CardHeader
         title="Profil Koperasi"
         description="Informasi dasar koperasi. Disimpan lokal untuk demo."
-        action={<Settings size={18} className="text-verdant-400" />}
+        action={<Settings size={18} className="text-emerald-700" />}
+        className="pb-3"
       />
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 pt-3">
         <Input
           label="Nama Koperasi"
           name="koop-name"
@@ -60,6 +61,7 @@ function ProfilSection({ coop }: { coop: ApiCoop }) {
             setName(e.target.value);
             setSaved(false);
           }}
+          className="rounded-2xl border-gray-150"
         />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Input
@@ -70,6 +72,7 @@ function ProfilSection({ coop }: { coop: ApiCoop }) {
               setKecamatan(e.target.value);
               setSaved(false);
             }}
+            className="rounded-2xl border-gray-150"
           />
           <Input
             label="Kabupaten"
@@ -79,6 +82,7 @@ function ProfilSection({ coop }: { coop: ApiCoop }) {
               setKabupaten(e.target.value);
               setSaved(false);
             }}
+            className="rounded-2xl border-gray-150"
           />
           <Input
             label="Provinsi"
@@ -88,15 +92,22 @@ function ProfilSection({ coop }: { coop: ApiCoop }) {
               setProvinsi(e.target.value);
               setSaved(false);
             }}
+            className="rounded-2xl border-gray-150"
           />
         </div>
 
-        <div className="flex items-center gap-3">
-          <Button variant="primary" size="md" onClick={handleSave}>
+        <div className="flex items-center gap-3 pt-2">
+          <Button
+            type="button"
+            variant="primary"
+            size="md"
+            onClick={handleSave}
+            className="rounded-full bg-primary-dark hover:bg-opacity-95 text-white px-5 py-2.5"
+          >
             Simpan Profil
           </Button>
           {saved && (
-            <Alert tone="success" className="py-1.5 px-3 text-sm">
+            <Alert tone="success" className="py-1.5 px-3 text-sm rounded-xl">
               Tersimpan (lokal, demo)
             </Alert>
           )}
@@ -122,16 +133,17 @@ function DompetSection({ coop }: { coop: ApiCoop }) {
   }
 
   return (
-    <Card>
+    <Card className="rounded-[2rem] border-gray-100 bg-white shadow-sm overflow-hidden p-5 sm:p-6">
       <CardHeader
         title="Dompet dan Jaringan"
         description="Dompet Freighter yang terhubung ke sesi ini."
-        action={<Wallet size={18} className="text-aqua-400" />}
+        action={<Wallet size={18} className="text-cyan-800" />}
+        className="pb-3"
       />
-      <CardContent className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface-muted px-4 py-3">
+      <CardContent className="space-y-4 pt-3">
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-gray-100 bg-gray-50/50 px-5 py-4 shadow-sm">
           <div>
-            <p className="text-xs font-medium text-muted-foreground">Alamat Dompet</p>
+            <p className="text-xs font-bold text-gray-400">Alamat Dompet</p>
             <p
               className="mt-0.5 font-mono text-sm text-foreground"
               title={coop.walletAddress}
@@ -142,36 +154,53 @@ function DompetSection({ coop }: { coop: ApiCoop }) {
               ({shortAddr(coop.walletAddress)})
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge tone="aqua">Stellar Testnet</Badge>
-            <Lock size={14} className="text-muted-foreground" />
+          <div className="flex items-center gap-2.5">
+            <Badge tone="aqua" className="rounded-full font-bold">
+              Stellar Testnet
+            </Badge>
+            <Lock size={14} className="text-gray-400" />
           </div>
         </div>
 
         {disconnected ? (
-          <Alert tone="warning">
-            Dompet telah diputus (simulasi). Muat ulang halaman untuk menghubungkan kembali.
+          <Alert tone="warning" className="rounded-xl">
+            Dompet telah diputus (simulasi). Muat ulang halaman untuk
+            menghubungkan kembali.
           </Alert>
         ) : disconnecting ? (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-3 space-y-2">
-            <p className="text-sm font-medium text-red-700">
+          <div className="rounded-2xl border border-red-200 bg-red-50/40 p-5 space-y-3 shadow-sm">
+            <p className="text-sm font-bold text-red-700">
               Yakin ingin memutus dompet dari sesi ini?
             </p>
-            <div className="flex gap-2">
-              <Button variant="danger" size="sm" onClick={handleDisconnect}>
+            <div className="flex gap-2.5">
+              <Button
+                type="button"
+                variant="danger"
+                size="sm"
+                onClick={handleDisconnect}
+                className="rounded-full bg-red-600 hover:bg-opacity-95 text-white"
+              >
                 Ya, Putuskan
               </Button>
               <Button
+                type="button"
                 variant="ghost"
                 size="sm"
                 onClick={() => setDisconnecting(false)}
+                className="rounded-full"
               >
                 Batal
               </Button>
             </div>
           </div>
         ) : (
-          <Button variant="outline" size="md" onClick={handleDisconnect}>
+          <Button
+            type="button"
+            variant="outline"
+            size="md"
+            onClick={handleDisconnect}
+            className="rounded-full"
+          >
             Putuskan Dompet
           </Button>
         )}
@@ -194,13 +223,14 @@ function PreferensiSection() {
   }
 
   return (
-    <Card>
+    <Card className="rounded-[2rem] border-gray-100 bg-white shadow-sm overflow-hidden p-5 sm:p-6">
       <CardHeader
         title="Preferensi Perjanjian"
         description="Nilai awal saat membuat perjanjian baru. Bisa diubah per perjanjian."
-        action={<Shield size={18} className="text-verdant-400" />}
+        action={<Shield size={18} className="text-emerald-700" />}
+        className="pb-3"
       />
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 pt-3">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Input
             label="Markup Saprotan (%)"
@@ -214,6 +244,7 @@ function PreferensiSection() {
               setMarkup(e.target.value);
               setSaved(false);
             }}
+            className="rounded-2xl border-gray-150"
             hint="Default: 10%"
           />
           <Input
@@ -228,6 +259,7 @@ function PreferensiSection() {
               setHandling(e.target.value);
               setSaved(false);
             }}
+            className="rounded-2xl border-gray-150"
             hint="Default: 5%"
           />
           <Input
@@ -242,19 +274,26 @@ function PreferensiSection() {
               setToleransi(e.target.value);
               setSaved(false);
             }}
+            className="rounded-2xl border-gray-150"
             hint="Default: 20%"
           />
         </div>
-        <p className="text-xs text-muted-foreground">
-          Nilai ini hanya digunakan sebagai nilai awal saat membuat perjanjian baru, tetap bisa
-          diubah per perjanjian.
+        <p className="text-xs text-gray-500 font-semibold leading-relaxed pt-1">
+          Nilai ini hanya digunakan sebagai nilai awal saat membuat perjanjian
+          baru, tetap bisa diubah per perjanjian.
         </p>
-        <div className="flex items-center gap-3">
-          <Button variant="primary" size="md" onClick={handleSave}>
+        <div className="flex items-center gap-3 pt-2">
+          <Button
+            type="button"
+            variant="primary"
+            size="md"
+            onClick={handleSave}
+            className="rounded-full bg-primary-dark hover:bg-opacity-95 text-white px-5 py-2.5"
+          >
             Simpan Preferensi
           </Button>
           {saved && (
-            <Alert tone="success" className="py-1.5 px-3 text-sm">
+            <Alert tone="success" className="py-1.5 px-3 text-sm rounded-xl">
               Tersimpan (lokal, demo)
             </Alert>
           )}
@@ -271,53 +310,62 @@ function BahasaSection() {
   const [theme, setTheme] = useState("light");
 
   return (
-    <Card>
+    <Card className="rounded-[2rem] border-gray-100 bg-white shadow-sm overflow-hidden p-5 sm:p-6">
       <CardHeader
         title="Bahasa dan Tampilan"
         description="Preferensi antarmuka. Bahasa Inggris tersedia via next-intl."
-        action={<Globe size={18} className="text-aqua-400" />}
+        action={<Globe size={18} className="text-cyan-800" />}
+        className="pb-3"
       />
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 pt-3">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label htmlFor="select-lang" className="mb-1.5 block text-sm font-medium text-foreground">
+            <label
+              htmlFor="select-lang"
+              className="mb-2 block text-sm font-bold text-gray-900"
+            >
               Bahasa
             </label>
             <select
               id="select-lang"
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
-              className="h-10 w-full rounded-md border border-border bg-surface px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
+              className="h-12 w-full rounded-2xl border border-gray-100 bg-white px-4 text-sm font-semibold text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-ring transition-all"
             >
               <option value="id">Bahasa Indonesia</option>
               <option value="en">English</option>
             </select>
             {language === "en" && (
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className="mt-1.5 text-xs text-gray-500 font-semibold">
                 Terjemahan penuh segera tersedia lewat next-intl.
               </p>
             )}
           </div>
 
           <div>
-            <div className="mb-1.5 flex items-center gap-2">
-              <label htmlFor="select-theme" className="text-sm font-medium text-foreground">
+            <div className="mb-2 flex items-center gap-2">
+              <label
+                htmlFor="select-theme"
+                className="text-sm font-bold text-gray-900"
+              >
                 Tema
               </label>
-              <Badge tone="neutral">Segera</Badge>
+              <Badge tone="neutral" className="rounded-full font-bold">
+                Segera
+              </Badge>
             </div>
             <select
               id="select-theme"
               value={theme}
               onChange={(e) => setTheme(e.target.value)}
               disabled
-              className="h-10 w-full rounded-md border border-border bg-surface px-3 text-sm text-foreground outline-none disabled:opacity-50"
+              className="h-12 w-full rounded-2xl border border-gray-100 bg-white px-4 text-sm font-semibold text-gray-900 shadow-sm focus:outline-none disabled:opacity-50"
             >
               <option value="light">Terang</option>
               <option value="dark">Gelap</option>
               <option value="system">Sistem</option>
             </select>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1.5 text-xs text-gray-400 font-semibold">
               Dukungan tema gelap sedang dikembangkan.
             </p>
           </div>
@@ -335,13 +383,14 @@ function NotifikasiSection() {
   const [notifResidu, setNotifResidu] = useState(false);
 
   return (
-    <Card>
+    <Card className="rounded-[2rem] border-gray-100 bg-white shadow-sm overflow-hidden p-5 sm:p-6">
       <CardHeader
         title="Notifikasi"
         description="Pilih jenis notifikasi yang ingin diterima (lokal, demo)."
-        action={<Bell size={18} className="text-verdant-400" />}
+        action={<Bell size={18} className="text-emerald-700" />}
+        className="pb-3"
       />
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-4 pt-3">
         {[
           {
             id: "notif-setoran",
@@ -368,18 +417,20 @@ function NotifikasiSection() {
           <label
             key={id}
             htmlFor={id}
-            className="flex cursor-pointer items-start gap-3 rounded-lg border border-border p-3 hover:bg-surface-muted transition-colors"
+            className="flex cursor-pointer items-start gap-3.5 rounded-2xl border border-gray-100 p-4.5 bg-white shadow-sm hover:bg-gray-50 transition-colors"
           >
             <input
               id={id}
               type="checkbox"
               checked={checked}
               onChange={onChange}
-              className="mt-0.5 h-4 w-4 rounded border-border text-primary accent-primary"
+              className="mt-1 h-4 w-4 rounded border-gray-300 text-primary accent-primary"
             />
             <div>
-              <p className="text-sm font-medium text-foreground">{label}</p>
-              <p className="text-xs text-muted-foreground">{hint}</p>
+              <p className="text-sm font-bold text-gray-900">{label}</p>
+              <p className="text-xs text-gray-500 font-semibold mt-0.5">
+                {hint}
+              </p>
             </div>
           </label>
         ))}
@@ -397,33 +448,45 @@ function TimSection() {
   ];
 
   return (
-    <Card>
+    <Card className="rounded-[2rem] border-gray-100 bg-white shadow-sm overflow-hidden p-5 sm:p-6">
       <CardHeader
         title="Tim Pengurus"
         description="Daftar pengurus yang memiliki akses ke dasbor KMP ini."
-        action={<Users size={18} className="text-muted-foreground" />}
+        action={<Users size={18} className="text-gray-400" />}
+        className="pb-3"
       />
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-4 pt-3">
         {TEAM.map((member) => (
           <div
             key={member.name}
-            className="flex items-center gap-3 rounded-lg border border-border px-3 py-2.5"
+            className="flex items-center gap-3.5 rounded-2xl border border-gray-100 px-4.5 py-4 bg-white shadow-sm"
           >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-verdant-100 text-sm font-bold text-verdant-800">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-800 border border-emerald-200">
               {member.initials}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="truncate text-sm font-semibold text-foreground">{member.name}</p>
+              <p className="truncate text-sm font-bold text-gray-900">
+                {member.name}
+              </p>
             </div>
-            <Badge tone="verdant">{member.role}</Badge>
+            <Badge tone="verdant" className="rounded-full font-bold">
+              {member.role}
+            </Badge>
           </div>
         ))}
 
-        <div className="pt-1">
-          <Button variant="outline" size="sm" disabled leftIcon={<Monitor size={14} />}>
+        <div className="pt-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled
+            leftIcon={<Monitor size={14} />}
+            className="rounded-full"
+          >
             Undang Pengurus
           </Button>
-          <p className="mt-1.5 text-xs text-muted-foreground">
+          <p className="mt-2 text-xs text-gray-500 font-medium">
             Manajemen tim pengurus akan segera tersedia.
           </p>
         </div>
@@ -444,7 +507,11 @@ export default function PengaturanPage() {
         description="Konfigurasi koperasi, dompet, preferensi, dan tim pengurus."
       />
 
-      {loading && <p className="text-sm text-muted-foreground">Memuat pengaturan koperasi...</p>}
+      {loading && (
+        <p className="text-sm text-muted-foreground">
+          Memuat pengaturan koperasi...
+        </p>
+      )}
       {error && (
         <Alert tone="warning" title="Gagal memuat data koperasi">
           {error}

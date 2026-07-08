@@ -1,6 +1,6 @@
-import { Landing } from "@/components/landing";
 import type { Metadata } from "next";
 import "./urbangreen/urbangreen.css";
+import Landing from "@/components/urbangreen/Landing";
 
 export const metadata: Metadata = {
   title: "Annona Protocol — Tamper-Proof Offtake Settlement",

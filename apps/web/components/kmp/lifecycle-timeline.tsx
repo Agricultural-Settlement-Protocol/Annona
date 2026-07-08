@@ -32,7 +32,7 @@ export function LifecycleTimeline({ status, className }: { status: Status; class
   const partial = status === "PartiallyDelivered";
 
   return (
-    <ol className={cn("flex flex-wrap gap-y-4", className)}>
+    <ol className={cn("flex flex-wrap gap-y-4 w-full", className)}>
       {STEPS.map((step, i) => {
         const done = i < reached || (i === reached && status === "Settled");
         const current = i === reached && status !== "Settled";
@@ -42,24 +42,24 @@ export function LifecycleTimeline({ status, className }: { status: Status; class
             <div className="flex min-w-0 flex-col items-center text-center">
               <span
                 className={cn(
-                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold",
-                  done && "border-verdant-500 bg-verdant-500 text-white",
-                  current && "border-verdant-500 bg-verdant-50 text-verdant-700",
-                  upcoming && "border-ink-200 bg-surface text-ink-400",
+                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold shadow-sm transition-all",
+                  done && "border-emerald-700 bg-emerald-700 text-white",
+                  current && "border-emerald-700 bg-emerald-50 text-emerald-800",
+                  upcoming && "border-gray-200 bg-white text-gray-400",
                 )}
               >
-                {done ? <Check size={14} /> : i + 1}
+                {done ? <Check size={16} className="stroke-[2.5]" /> : i + 1}
               </span>
               <span
                 className={cn(
-                  "mt-1.5 max-w-24 text-xs font-semibold",
-                  upcoming ? "text-ink-400" : "text-foreground",
+                  "mt-2 max-w-24 text-xs font-bold leading-tight",
+                  upcoming ? "text-gray-400 font-semibold" : "text-gray-900",
                 )}
               >
                 {step.label}
                 {partial && step.key === "Delivered" && current ? " (sebagian)" : ""}
               </span>
-              <span className="mt-0.5 hidden max-w-28 text-[10px] leading-tight text-muted-foreground sm:block">
+              <span className="mt-1 hidden max-w-28 text-[11px] leading-snug text-gray-500 sm:block">
                 {step.hint}
               </span>
             </div>
@@ -67,8 +67,8 @@ export function LifecycleTimeline({ status, className }: { status: Status; class
               <span
                 aria-hidden
                 className={cn(
-                  "mx-1 mt-4 h-0.5 flex-1 rounded-full",
-                  i < reached ? "bg-verdant-400" : "bg-ink-200",
+                  "mx-2 mt-4.5 h-0.5 flex-1 rounded-full",
+                  i < reached ? "bg-emerald-600" : "bg-gray-200",
                 )}
               />
             ) : null}

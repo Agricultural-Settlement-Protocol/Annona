@@ -45,6 +45,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
+import { motion, AnimatePresence } from "motion/react";
 
 const RESIDU_EXPLANATION: Record<ResiduStatus, string> = {
   Pending:
@@ -93,30 +94,36 @@ export function PaymentDetailSheet({ agreement, farmer, onClose }: PaymentDetail
   return (
     <>
       {/* Backdrop */}
-      <button
+      <motion.button
         type="button"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
         aria-label="Tutup panel"
-        className="fixed inset-0 z-40 cursor-default bg-black/40"
+        className="fixed inset-0 z-40 cursor-default bg-gray-950/20 backdrop-blur-sm pointer-events-auto"
         onClick={onClose}
       />
 
       {/* Panel */}
-      {/* biome-ignore lint/a11y/useSemanticElements: native dialog UA styles conflict with the fixed slide-over layout */}
-      <div
+      <motion.div
         role="dialog"
         aria-modal="true"
         aria-label={`Detail pembayaran ${farmer.name}`}
-        className="fixed right-0 top-0 z-50 flex h-full w-full max-w-xl flex-col border-l border-border bg-surface shadow-xl"
+        initial={{ x: "100%" }}
+        animate={{ x: 0 }}
+        exit={{ x: "100%" }}
+        transition={{ type: "spring", damping: 25, stiffness: 200 }}
+        className="fixed right-0 top-0 bottom-0 z-50 flex h-full w-full max-w-xl flex-col border-l border-gray-150 bg-[#fcf9f8] rounded-l-[2rem] shadow-[0_0_50px_0_rgba(0,0,0,0.08)] overflow-hidden pointer-events-auto"
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-4">
+        <div className="flex items-start justify-between gap-4 border-b border-gray-100 bg-white px-6 py-4.5">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-lg font-bold text-foreground">{farmer.name}</h2>
+              <h2 className="text-lg font-bold text-gray-900">{farmer.name}</h2>
               <ReputationBadge tier={farmer.repTier} />
               <StatusBadge status={agreement.status} />
             </div>
-            <p className="mt-0.5 text-sm text-muted-foreground">
+            <p className="mt-1 text-xs text-gray-500 font-medium">
               {agreement.commodityCode === "GABAH" ? "Gabah Kering Panen" : "Jagung Pipilan"} ·
               Perjanjian #{String(agreement.onchainId)} · {formatKg(unsettledKg)} belum dibayar
             </p>
@@ -124,7 +131,7 @@ export function PaymentDetailSheet({ agreement, farmer, onClose }: PaymentDetail
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 rounded p-1.5 hover:bg-surface-muted focus:outline-none focus:ring-2 focus:ring-ring"
+            className="shrink-0 rounded-full p-2 hover:bg-gray-100 text-gray-500 hover:text-gray-800 transition-colors"
             aria-label="Tutup"
           >
             <X size={18} />
@@ -132,11 +139,11 @@ export function PaymentDetailSheet({ agreement, farmer, onClose }: PaymentDetail
         </div>
 
         {/* Scrollable body */}
-        <ScrollArea className="min-h-0 flex-1" viewportClassName="px-6 py-5" fade>
+        <ScrollArea className="min-h-0 flex-1" viewportClassName="px-6 py-6" fade>
           <div className="space-y-6">
             {/* Flagged blocking notice */}
             {isFlagged && (
-              <Alert tone="warning" title="Perjanjian Perlu Ditinjau">
+              <Alert tone="warning" title="Perjanjian Perlu Ditinjau" className="rounded-xl">
                 <div className="flex items-start gap-2">
                   <AlertTriangle size={14} className="mt-0.5 shrink-0 text-amber-600" />
                   <span>
@@ -149,7 +156,7 @@ export function PaymentDetailSheet({ agreement, farmer, onClose }: PaymentDetail
 
             {/* Staged payment notice */}
             {isStaged && !isFlagged && (
-              <Alert tone="info">
+              <Alert tone="info" className="rounded-xl">
                 Ini adalah pembayaran bertahap. Pembayaran dilakukan untuk {formatKg(unsettledKg)}{" "}
                 yang sudah disetor. Utang dicicil terlebih dulu dari setiap tahap pembayaran.
               </Alert>
@@ -157,7 +164,7 @@ export function PaymentDetailSheet({ agreement, farmer, onClose }: PaymentDetail
 
             {/* Split settlement preview */}
             <div>
-              <h3 className="mb-3 text-sm font-semibold text-foreground">
+              <h3 className="mb-3 text-sm font-bold text-gray-900">
                 Prakiraan Pembagian Kas
               </h3>
               <SplitSettlementCard
@@ -167,23 +174,23 @@ export function PaymentDetailSheet({ agreement, farmer, onClose }: PaymentDetail
                 residuPrincipal={split.principalToAgrinas}
                 coopMargin={split.coopMargin}
               />
-              <div className="mt-3 space-y-1.5 text-sm">
+              <div className="mt-4 space-y-2 text-sm bg-white border border-gray-100 rounded-2xl p-5 shadow-sm font-semibold text-gray-700">
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">HPP</span>
-                  <span className="tabular-nums text-foreground">
+                  <span className="text-gray-500 font-medium">HPP</span>
+                  <span className="tabular-nums text-gray-900 font-bold">
                     {formatRupiah(agreement.hppPerKg)}/kg
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Utang tersisa sebelum bayar</span>
-                  <RupiahAmount smallest={agreement.remainingDebt} className="text-sm" />
+                  <span className="text-gray-500 font-medium">Utang tersisa sebelum bayar</span>
+                  <RupiahAmount smallest={agreement.remainingDebt} className="text-sm font-bold" />
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Utang dicicil kali ini</span>
-                  <RupiahAmount smallest={split.debtPaid} className="text-sm" />
+                <div className="flex items-center justify-between border-t border-gray-50 pt-2">
+                  <span className="text-gray-500 font-medium">Utang dicicil kali ini</span>
+                  <RupiahAmount smallest={split.debtPaid} className="text-sm font-bold text-amber-700" />
                 </div>
               </div>
-              <p className="mt-2 text-xs text-muted-foreground">
+              <p className="mt-3 text-xs text-gray-500 leading-relaxed font-medium">
                 Ini adalah prakiraan. Jumlah final dikunci saat transaksi on-chain selesai. Kas
                 keluar via BRILink atau BRI, bukan langsung dari kontrak.
               </p>
@@ -191,15 +198,15 @@ export function PaymentDetailSheet({ agreement, farmer, onClose }: PaymentDetail
 
             {/* Lunas success panel */}
             {showLunas && txSettle.txHash && (
-              <div className="rounded-xl border-2 border-emerald-200 bg-emerald-50/80 p-5 space-y-4">
+              <div className="rounded-2xl border border-[#d2f9de] bg-[#ebf5e9] p-5 space-y-4 shadow-sm">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100">
-                      <CheckCircle2 size={22} className="text-emerald-600" />
+                      <CheckCircle2 size={22} className="text-[#0c7a48]" />
                     </span>
                     <div>
-                      <h3 className="font-bold text-foreground">Pembayaran Tercatat</h3>
-                      <p className="text-sm text-muted-foreground">
+                      <h3 className="font-bold text-gray-900">Pembayaran Tercatat</h3>
+                      <p className="text-xs text-gray-500 font-medium">
                         Catatan anti-manipulasi di Stellar. Kas keluar dari BRILink atau BRI.
                       </p>
                     </div>
@@ -207,20 +214,20 @@ export function PaymentDetailSheet({ agreement, farmer, onClose }: PaymentDetail
                   <TxHashLink hash={txSettle.txHash} />
                 </div>
 
-                <div className="rounded-lg border border-border bg-surface px-4 py-3">
-                  <p className="text-xs font-medium text-muted-foreground">Referensi kas / BRILink</p>
-                  <p className="mt-0.5 font-mono text-sm text-foreground">
+                <div className="rounded-2xl border border-gray-150 bg-white px-5 py-4 shadow-sm">
+                  <p className="text-xs font-semibold text-gray-500">Referensi kas / BRILink</p>
+                  <p className="mt-1 font-mono text-sm font-bold text-gray-900">
                     BRILink-{new Date().toISOString().slice(0, 10).replace(/-/g, "")}-
                     {String(agreement.onchainId).padStart(4, "0")}
                   </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
+                  <p className="mt-1 text-[11px] text-gray-400 font-medium">
                     Catat referensi ini di buku kas koperasi untuk rekonsiliasi.
                   </p>
                 </div>
 
-                <Alert tone="warning" title="Residu pokok Agrinas terkunci di kas">
+                <Alert tone="warning" title="Residu pokok Agrinas terkunci di kas" className="rounded-xl">
                   Sebesar{" "}
-                  <RupiahAmount smallest={split.principalToAgrinas} className="text-sm" /> adalah
+                  <RupiahAmount smallest={split.principalToAgrinas} className="text-sm font-bold" /> adalah
                   uang Agrinas yang tersimpan sementara di kas koperasi. Segera remitkan ke rekening
                   Agrinas.
                 </Alert>
@@ -228,12 +235,14 @@ export function PaymentDetailSheet({ agreement, farmer, onClose }: PaymentDetail
                 <div className="flex flex-wrap gap-2">
                   <Link href="/kmp/residu" onClick={onClose}>
                     <Button
+                      type="button"
                       variant="accent"
                       size="sm"
                       leftIcon={<Landmark size={14} />}
                       rightIcon={<ArrowRight size={14} />}
+                      className="rounded-full bg-[#0c6a78] hover:bg-opacity-95 text-white"
                     >
-                      Kelola Residu
+                      Keloba Residu
                     </Button>
                   </Link>
                 </div>
@@ -243,11 +252,11 @@ export function PaymentDetailSheet({ agreement, farmer, onClose }: PaymentDetail
             {/* Settle action */}
             {!showLunas && (
               <div>
-                <h3 className="mb-3 text-sm font-semibold text-foreground">
+                <h3 className="mb-3 text-sm font-bold text-gray-900">
                   Selesaikan Pembayaran
                 </h3>
                 {isFlagged ? (
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-gray-500 font-semibold leading-relaxed">
                     Pembayaran diblokir sampai petugas menyelesaikan peninjauan perjanjian ini.
                     Hubungi pengawas untuk melanjutkan.
                   </p>
@@ -255,12 +264,13 @@ export function PaymentDetailSheet({ agreement, farmer, onClose }: PaymentDetail
                   <div className="space-y-2">
                     {/* Gradient button: THE ONE allowed use across the setor/pembayaran/residu trio */}
                     <Button
+                      type="button"
                       variant="gradient"
                       size="md"
                       leftIcon={<Banknote size={16} />}
                       disabled={!canSettle}
                       onClick={txSettle.run}
-                      className="w-full"
+                      className="w-full rounded-full bg-primary-dark hover:bg-opacity-95 text-white"
                     >
                       {txSettle.state === "signing"
                         ? "Menandatangani..."
@@ -269,17 +279,17 @@ export function PaymentDetailSheet({ agreement, farmer, onClose }: PaymentDetail
                           : "Selesaikan Pembayaran"}
                     </Button>
                     {txSettle.state === "signing" && (
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-amber-700 text-center font-semibold">
                         Konfirmasi tanda tangan di Freighter. Jangan tutup jendela.
                       </p>
                     )}
                     {txSettle.state === "submitting" && (
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-emerald-800 text-center font-semibold">
                         Mencatat split tiga arah di blockchain. Proses 5 hingga 10 detik.
                       </p>
                     )}
                     {txSettle.state === "idle" && (
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-gray-500 text-center font-medium leading-normal">
                         Tindakan ini mencatat split tiga arah di blockchain Stellar. Tanda tangan
                         Freighter diperlukan.
                       </p>
@@ -292,31 +302,31 @@ export function PaymentDetailSheet({ agreement, farmer, onClose }: PaymentDetail
             {/* Residu status */}
             {residu && (
               <div>
-                <h3 className="mb-3 text-sm font-semibold text-foreground">
+                <h3 className="mb-3 text-sm font-bold text-gray-900">
                   Status Residu Agrinas
                 </h3>
-                <div className="rounded-lg border border-border bg-surface-muted/40 p-4 space-y-2">
+                <div className="rounded-2xl border border-gray-100 bg-white p-5 space-y-3.5 shadow-sm font-semibold text-gray-700">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Status</span>
+                    <span className="text-sm text-gray-500 font-medium">Status</span>
                     <ResiduStatusBadge status={residu.status} />
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Jumlah pokok</span>
-                    <RupiahAmount smallest={residu.principalAmount} className="text-sm" />
+                  <div className="flex items-center justify-between border-t border-gray-50 pt-2">
+                    <span className="text-sm text-gray-500 font-medium">Jumlah pokok</span>
+                    <RupiahAmount smallest={residu.principalAmount} className="text-sm font-bold" />
                   </div>
                   {residu.bankRef && (
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm text-muted-foreground">Ref bank</span>
-                      <span className="font-mono text-xs text-foreground">{residu.bankRef}</span>
+                    <div className="flex items-center justify-between gap-2 border-t border-gray-50 pt-2">
+                      <span className="text-sm text-gray-500 font-medium">Ref bank</span>
+                      <span className="font-mono text-xs text-gray-900 font-bold">{residu.bankRef}</span>
                     </div>
                   )}
                   {residu.txHash && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Tx remitansi</span>
+                    <div className="flex items-center justify-between border-t border-gray-50 pt-2">
+                      <span className="text-sm text-gray-500 font-medium">Tx remitansi</span>
                       <TxHashLink hash={residu.txHash} />
                     </div>
                   )}
-                  <p className="pt-1 text-xs text-muted-foreground">
+                  <p className="pt-2 text-xs text-gray-400 font-medium leading-relaxed border-t border-gray-50">
                     {RESIDU_EXPLANATION[residu.status]}
                   </p>
                 </div>
@@ -326,37 +336,37 @@ export function PaymentDetailSheet({ agreement, farmer, onClose }: PaymentDetail
             {/* Payment history for this agreement */}
             {payments.length > 0 && (
               <div>
-                <h3 className="mb-3 text-sm font-semibold text-foreground">
+                <h3 className="mb-3 text-sm font-bold text-gray-900">
                   Riwayat Pembayaran Perjanjian Ini
                 </h3>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {payments.map((p) => (
                     <div
                       key={p.id}
-                      className="rounded-lg border border-border bg-surface-muted/50 px-4 py-3"
+                      className="rounded-2xl border border-gray-100 bg-white px-5 py-4 shadow-sm"
                     >
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span className="text-sm font-medium text-foreground">{p.settledAt}</span>
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-50 pb-2 mb-3">
+                        <span className="text-sm font-bold text-gray-900">{p.settledAt}</span>
                         <TxHashLink hash={p.txHash} />
                       </div>
-                      <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-xs font-semibold text-gray-700">
                         <div>
-                          <p className="text-muted-foreground">Nilai panen</p>
-                          <RupiahAmount smallest={p.gross} className="text-xs" />
+                          <p className="text-gray-400 font-medium">Nilai panen</p>
+                          <RupiahAmount smallest={p.gross} className="text-xs font-bold text-gray-900 mt-0.5" />
                         </div>
                         <div>
-                          <p className="text-muted-foreground">Diterima petani</p>
-                          <RupiahAmount smallest={p.netPaid} tone="positive" className="text-xs" />
+                          <p className="text-gray-400 font-medium">Diterima petani</p>
+                          <RupiahAmount smallest={p.netPaid} tone="positive" className="text-xs font-bold mt-0.5" />
                         </div>
                         <div>
-                          <p className="text-muted-foreground">Volume</p>
-                          <span className="tabular-nums text-foreground">
+                          <p className="text-gray-400 font-medium">Volume</p>
+                          <span className="tabular-nums text-gray-900 font-bold block mt-0.5">
                             {p.settledVolKg.toLocaleString("id-ID")} kg
                           </span>
                         </div>
                         <div>
-                          <p className="text-muted-foreground">Ref bank</p>
-                          <span className="font-mono text-foreground">{p.rupiahRef}</span>
+                          <p className="text-gray-400 font-medium">Ref bank</p>
+                          <span className="font-mono text-gray-900 font-bold block mt-0.5">{p.rupiahRef}</span>
                         </div>
                       </div>
                     </div>
@@ -366,7 +376,7 @@ export function PaymentDetailSheet({ agreement, farmer, onClose }: PaymentDetail
             )}
           </div>
         </ScrollArea>
-      </div>
+      </motion.div>
     </>
   );
 }

@@ -97,3 +97,17 @@
 .solutions-marquee-content {
   animation: marquee 25s linear infinite;
 }
+
+/* ── Spin Slow Animation ── */
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+.animate-spin-slow {
+  animation: spin-slow 20s linear infinite;
+}
+

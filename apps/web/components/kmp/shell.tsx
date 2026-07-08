@@ -8,6 +8,7 @@ import { signOutToAuth } from "@/lib/supabase";
 import { Logo, LogoMark } from "@annona/ui";
 import { cn } from "@annona/ui";
 import type { LucideIcon } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import {
   Banknote,
   ClipboardList,
@@ -29,11 +30,10 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
+import "../../app/urbangreen/urbangreen.css";
 
 /** KMP dashboard shell: collapsible sidebar (desktop) + drawer (mobile) +
- *  topbar. Calm cream background, white surfaces, no mesh behind data
- *  (DESIGN_GUIDE section 8, "Coop dashboard" archetype). Collapsed state
- *  persists in localStorage; main content widens to fill the reclaimed space. */
+ *  topbar. Calm cream background, white surfaces, no mesh behind data. */
 
 type NavItem = {
   href: string;
@@ -100,12 +100,12 @@ function NavLink({
       aria-current={active ? "page" : undefined}
       title={collapsed ? item.label : undefined}
       className={cn(
-        "group flex min-h-10 items-center rounded-md text-sm font-medium",
-        "transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
-        collapsed ? "justify-center px-2 py-2" : "gap-3 px-3 py-2",
+        "group flex min-h-[44px] items-center rounded-xl text-sm font-semibold transition-all",
+        "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+        collapsed ? "justify-center px-2.5 py-2.5" : "gap-3 px-4 py-2.5",
         active
-          ? "bg-verdant-50 text-verdant-800"
-          : "text-ink-600 hover:bg-surface-muted hover:text-foreground",
+          ? "bg-soft-green text-gray-900 shadow-sm"
+          : "text-gray-600 hover:bg-gray-100/50 hover:text-gray-900",
       )}
     >
       <Icon
@@ -114,7 +114,7 @@ function NavLink({
       />
       {collapsed ? null : (
         <>
-          {item.label}
+          <span>{item.label}</span>
           {active ? (
             <span
               className="ml-auto h-5 w-1 rounded-full bg-verdant-500"
@@ -141,6 +141,7 @@ function SidebarContent({
   const coop = coopData?.coop;
   return (
     <div className="flex h-full flex-col">
+      {/* Brand logo header */}
       <div
         className={cn(
           "flex items-center pt-5 pb-4",
@@ -155,7 +156,7 @@ function SidebarContent({
           )}
         </Link>
         {collapsed ? null : (
-          <span className="rounded-full bg-aqua-50 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-aqua-700 uppercase">
+          <span className="rounded-full bg-[#e7fafc] border border-[#c3f2f6]/50 px-2 py-0.5 text-[9px] font-mono font-bold tracking-wide text-[#0c6a78] uppercase">
             KMP
           </span>
         )}
@@ -165,7 +166,7 @@ function SidebarContent({
             onClick={onToggle}
             aria-label={collapsed ? "Perlebar menu" : "Perkecil menu"}
             className={cn(
-              "hidden rounded-md p-1.5 text-ink-400 transition-colors hover:bg-surface-muted hover:text-foreground lg:block",
+              "hidden rounded-md p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 lg:block",
               collapsed ? "mt-2" : "ml-auto",
             )}
           >
@@ -178,6 +179,7 @@ function SidebarContent({
         ) : null}
       </div>
 
+      {/* KUD Showcase Card */}
       {collapsed ? null : (
         <div className="mx-4 mb-4 rounded-lg border border-border bg-surface-muted px-3 py-2.5">
           <p className="text-sm font-semibold text-foreground">
@@ -192,6 +194,7 @@ function SidebarContent({
         </div>
       )}
 
+      {/* Navigation menu */}
       <nav
         className={cn(
           "flex-1 space-y-4 overflow-y-auto",
@@ -202,7 +205,7 @@ function SidebarContent({
         {NAV_GROUPS.map((group) => (
           <div key={group.label ?? "utama"}>
             {group.label && !collapsed ? (
-              <p className="px-3 pb-1 text-[10px] font-semibold tracking-[0.14em] text-ink-400 uppercase">
+              <p className="px-3 pb-1 text-[10px] font-bold tracking-[0.14em] text-gray-400 uppercase">
                 {group.label}
               </p>
             ) : null}
@@ -232,7 +235,7 @@ function SidebarContent({
       >
         {collapsed ? (
           <div className="flex flex-col items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-verdant-100 text-sm font-bold text-verdant-800">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-800 border border-emerald-250">
               HU
             </div>
             <button
@@ -240,15 +243,16 @@ function SidebarContent({
               onClick={() => void signOutToAuth()}
               title="Keluar"
               aria-label="Keluar"
-              className="rounded-md p-2 text-ink-500 transition-colors hover:bg-red-50 hover:text-red-700"
+              className="rounded-md p-2 text-gray-500 transition-colors hover:bg-red-50 hover:text-red-700"
             >
               <LogOut size={16} />
             </button>
           </div>
         ) : (
-          <>
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-verdant-100 text-sm font-bold text-verdant-800">
+          <div className="bg-[#ebf5e9]/90 border border-soft-green/30 rounded-2xl p-4 shadow-sm text-xs space-y-3 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-20 h-20 bg-white/20 rounded-full blur-xl pointer-events-none" />
+            <div className="flex items-center gap-3 relative z-10">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-850 border border-emerald-200">
                 HU
               </div>
               <div className="min-w-0">
@@ -257,8 +261,8 @@ function SidebarContent({
                 </p>
                 <p className="text-xs text-muted-foreground">Pengurus KMP</p>
               </div>
-              <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-aqua-50 px-2 py-0.5 text-[10px] font-semibold text-aqua-700">
-                <Wifi size={10} />
+              <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-[#e7fafc] px-2 py-0.5 text-[9px] font-mono font-bold text-[#0c6a78] border border-[#c3f2f6]/50">
+                <Wifi size={10} className="animate-pulse" />
                 Testnet
               </span>
             </div>
@@ -266,12 +270,12 @@ function SidebarContent({
             <button
               type="button"
               onClick={() => void signOutToAuth()}
-              className="mt-3 flex min-h-10 w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-ink-600 transition-colors hover:bg-red-50 hover:text-red-700 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+              className="mt-3 flex min-h-[40px] w-full items-center justify-center gap-2 rounded-xl bg-primary-dark text-white px-3 py-2 text-xs font-semibold hover:bg-opacity-90 transition-all active:scale-95 shadow-sm"
             >
-              <LogOut size={16} />
+              <LogOut size={14} />
               Keluar
             </button>
-          </>
+          </div>
         )}
       </div>
     </div>
@@ -300,11 +304,11 @@ export function KmpShell({ children }: { children: ReactNode }) {
   const mainML = collapsed ? "lg:ml-16" : "lg:ml-64";
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="urbangreen-body min-h-screen bg-[#fcf9f8] text-gray-900 font-sans antialiased">
       {/* Desktop sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-30 hidden border-r border-border bg-surface lg:block",
+          "fixed inset-y-0 left-0 z-30 hidden border-r border-gray-100 bg-white lg:block",
           hydrated ? "transition-[width] duration-200" : "",
           railW,
         )}
@@ -313,40 +317,53 @@ export function KmpShell({ children }: { children: ReactNode }) {
       </aside>
 
       {/* Mobile drawer */}
-      {open ? (
-        <div className="fixed inset-0 z-40 lg:hidden">
-          <button
-            type="button"
-            aria-label="Tutup menu"
-            className="absolute inset-0 bg-ink-950/40"
-            onClick={() => setOpen(false)}
-          />
-          <aside className="absolute inset-y-0 left-0 w-72 bg-surface shadow-lg">
-            <button
+      <AnimatePresence>
+        {open && (
+          <div className="fixed inset-0 z-50 lg:hidden">
+            {/* Backdrop */}
+            <motion.button
               type="button"
               aria-label="Tutup menu"
-              className="absolute top-4 right-4 rounded-md p-1.5 text-ink-500 hover:bg-surface-muted"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.4 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black pointer-events-auto"
               onClick={() => setOpen(false)}
+            />
+            {/* Drawer */}
+            <motion.aside
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="absolute inset-y-0 left-0 w-72 max-w-[80vw] bg-[#fcf9f8] p-6 shadow-2xl flex flex-col gap-6 overflow-y-auto border-r border-gray-100 pointer-events-auto"
             >
-              <X size={18} />
-            </button>
-            <SidebarContent onNavigate={() => setOpen(false)} />
-          </aside>
-        </div>
-      ) : null}
+              <button
+                type="button"
+                aria-label="Tutup menu"
+                className="absolute top-4 right-4 rounded-full p-2 text-gray-400 hover:bg-gray-100"
+                onClick={() => setOpen(false)}
+              >
+                <X size={18} />
+              </button>
+              <SidebarContent onNavigate={() => setOpen(false)} />
+            </motion.aside>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Mobile topbar */}
-      <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-surface/90 px-4 backdrop-blur lg:hidden">
+      <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-gray-100 bg-white/80 px-4 backdrop-blur-md lg:hidden">
         <button
           type="button"
           aria-label="Buka menu"
-          className="rounded-md p-2 text-ink-600 hover:bg-surface-muted"
+          className="rounded-full p-2 text-gray-700 hover:bg-gray-100"
           onClick={() => setOpen(true)}
         >
           <Menu size={20} />
         </button>
         <Logo className="h-6 w-auto" />
-        <span className="ml-auto rounded-full bg-aqua-50 px-2 py-0.5 text-[10px] font-semibold text-aqua-700">
+        <span className="ml-auto rounded-full bg-[#e7fafc] border border-[#c3f2f6]/50 px-2.5 py-0.5 text-[9px] font-mono font-bold text-[#0c6a78] uppercase">
           Testnet
         </span>
       </header>

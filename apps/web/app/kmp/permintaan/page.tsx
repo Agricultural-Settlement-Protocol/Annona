@@ -36,6 +36,7 @@ import {
   Download,
   Link as LinkIcon,
   Package,
+  Search,
   Send,
   Truck,
 } from "lucide-react";
@@ -57,13 +58,13 @@ type CatalogMap = Map<string, ApiCatalogItem>;
 
 function RequestStatusBadge({ status }: { status: SupplyRequestStatus }) {
   if (status === "Draft")
-    return <Badge tone="neutral">Draf</Badge>;
+    return <Badge tone="neutral" className="rounded-full font-bold">Draf</Badge>;
   if (status === "Terkirim")
-    return <Badge tone="aqua">Terkirim ke Agrinas</Badge>;
+    return <Badge tone="aqua" className="rounded-full font-bold">Terkirim ke Agrinas</Badge>;
   if (status === "Dikirim")
-    return <Badge tone="aqua">Dalam Pengiriman</Badge>;
+    return <Badge tone="aqua" className="rounded-full font-bold">Dalam Pengiriman</Badge>;
   // Diterima
-  return <Badge tone="success">Diterima</Badge>;
+  return <Badge tone="success" className="rounded-full font-bold">Diterima</Badge>;
 }
 
 // ─── Compact item summary helper ────────────────────────────────────────────
@@ -275,10 +276,16 @@ export default function PermintaanPage() {
         description="Rekap kebutuhan input petani (perjanjian Dibuat) yang dikirim KMP ke Agrinas sebagai permintaan gabungan. Setelah dikirim, Agrinas langsung melihat antrean ini di sistem operator tanpa perlu email atau berkas manual."
         actions={
           <Button
+            type="button"
             variant="outline"
             size="sm"
             leftIcon={<Download size={14} />}
+<<<<<<< HEAD
             onClick={() => downloadCsv(filteredRows, catalog)}
+=======
+            onClick={() => downloadCsv(filteredRows)}
+            className="rounded-full"
+>>>>>>> e56fca8 (refactor: overhaul UrbanGreen component structure and update KMP interface styling)
           >
             Ekspor CSV
           </Button>
@@ -328,7 +335,7 @@ export default function PermintaanPage() {
 
       {/* Success alert from last bulk submit */}
       {showSuccess && lastTxHash && (
-        <Alert tone="success" title="Permintaan gabungan tercatat di chain">
+        <Alert tone="success" title="Permintaan gabungan tercatat di chain" className="rounded-xl">
           Agrinas melihat antrean ini di dasbor operatornya. Tidak perlu email atau berkas manual.{" "}
           <span className="mt-1 block">
             <TxHashLink hash={lastTxHash} />
@@ -339,14 +346,17 @@ export default function PermintaanPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Main table + bulk bar */}
         <div className="lg:col-span-2 space-y-4">
-          {/* Search bar (bulk submit lives under the aggregation card) */}
-          <input
-            type="search"
-            placeholder="Cari nama petani..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="h-10 w-full rounded-md border border-border bg-surface px-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-ring"
-          />
+          {/* Search bar */}
+          <div className="flex h-12 w-full items-center gap-3 rounded-2xl border border-gray-100 bg-white px-4 shadow-sm focus-within:ring-2 focus-within:ring-ring">
+            <Search size={15} className="shrink-0 text-gray-400" />
+            <input
+              type="search"
+              placeholder="Cari nama petani..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-full w-full bg-transparent text-sm text-gray-800 outline-none placeholder:text-gray-400 font-semibold"
+            />
+          </div>
 
           <TableFrame>
             <Table>
@@ -357,7 +367,7 @@ export default function PermintaanPage() {
                     checked={allDraftSelected}
                     onChange={toggleAll}
                     aria-label="Pilih semua draf"
-                    className="h-4 w-4 rounded border-border text-primary accent-primary"
+                    className="h-4 w-4 rounded border-gray-300 text-primary accent-primary"
                   />
                 </Th>
                 <Th>Petani</Th>
@@ -370,7 +380,7 @@ export default function PermintaanPage() {
               <TBody>
                 {filteredRows.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                    <td colSpan={7} className="px-4 py-10 text-center text-sm text-gray-500 font-semibold">
                       Tidak ada permintaan yang sesuai pencarian.
                     </td>
                   </tr>
@@ -379,41 +389,56 @@ export default function PermintaanPage() {
                     const isDraft = r.effectiveStatus === "Draft";
                     const checked = selectedIds.has(r.agreement.id);
                     return (
-                      <Tr key={r.agreement.id} className={checked ? "bg-verdant-50/60" : undefined}>
+                      <Tr key={r.agreement.id} className={checked ? "bg-[#ebf5e9]/55" : undefined}>
                         <Td>
                           {isDraft ? (
                             <input
                               type="checkbox"
                               checked={checked}
                               onChange={() => toggleRow(r.agreement.id)}
+<<<<<<< HEAD
                               aria-label={`Pilih perjanjian ${r.farmerName}`}
                               className="h-4 w-4 rounded border-border text-primary accent-primary"
+=======
+                              aria-label={`Pilih perjanjian ${r.farmer.name}`}
+                              className="h-4 w-4 rounded border-gray-300 text-primary accent-primary"
+>>>>>>> e56fca8 (refactor: overhaul UrbanGreen component structure and update KMP interface styling)
                             />
                           ) : (
                             <span className="inline-block h-4 w-4" />
                           )}
                         </Td>
                         <Td>
+<<<<<<< HEAD
                           <p className="font-medium text-foreground">{r.farmerName}</p>
                           <p className="text-xs text-muted-foreground">{r.kecamatan}</p>
+=======
+                          <p className="font-bold text-gray-900">{r.farmer.name}</p>
+                          <p className="text-xs text-gray-400 font-semibold">{r.farmer.kecamatan}</p>
+>>>>>>> e56fca8 (refactor: overhaul UrbanGreen component structure and update KMP interface styling)
                         </Td>
                         <Td>
                           <Link
                             href={`/kmp/perjanjian/${r.agreement.id}`}
-                            className="font-mono text-xs text-accent hover:underline"
+                            className="font-mono text-xs font-bold text-[#0c6a78] hover:underline"
                           >
                             #{String(r.agreement.onchainId)}
                           </Link>
                         </Td>
                         <Td>
+<<<<<<< HEAD
                           <span className="text-xs text-muted-foreground">
                             {compactItems(r.agreement, catalog)}
+=======
+                          <span className="text-xs text-gray-500 font-semibold leading-normal">
+                            {compactItems(r.agreement)}
+>>>>>>> e56fca8 (refactor: overhaul UrbanGreen component structure and update KMP interface styling)
                           </span>
                         </Td>
-                        <Td className="text-right">
+                        <Td className="text-right font-bold text-gray-900">
                           <RupiahAmount smallest={r.agreement.basePriceAgrinas} className="text-sm" />
                         </Td>
-                        <Td className="text-muted-foreground text-sm">
+                        <Td className="text-gray-500 font-semibold text-sm">
                           {r.agreement.expectedHarvestDate}
                         </Td>
                         <Td>
@@ -428,10 +453,10 @@ export default function PermintaanPage() {
           </TableFrame>
 
           {/* Explainer strip */}
-          <div className="rounded-lg border border-border bg-surface-muted px-4 py-3 text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">Alur selanjutnya:</span> Setelah Agrinas
+          <div className="rounded-2xl border border-gray-100 bg-[#ebf5e9]/20 px-5 py-4 text-sm text-gray-600 font-medium leading-relaxed">
+            <span className="font-bold text-gray-900">Alur selanjutnya:</span> Setelah Agrinas
             mengirim saprotan, kargo muncul di{" "}
-            <Link href="/kmp/gudang" className="text-accent underline-offset-2 hover:underline">
+            <Link href="/kmp/gudang" className="text-[#0c6a78] font-bold hover:underline">
               Gudang dan Pasokan
             </Link>{" "}
             untuk dikonfirmasi penerimaannya.
@@ -440,8 +465,8 @@ export default function PermintaanPage() {
 
         {/* Aggregation panel + bulk submit */}
         <div className="lg:col-span-1">
-          <div className="space-y-3 lg:sticky lg:top-6">
-            <Card>
+          <div className="space-y-4 lg:sticky lg:top-6">
+            <Card className="rounded-[2rem] border-gray-100 bg-white shadow-sm overflow-hidden p-5 sm:p-6">
               <CardHeader
                 title="Kebutuhan Gabungan"
                 description={
@@ -449,34 +474,41 @@ export default function PermintaanPage() {
                     ? `Dari ${selectedCount} draf dipilih`
                     : "Semua draf (belum ada pilihan)"
                 }
-                action={<Package size={18} className="text-verdant-400" />}
+                action={<Package size={18} className="text-emerald-700" />}
+                className="pb-3"
               />
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-3 pt-3">
                 {aggregated.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Tidak ada kebutuhan draf.</p>
+                  <p className="text-sm text-gray-500 font-semibold">Tidak ada kebutuhan draf.</p>
                 ) : (
                   <>
                     {aggregated.map(({ item, qty, principal }) => (
                       <div
                         key={item.id}
-                        className="flex items-center justify-between gap-2 border-b border-border pb-2 last:border-0 last:pb-0"
+                        className="flex items-center justify-between gap-2 border-b border-gray-100 pb-2.5 last:border-0 last:pb-0"
                       >
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-foreground">
+                          <p className="truncate text-sm font-bold text-gray-900">
                             {item.name}
                           </p>
+<<<<<<< HEAD
                           <p className="text-xs text-muted-foreground">{qty} unit</p>
+=======
+                          <p className="text-xs text-gray-500 font-semibold">
+                            {qty} {item.unitLabel}
+                          </p>
+>>>>>>> e56fca8 (refactor: overhaul UrbanGreen component structure and update KMP interface styling)
                         </div>
-                        <RupiahAmount smallest={principal} className="shrink-0 text-sm" />
+                        <RupiahAmount smallest={principal} className="shrink-0 text-sm font-bold text-gray-900" />
                       </div>
                     ))}
 
-                    <div className="flex items-center justify-between border-t border-border pt-3">
-                      <span className="text-sm font-semibold text-foreground">Total Pokok</span>
-                      <RupiahAmount smallest={grandTotal} className="text-base" />
+                    <div className="flex items-center justify-between border-t border-gray-100 pt-4">
+                      <span className="text-sm font-bold text-gray-900">Total Pokok</span>
+                      <RupiahAmount smallest={grandTotal} className="text-base font-bold text-gray-950" />
                     </div>
 
-                    <div className="flex w-fit items-center gap-1 rounded-full bg-aqua-50 px-2.5 py-1 text-xs font-semibold text-aqua-700">
+                    <div className="flex w-fit items-center gap-1.5 rounded-full bg-cyan-50 border border-cyan-150/40 px-3 py-1 text-xs font-bold text-[#0c6a78]">
                       <LinkIcon size={10} />
                       Nilai dikunci saat submit ke Agrinas
                     </div>
@@ -485,12 +517,13 @@ export default function PermintaanPage() {
               </CardContent>
             </Card>
 
-            {/* Bulk submit (moved out of the search row) */}
-            <div className="rounded-lg border border-border bg-surface p-4 shadow-sm">
+            {/* Bulk submit */}
+            <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm space-y-4">
               <Button
+                type="button"
                 variant="primary"
                 size="md"
-                className="w-full"
+                className="w-full rounded-full bg-primary-dark hover:bg-opacity-95 text-white py-3 font-semibold shadow-sm"
                 leftIcon={<Send size={16} />}
                 disabled={selectedCount === 0 || txSubmit.state !== "idle"}
                 onClick={handleBulkSubmit}
@@ -503,7 +536,7 @@ export default function PermintaanPage() {
                       ? `Kirim Permintaan Gabungan (${selectedCount})`
                       : "Kirim Permintaan Gabungan"}
               </Button>
-              <p className="mt-2 text-center text-xs text-muted-foreground">
+              <p className="text-center text-xs text-gray-505 font-semibold leading-relaxed">
                 {selectedCount > 0
                   ? "Permintaan dicatat di chain, langsung terlihat oleh Agrinas."
                   : "Pilih draf pada tabel untuk mengirim permintaan gabungan."}

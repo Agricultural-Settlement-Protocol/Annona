@@ -29,7 +29,7 @@ export function DetailSection({
   noPadding = false,
 }: DetailSectionProps) {
   return (
-    <Card>
+    <Card className="rounded-[2rem] border-gray-100/80 shadow-sm overflow-hidden bg-white">
       <CardHeader title={title} description={description} action={icon} />
       <CardContent className={noPadding ? "p-0 pb-4" : undefined}>{children}</CardContent>
     </Card>
@@ -44,9 +44,9 @@ interface EmptyNoticeProps {
 /** Inline muted empty state rendered inside a DetailSection when data is absent. */
 export function EmptyNotice({ icon: Icon, message }: EmptyNoticeProps) {
   return (
-    <div className="flex items-center gap-3 rounded-lg bg-surface-muted/50 px-4 py-5">
-      <Icon size={20} className="shrink-0 text-muted-foreground/40" />
-      <p className="text-sm text-muted-foreground">{message}</p>
+    <div className="flex items-center gap-3.5 rounded-2xl bg-gray-50/50 border border-gray-100/50 px-5 py-6">
+      <Icon size={22} className="shrink-0 text-gray-400" />
+      <p className="text-sm font-medium text-gray-500 leading-normal">{message}</p>
     </div>
   );
 }

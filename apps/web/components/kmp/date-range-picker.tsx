@@ -140,7 +140,7 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
   // Recompute position every time the popover opens.
   useLayoutEffect(() => {
     if (open) computePosition();
-  });
+  }, [open]);
 
   // ESC closes.
   useEffect(() => {
@@ -239,25 +239,25 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
     <div
       data-datepicker
       style={popoverStyle}
-      className="w-72 rounded-xl border border-border bg-surface p-4 shadow-md"
+      className="w-72 rounded-2xl border border-gray-100 bg-white p-5 shadow-lg"
     >
       {/* Month navigation */}
       <div className="mb-3 flex items-center justify-between">
         <button
           type="button"
           onClick={prevMonth}
-          className="rounded p-1 hover:bg-surface-muted focus:outline-none focus:ring-2 focus:ring-ring"
+          className="rounded p-1 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-ring text-gray-500"
           aria-label="Bulan sebelumnya"
         >
           <ChevronLeft size={16} />
         </button>
-        <span className="text-sm font-semibold text-foreground">
+        <span className="text-sm font-semibold text-gray-900">
           {MONTHS_ID[viewMonth]} {viewYear}
         </span>
         <button
           type="button"
           onClick={nextMonth}
-          className="rounded p-1 hover:bg-surface-muted focus:outline-none focus:ring-2 focus:ring-ring"
+          className="rounded p-1 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-ring text-gray-500"
           aria-label="Bulan berikutnya"
         >
           <ChevronRight size={16} />
@@ -267,14 +267,14 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
       {/* Day-of-week headers */}
       <div className="mb-1 grid grid-cols-7 text-center">
         {DAYS_ID.map((d) => (
-          <div key={d} className="py-0.5 text-xs font-medium text-muted-foreground">
+          <div key={d} className="py-0.5 text-xs font-semibold text-gray-400">
             {d}
           </div>
         ))}
       </div>
 
       {/* Day cells */}
-      <div className="grid grid-cols-7">
+      <div className="grid grid-cols-7 gap-0.5">
         {cells.map((day, i) => {
           if (!day)
             return (
@@ -302,14 +302,14 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
               onMouseEnter={() => setHover(day)}
               onMouseLeave={() => setHover(null)}
               className={cn(
-                "py-1.5 text-center text-xs transition-colors focus:outline-none focus:ring-1 focus:ring-ring",
+                "py-2 text-center text-xs transition-colors focus:outline-none focus:ring-1 focus:ring-ring font-medium",
                 isStart || isEnd
-                  ? "rounded-full bg-primary font-semibold text-primary-foreground"
+                  ? "rounded-full bg-emerald-700 font-bold text-white shadow-sm"
                   : inRange
-                    ? "bg-verdant-100 text-verdant-800"
+                    ? "bg-soft-green text-emerald-950 font-semibold"
                     : inHoverRange
-                      ? "bg-verdant-50 text-verdant-700"
-                      : "rounded text-foreground hover:bg-surface-muted",
+                      ? "bg-soft-green/50 text-emerald-950 font-medium"
+                      : "rounded-lg text-gray-800 hover:bg-gray-50",
               )}
             >
               {day.getDate()}
@@ -320,19 +320,19 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
 
       {/* Reset */}
       {(value.start || value.end) && (
-        <div className="mt-3 border-t border-border pt-2">
+        <div className="mt-3 border-t border-gray-100 pt-2">
           <button
             type="button"
             onClick={handleReset}
-            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground focus:outline-none"
+            className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-emerald-800 focus:outline-none"
           >
-            <X size={12} />
+            <X size={13} />
             Hapus filter
           </button>
         </div>
       )}
 
-      <p className="mt-2 text-xs text-muted-foreground">
+      <p className="mt-2.5 text-xs text-gray-400 font-medium">
         {!value.start || picking === "start"
           ? "Klik untuk pilih tanggal mulai"
           : "Klik untuk pilih tanggal akhir"}
@@ -346,9 +346,9 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
         ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center gap-2 rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground hover:bg-surface-muted focus:outline-none focus:ring-2 focus:ring-ring"
+        className="inline-flex items-center gap-2.5 rounded-2xl border border-gray-100 bg-white px-5 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-ring shadow-sm transition-all"
       >
-        <Calendar size={14} className="shrink-0 text-muted-foreground" />
+        <Calendar size={14} className="shrink-0 text-gray-400" />
         <span className="whitespace-nowrap">{triggerLabel}</span>
       </button>
 

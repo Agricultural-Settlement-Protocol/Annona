@@ -111,7 +111,11 @@ export default function AgreementDetailPage() {
           }
           action={
             <Link href="/kmp/perjanjian">
-              <Button variant="outline" leftIcon={<ArrowLeft size={16} />}>
+              <Button
+                variant="outline"
+                leftIcon={<ArrowLeft size={16} />}
+                className="rounded-full"
+              >
                 Kembali ke Daftar
               </Button>
             </Link>
@@ -154,7 +158,11 @@ export default function AgreementDetailPage() {
         actions={
           <>
             <Link href="/kmp/perjanjian">
-              <Button variant="ghost" leftIcon={<ArrowLeft size={16} />}>
+              <Button
+                variant="ghost"
+                leftIcon={<ArrowLeft size={16} />}
+                className="rounded-full"
+              >
                 Daftar Perjanjian
               </Button>
             </Link>
@@ -162,7 +170,12 @@ export default function AgreementDetailPage() {
               agreement.status === "PartiallyDelivered" ||
               agreement.status === "Delivered") && (
               <Link href="/kmp/setor">
-                <Button leftIcon={<Scale size={16} />}>Catat Setoran</Button>
+                <Button
+                  leftIcon={<Scale size={16} />}
+                  className="rounded-full bg-primary-dark hover:bg-opacity-95 text-white"
+                >
+                  Catat Setoran
+                </Button>
               </Link>
             )}
           </>

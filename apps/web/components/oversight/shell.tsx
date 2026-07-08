@@ -22,6 +22,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
 
 /** Shared oversight shell for Agrinas (operator) and Pemerintah (regulator).
  *  Visual identity: aqua/teal for Agrinas, neutral (ink/verdant) for Pemerintah.
@@ -111,25 +112,25 @@ function NavLink({
       aria-current={active ? "page" : undefined}
       title={collapsed ? item.label : undefined}
       className={cn(
-        "group flex min-h-10 items-center rounded-md text-sm font-medium",
-        "transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
-        collapsed ? "justify-center px-2 py-2" : "gap-3 px-3 py-2",
+        "group flex min-h-12 items-center rounded-2xl text-sm font-bold transition-all",
+        "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+        collapsed ? "justify-center px-2 py-2" : "gap-3 px-4 py-2.5",
         active
           ? isAgrinas
-            ? "bg-aqua-50 text-aqua-800"
-            : "bg-verdant-50 text-verdant-800"
-          : "text-ink-600 hover:bg-surface-muted hover:text-foreground",
+            ? "bg-[#e7fafc] text-[#0c6a78]"
+            : "bg-soft-green text-emerald-950"
+          : "text-gray-500 hover:bg-gray-50 hover:text-gray-900",
       )}
     >
       <Icon
         size={18}
         className={cn(
-          "shrink-0",
+          "shrink-0 transition-colors",
           active
             ? isAgrinas
-              ? "text-aqua-700"
-              : "text-verdant-700"
-            : "text-ink-400",
+              ? "text-[#0c6a78]"
+              : "text-emerald-800"
+            : "text-gray-400 group-hover:text-gray-700",
         )}
       />
       {collapsed ? null : (
@@ -139,7 +140,7 @@ function NavLink({
             <span
               className={cn(
                 "ml-auto h-5 w-1 rounded-full",
-                isAgrinas ? "bg-aqua-500" : "bg-verdant-500",
+                isAgrinas ? "bg-[#0c6a78]" : "bg-emerald-700",
               )}
               aria-hidden
             />
@@ -166,14 +167,14 @@ function SidebarContent({
   const isAgrinas = role === "agrinas";
 
   const roleBadgeClass = isAgrinas
-    ? "bg-aqua-50 text-aqua-700"
-    : "bg-verdant-50 text-verdant-700";
+    ? "bg-[#e7fafc] text-[#0c6a78] border border-[#c3f2f6]"
+    : "bg-soft-green text-emerald-950 border border-soft-green/30";
 
   const roleLabel = isAgrinas ? "AGRINAS" : "PEMERINTAH";
   const roleIcon = isAgrinas ? (
-    <Package size={10} />
+    <Package size={10} className="text-[#0c6a78]" />
   ) : (
-    <ShieldCheck size={10} />
+    <ShieldCheck size={10} className="text-emerald-800" />
   );
 
   return (
@@ -183,7 +184,7 @@ function SidebarContent({
       <div
         className={cn(
           "flex items-center overflow-hidden pt-5 pb-4",
-          collapsed ? "justify-center px-2" : "gap-2 px-4",
+          collapsed ? "justify-center px-2" : "gap-2.5 px-4.5",
         )}
       >
         {collapsed ? null : (
@@ -198,7 +199,7 @@ function SidebarContent({
             </Link>
             <span
               className={cn(
-                "inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold tracking-wide uppercase",
+                "inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-[9px] font-bold tracking-wide uppercase shadow-sm",
                 roleBadgeClass,
               )}
             >
@@ -213,7 +214,7 @@ function SidebarContent({
             onClick={onToggle}
             aria-label={collapsed ? "Perlebar menu" : "Perkecil menu"}
             className={cn(
-              "hidden shrink-0 rounded-md p-1.5 text-ink-400 transition-colors hover:bg-surface-muted hover:text-foreground lg:block",
+              "hidden shrink-0 rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-55 hover:text-gray-800 lg:block",
               collapsed ? "" : "ml-auto",
             )}
           >
@@ -224,30 +225,35 @@ function SidebarContent({
 
       {/* Role context card */}
       {collapsed ? null : (
-        <div className="mx-4 mb-4 rounded-lg border border-border bg-surface-muted px-3 py-2.5">
-          <p className="text-sm font-semibold text-foreground">
+        <div className={cn(
+          "mx-4.5 mb-4 rounded-2xl border p-4 shadow-sm",
+          isAgrinas 
+            ? "border-[#c3f2f6] bg-[#e7fafc]/40" 
+            : "border-soft-green/30 bg-soft-green/20"
+        )}>
+          <p className="text-sm font-bold text-gray-900 leading-snug">
             {isAgrinas ? "PT Agrinas Pangan Nusantara" : "Kementerian Pertanian RI"}
           </p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {isAgrinas ? "Operator protokol offtake" : "Pengawas regulasi (hanya baca)"}
+          <p className="mt-1 text-xs font-semibold text-gray-500 leading-normal">
+            {isAgrinas ? "Operator protokol offtake" : "Pengawas regional (hanya baca)"}
           </p>
         </div>
       )}
 
       {/* Navigation */}
       <nav
-        className={cn("flex-1 space-y-4 overflow-y-auto", collapsed ? "px-2" : "px-3")}
+        className={cn("flex-1 space-y-4.5 overflow-y-auto pt-2", collapsed ? "px-2" : "px-3")}
         aria-label="Menu pengawasan"
       >
         {navGroups.map((group) => (
-          <div key={group.label ?? "utama"}>
+          <div key={group.label ?? "utama"} className="space-y-1.5">
             {group.label && !collapsed ? (
-              <p className="px-3 pb-1 text-[10px] font-semibold tracking-[0.14em] text-ink-400 uppercase">
+              <p className="px-4 pb-1 text-[10px] font-bold tracking-[0.14em] text-gray-400 uppercase">
                 {group.label}
               </p>
             ) : null}
             {group.label && collapsed ? (
-              <div className="mx-2 mb-1 border-t border-border" />
+              <div className="mx-2 mb-1.5 border-t border-gray-100" />
             ) : null}
             <div className="space-y-1">
               {group.items.map((item) => (
@@ -266,13 +272,13 @@ function SidebarContent({
       </nav>
 
       {/* Footer: ganti peran + user info */}
-      <div className={cn("border-t border-border py-4", collapsed ? "px-2" : "px-4")}>
+      <div className={cn("border-t border-gray-100 py-4.5 bg-white", collapsed ? "px-2" : "px-4")}>
         {collapsed ? (
-          <div className="flex flex-col items-center gap-2">
+          <div className="flex flex-col items-center gap-3">
             <div
               className={cn(
-                "flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold",
-                isAgrinas ? "bg-aqua-100 text-aqua-800" : "bg-verdant-100 text-verdant-800",
+                "flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold shadow-sm",
+                isAgrinas ? "bg-[#e7fafc] text-[#0c6a78]" : "bg-soft-green text-emerald-950",
               )}
             >
               {isAgrinas ? "AG" : "PG"}
@@ -282,7 +288,7 @@ function SidebarContent({
               onClick={() => void signOutToAuth()}
               title="Keluar"
               aria-label="Keluar"
-              className="rounded-md p-2 text-ink-500 transition-colors hover:bg-red-50 hover:text-red-700"
+              className="rounded-full p-2.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600"
             >
               <LogOut size={16} />
             </button>
@@ -292,21 +298,21 @@ function SidebarContent({
             <div className="flex items-center gap-3">
               <div
                 className={cn(
-                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold",
-                  isAgrinas ? "bg-aqua-100 text-aqua-800" : "bg-verdant-100 text-verdant-800",
+                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold shadow-sm",
+                  isAgrinas ? "bg-[#e7fafc] text-[#0c6a78]" : "bg-soft-green text-emerald-950",
                 )}
               >
                 {isAgrinas ? "AG" : "PG"}
               </div>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-foreground">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-bold text-gray-900">
                   {isAgrinas ? "Operator Agrinas" : "Petugas Pengawas"}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-[11px] font-semibold text-gray-400 mt-0.5">
                   {isAgrinas ? "Akses penuh operator" : "Hanya baca"}
                 </p>
               </div>
-              <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-aqua-50 px-2 py-0.5 text-[10px] font-semibold text-aqua-700">
+              <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-cyan-50 px-2 py-0.5 text-[9px] font-bold text-cyan-800 border border-cyan-100">
                 <Wifi size={10} />
                 Testnet
               </span>
@@ -314,9 +320,9 @@ function SidebarContent({
             <button
               type="button"
               onClick={() => void signOutToAuth()}
-              className="mt-3 flex min-h-10 w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-ink-600 transition-colors hover:bg-red-50 hover:text-red-700 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+              className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-gray-100 px-4 py-2.5 text-sm font-bold text-gray-600 transition-colors hover:bg-red-50 hover:text-red-700 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
             >
-              <LogOut size={16} />
+              <LogOut size={16} className="shrink-0" />
               Keluar
             </button>
           </>
@@ -354,11 +360,11 @@ export function OversightShell({
   const mainML = collapsed ? "lg:ml-16" : "lg:ml-64";
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#fcf9f8] urbangreen-body">
       {/* Desktop sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-30 hidden border-r border-border bg-surface lg:block",
+          "fixed inset-y-0 left-0 z-30 hidden border-r border-gray-100 bg-white lg:block",
           hydrated ? "transition-[width] duration-200" : "",
           railW,
         )}
@@ -367,34 +373,45 @@ export function OversightShell({
       </aside>
 
       {/* Mobile drawer */}
-      {open ? (
-        <div className="fixed inset-0 z-40 lg:hidden">
-          <button
-            type="button"
-            aria-label="Tutup menu"
-            className="absolute inset-0 bg-ink-950/40"
-            onClick={() => setOpen(false)}
-          />
-          <aside className="absolute inset-y-0 left-0 w-72 bg-surface shadow-lg">
-            <button
+      <AnimatePresence>
+        {open && (
+          <div className="fixed inset-0 z-40 lg:hidden">
+            <motion.button
               type="button"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.4 }}
+              exit={{ opacity: 0 }}
               aria-label="Tutup menu"
-              className="absolute top-4 right-4 rounded-md p-1.5 text-ink-500 hover:bg-surface-muted"
+              className="absolute inset-0 bg-black cursor-default"
               onClick={() => setOpen(false)}
+            />
+            <motion.aside
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="absolute inset-y-0 left-0 w-72 bg-white border-r border-gray-100 shadow-xl"
             >
-              <X size={18} />
-            </button>
-            <SidebarContent viewRole={role} onNavigate={() => setOpen(false)} />
-          </aside>
-        </div>
-      ) : null}
+              <button
+                type="button"
+                aria-label="Tutup menu"
+                className="absolute top-4 right-4 rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-800 transition-colors"
+                onClick={() => setOpen(false)}
+              >
+                <X size={18} />
+              </button>
+              <SidebarContent viewRole={role} onNavigate={() => setOpen(false)} />
+            </motion.aside>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Mobile topbar */}
-      <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-surface/90 px-4 backdrop-blur lg:hidden">
+      <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-gray-100 bg-white/95 px-4 backdrop-blur-md lg:hidden">
         <button
           type="button"
           aria-label="Buka menu"
-          className="rounded-md p-2 text-ink-600 hover:bg-surface-muted"
+          className="rounded-full p-2.5 text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition-colors"
           onClick={() => setOpen(true)}
         >
           <Menu size={20} />
@@ -402,8 +419,10 @@ export function OversightShell({
         <Logo className="h-6 w-auto" />
         <span
           className={cn(
-            "ml-auto inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase",
-            role === "agrinas" ? "bg-aqua-50 text-aqua-700" : "bg-verdant-50 text-verdant-700",
+            "ml-auto inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase shadow-sm border",
+            role === "agrinas" 
+              ? "bg-[#e7fafc] text-[#0c6a78] border-[#c3f2f6]" 
+              : "bg-soft-green text-emerald-950 border-soft-green/30",
           )}
         >
           {role === "agrinas" ? "AGRINAS" : "PEMERINTAH"}

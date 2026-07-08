@@ -66,24 +66,24 @@ function InboundCard({
 
   if (isDone) {
     return (
-      <div className="rounded-lg border border-aqua-200 bg-aqua-50/60 p-5">
+      <div className="rounded-2xl border border-cyan-150 bg-[#e7fafc]/45 p-6 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
-              <CheckCircle2 size={18} className="text-emerald-600" />
-              <span className="font-semibold text-foreground">
+              <CheckCircle2 size={18} className="text-[#0c6a78]" />
+              <span className="font-bold text-gray-900">
                 Perjanjian #{String(agreement.onchainId)}, {farmerName}
               </span>
             </div>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-1 text-sm text-gray-600 font-medium">
               Barang diterima. Utang saprotan{" "}
-              <RupiahAmount smallest={agreement.inputDebt} className="text-sm" /> kini aktif sebagai
+              <RupiahAmount smallest={agreement.inputDebt} className="text-sm font-bold text-gray-900" /> kini aktif sebagai
               kewajiban petani.
             </p>
           </div>
           {doneTxHash && <TxHashLink hash={doneTxHash} />}
         </div>
-        <Alert tone="success" className="mt-4">
+        <Alert tone="success" className="mt-4 rounded-xl">
           Status perjanjian berubah menjadi Berjalan. Gerbang konfirmasi ganda selesai: Agrinas
           kirim, KMP terima. Utang saprotan mulai dihitung.
         </Alert>
@@ -92,30 +92,30 @@ function InboundCard({
   }
 
   return (
-    <div className="rounded-lg border border-indigo-200 bg-indigo-50/50 p-5">
+    <div className="rounded-2xl border border-indigo-100 bg-indigo-50/20 p-6 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="font-semibold text-foreground">
+          <p className="font-bold text-gray-900">
             Perjanjian #{String(agreement.onchainId)}, {farmerName}
           </p>
-          <p className="mt-0.5 text-sm text-muted-foreground">
+          <p className="mt-1 text-xs text-gray-500 font-semibold">
             {agreement.commodityCode === "GABAH" ? "Gabah Kering Panen" : "Jagung Pipilan"}
           </p>
-          <div className="mt-3 flex flex-wrap gap-6 text-sm">
+          <div className="mt-4 flex flex-wrap gap-6 text-sm font-bold text-gray-700">
             <div>
-              <span className="text-muted-foreground">Pokok Agrinas: </span>
-              <RupiahAmount smallest={agreement.basePriceAgrinas} className="text-sm" />
+              <span className="text-gray-400 font-medium">Pokok Agrinas: </span>
+              <RupiahAmount smallest={agreement.basePriceAgrinas} className="text-sm font-bold text-gray-900" />
             </div>
             <div>
-              <span className="text-muted-foreground">Utang petani jika diterima: </span>
-              <RupiahAmount smallest={agreement.inputDebt} className="text-sm" />
+              <span className="text-gray-400 font-medium">Utang petani jika diterima: </span>
+              <RupiahAmount smallest={agreement.inputDebt} className="text-sm font-bold text-gray-900" />
             </div>
             <div>
-              <span className="text-muted-foreground">Perkiraan panen: </span>
-              <span>{formatKg(agreement.expectedVolKg)}</span>
+              <span className="text-gray-400 font-medium">Perkiraan panen: </span>
+              <span className="text-gray-900">{formatKg(agreement.expectedVolKg)}</span>
             </div>
           </div>
-          <p className="mt-2 text-xs text-muted-foreground">
+          <p className="mt-2.5 text-xs text-gray-400 font-semibold">
             Tanggal pengiriman Agrinas: {agreement.createdAt}
           </p>
         </div>
@@ -123,11 +123,13 @@ function InboundCard({
         {/* Accept button */}
         <div className="flex flex-col items-end gap-2">
           <Button
+            type="button"
             variant="accent"
             size="md"
             leftIcon={<Truck size={16} />}
             disabled={isAnyProcessing && !isMine}
             onClick={onAccept}
+            className="rounded-full bg-[#0c6a78] hover:bg-[#0c6a78]/95 text-white"
           >
             {isMine && state === "signing"
               ? "Menandatangani..."
@@ -136,7 +138,7 @@ function InboundCard({
                 : "Periksa dan Terima Barang"}
           </Button>
           {isMine && (
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-amber-700 font-semibold">
               {state === "signing"
                 ? "Konfirmasi di dompet Freighter"
                 : "Menunggu konfirmasi Stellar"}
@@ -145,7 +147,7 @@ function InboundCard({
         </div>
       </div>
 
-      <Alert tone="info" className="mt-4">
+      <Alert tone="info" className="mt-4 rounded-xl">
         Setelah diterima, utang saprotan petani menjadi kewajiban aktif. Tindakan ini mencatat
         konfirmasi fisik penerimaan barang oleh KMP di blockchain.
       </Alert>
@@ -233,20 +235,21 @@ export default function GudangPage() {
       </div>
 
       {/* Zone 1: On-chain inbound supply */}
-      <Card>
+      <Card className="rounded-[2rem] border-gray-100 bg-white shadow-sm overflow-hidden p-5 sm:p-6">
         <CardHeader
           title="Kargo Masuk dari Agrinas"
           description="Barang dalam perjalanan menunggu konfirmasi penerimaan fisik. Konfirmasi Anda mengaktifkan utang saprotan petani."
           action={
-            <span className="flex items-center gap-1 rounded-full bg-aqua-100 px-2.5 py-0.5 text-xs font-semibold text-aqua-700">
+            <span className="flex items-center gap-1 rounded-full bg-cyan-50 border border-cyan-150/40 px-3 py-0.5 text-xs font-bold text-[#0c6a78] uppercase">
               <LinkIcon size={11} />
               On-chain
             </span>
           }
+          className="pb-3"
         />
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 pt-3">
           {inbound.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
+            <div className="rounded-2xl border border-dashed border-gray-150 py-10 text-center text-sm text-gray-500 font-semibold bg-gray-50/30">
               Tidak ada kiriman saprotan yang sedang menunggu konfirmasi.
             </div>
           ) : (
@@ -270,20 +273,21 @@ export default function GudangPage() {
       </Card>
 
       {/* Zone 2: Off-chain stock (clearly labeled) */}
-      <Card>
+      <Card className="rounded-[2rem] border-gray-100 bg-white shadow-sm overflow-hidden p-5 sm:p-6">
         <CardHeader
           title="Stok Gudang"
           description="Catatan fisik gudang koperasi. Data ini disimpan lokal, tidak di blockchain."
           action={
-            <Badge tone="neutral" icon={<Database size={11} />}>
+            <Badge tone="neutral" icon={<Database size={11} />} className="rounded-full font-bold">
               Catatan Lokal
             </Badge>
           }
+          className="pb-3"
         />
-        <CardContent className="space-y-6 p-0 pb-4">
+        <CardContent className="space-y-6 p-0 pb-4 pt-3">
           {/* Warning banner */}
-          <div className="mx-5 mt-2">
-            <Alert tone="warning" title="Data off-chain">
+          <div className="mx-5">
+            <Alert tone="warning" title="Data off-chain" className="rounded-xl">
               Tabel stok di bawah adalah catatan lokal koperasi. Tidak ada catatan blockchain untuk
               ini. Konfirmasi kargo Agrinas di zona atas yang menciptakan rekam on-chain.
             </Alert>
@@ -294,21 +298,21 @@ export default function GudangPage() {
             <Input
               name="stock-search"
               placeholder="Cari nama barang..."
-              leading={<Search size={15} />}
+              leading={<Search size={15} className="text-gray-400" />}
               value={stockSearch}
               onChange={(e) => setStockSearch(e.target.value)}
-              className="max-w-xs"
+              className="max-w-xs rounded-2xl border-gray-150"
             />
           </div>
 
           {/* Saprotan stock */}
           <div>
-            <div className="flex items-center gap-2 border-b border-border bg-surface-muted px-5 py-3">
-              <Warehouse size={15} className="text-verdant-600" />
-              <span className="text-sm font-semibold text-foreground">Saprotan</span>
-              <Badge tone="verdant">Pertanian</Badge>
+            <div className="flex items-center gap-2 border-b border-gray-100 bg-[#ebf5e9]/30 px-5 py-4">
+              <Warehouse size={15} className="text-emerald-700" />
+              <span className="text-sm font-bold text-gray-900">Saprotan</span>
+              <Badge tone="verdant" className="rounded-full">Pertanian</Badge>
             </div>
-            <TableFrame className="border-0 shadow-none">
+            <TableFrame className="border-0 shadow-none rounded-none overflow-visible">
               <Table>
                 <THead>
                   <Th>Barang</Th>
@@ -321,28 +325,28 @@ export default function GudangPage() {
                   {filteredSaprotan.length > 0 ? (
                     filteredSaprotan.map((s) => (
                       <Tr key={s.id}>
-                        <Td className="font-medium">{s.itemName}</Td>
-                        <Td className="text-right tabular-nums text-muted-foreground">{s.inQty}</Td>
-                        <Td className="text-right tabular-nums text-muted-foreground">
+                        <Td className="font-bold text-gray-900">{s.itemName}</Td>
+                        <Td className="text-right tabular-nums text-gray-500 font-medium">{s.inQty}</Td>
+                        <Td className="text-right tabular-nums text-gray-500 font-medium">
                           {s.outQty}
                         </Td>
                         <Td className="text-right tabular-nums">
                           <span
                             className={
                               s.balance === "0"
-                                ? "text-muted-foreground"
-                                : "font-semibold text-verdant-700"
+                                ? "text-gray-400 font-medium"
+                                : "font-bold text-emerald-800"
                             }
                           >
                             {s.balance}
                           </span>
                         </Td>
-                        <Td className="text-muted-foreground">{s.note}</Td>
+                        <Td className="text-gray-500 font-medium">{s.note}</Td>
                       </Tr>
                     ))
                   ) : (
                     <Tr>
-                      <Td colSpan={5} className="py-6 text-center text-muted-foreground">
+                      <Td colSpan={5} className="py-6 text-center text-gray-450 font-medium">
                         Tidak ada barang saprotan yang cocok.
                       </Td>
                     </Tr>
@@ -354,12 +358,12 @@ export default function GudangPage() {
 
           {/* Hasil panen stock */}
           <div>
-            <div className="flex items-center gap-2 border-b border-border bg-surface-muted px-5 py-3">
-              <Warehouse size={15} className="text-aqua-600" />
-              <span className="text-sm font-semibold text-foreground">Hasil Panen</span>
-              <Badge tone="aqua">Diteruskan ke Gudang Agrinas</Badge>
+            <div className="flex items-center gap-2 border-b border-gray-100 bg-cyan-50/20 px-5 py-4">
+              <Warehouse size={15} className="text-[#0c6a78]" />
+              <span className="text-sm font-bold text-gray-900">Hasil Panen</span>
+              <Badge tone="aqua" className="rounded-full">Diteruskan ke Gudang Agrinas</Badge>
             </div>
-            <TableFrame className="border-0 shadow-none">
+            <TableFrame className="border-0 shadow-none rounded-none overflow-visible">
               <Table>
                 <THead>
                   <Th>Komoditas</Th>
@@ -372,28 +376,28 @@ export default function GudangPage() {
                   {filteredHasil.length > 0 ? (
                     filteredHasil.map((s) => (
                       <Tr key={s.id}>
-                        <Td className="font-medium">{s.itemName}</Td>
-                        <Td className="text-right tabular-nums text-muted-foreground">{s.inQty}</Td>
-                        <Td className="text-right tabular-nums text-muted-foreground">
+                        <Td className="font-bold text-gray-900">{s.itemName}</Td>
+                        <Td className="text-right tabular-nums text-gray-500 font-medium">{s.inQty}</Td>
+                        <Td className="text-right tabular-nums text-gray-500 font-medium">
                           {s.outQty}
                         </Td>
                         <Td className="text-right tabular-nums">
                           <span
                             className={
                               s.balance === "0"
-                                ? "text-muted-foreground"
-                                : "font-semibold text-aqua-700"
+                                ? "text-gray-400 font-medium"
+                                : "font-bold text-[#0c6a78]"
                             }
                           >
                             {s.balance}
                           </span>
                         </Td>
-                        <Td className="text-muted-foreground">{s.note}</Td>
+                        <Td className="text-gray-500 font-medium">{s.note}</Td>
                       </Tr>
                     ))
                   ) : (
                     <Tr>
-                      <Td colSpan={5} className="py-6 text-center text-muted-foreground">
+                      <Td colSpan={5} className="py-6 text-center text-gray-450 font-medium">
                         Tidak ada hasil panen yang cocok.
                       </Td>
                     </Tr>
@@ -403,14 +407,14 @@ export default function GudangPage() {
             </TableFrame>
 
             {/* Summary row */}
-            <div className="mt-4 flex flex-wrap gap-6 px-5 text-sm">
+            <div className="mt-4 flex flex-wrap gap-4 px-5 text-sm">
               {hasilPanenStock.map((s) => (
-                <div key={s.id} className="rounded-lg border border-border bg-surface p-3">
-                  <p className="font-medium text-foreground">{s.itemName}</p>
-                  <p className="text-xs text-muted-foreground">
+                <div key={s.id} className="rounded-2xl border border-gray-100 bg-gray-50/50 p-4 shadow-sm font-semibold">
+                  <p className="font-bold text-gray-900">{s.itemName}</p>
+                  <p className="text-xs text-gray-500 font-medium mt-1 leading-normal">
                     Diterima: {s.inQty}. Diteruskan ke Gudang Agrinas: {s.outQty}
                   </p>
-                  <p className="mt-1 text-xs font-semibold text-aqua-700">
+                  <p className="mt-1.5 text-xs font-bold text-[#0c6a78]">
                     Sisa di gudang: {s.balance}
                   </p>
                 </div>

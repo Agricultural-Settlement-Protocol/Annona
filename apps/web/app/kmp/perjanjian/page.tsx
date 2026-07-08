@@ -24,7 +24,7 @@ export default async function PerjanjianPage() {
         description="Seluruh perjanjian offtake: aktif, selesai, dan perlu ditinjau."
         actions={
           <Link href="/kmp/perjanjian/baru">
-            <Button leftIcon={<FilePlus2 size={16} />}>Buat Perjanjian</Button>
+            <Button leftIcon={<FilePlus2 size={16} />} className="rounded-full bg-primary-dark hover:bg-opacity-95 text-white">Buat Perjanjian</Button>
           </Link>
         }
       />

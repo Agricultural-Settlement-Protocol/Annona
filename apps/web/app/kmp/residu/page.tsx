@@ -120,9 +120,9 @@ export default function ResiduPage() {
       )}
 
       {/* Top alert: mandatory, prominent */}
-      <Alert tone="warning" title="Residu pokok bukan milik koperasi">
+      <Alert tone="warning" title="Residu pokok bukan milik koperasi" className="rounded-xl">
         Uang ini adalah pokok saprotan Agrinas yang dikembalikan saat panen. KMP hanya memegang
-        sementara. Segera remitkan ke rekening Agrinas setelah pembayaran panen selesai.
+        sementain. Segera remitkan ke rekening Agrinas setelah pembayaran panen selesai.
         Keterlambatan dapat membekukan reputasi on-chain koperasi.
       </Alert>
 
@@ -130,20 +130,20 @@ export default function ResiduPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard
           label="Belum Disetor"
-          value={<RupiahAmount smallest={stats.pending} className="text-3xl" />}
+          value={<RupiahAmount smallest={stats.pending} className="text-3xl font-bold" />}
           hint="Residu yang belum diremitkan ke Agrinas"
           tone={stats.pending > 0n ? "warn" : "good"}
           icon={<Landmark size={18} />}
         />
         <StatCard
           label="Menunggu Verifikasi"
-          value={<RupiahAmount smallest={stats.remitted} className="text-3xl" />}
+          value={<RupiahAmount smallest={stats.remitted} className="text-3xl font-bold" />}
           hint="Transfer terkirim, menunggu konfirmasi Agrinas"
           icon={<Building2 size={18} />}
         />
         <StatCard
           label="Terverifikasi"
-          value={<RupiahAmount smallest={stats.cleared} className="text-3xl" />}
+          value={<RupiahAmount smallest={stats.cleared} className="text-3xl font-bold" />}
           hint="Residu diterima dan dikonfirmasi Agrinas"
           tone="good"
           icon={<ShieldCheck size={18} />}
@@ -151,13 +151,14 @@ export default function ResiduPage() {
       </div>
 
       {/* Ledger table */}
-      <Card>
+      <Card className="rounded-[2rem] border border-gray-100 bg-white shadow-sm overflow-hidden p-5 sm:p-6">
         <CardHeader
           title="Ledger Residu"
           description="Satu baris per perjanjian yang menghasilkan residu pokok. Tandai Disetor untuk mencatat bukti transfer."
-          action={<Landmark size={18} className="text-aqua-400" />}
+          action={<Landmark size={18} className="text-cyan-800" />}
+          className="pb-3"
         />
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 pt-3">
           <TableFrame>
             <Table>
               <THead>
@@ -181,9 +182,10 @@ export default function ResiduPage() {
                   const isActiveRow = activeRowId === row.id;
 
                   return (
-                    <>
-                      <Tr key={row.id}>
+                    <tr key={row.id} className="contents">
+                      <Tr className={isActiveRow ? "bg-cyan-50/20" : undefined}>
                         <Td>
+<<<<<<< HEAD
                           <Link
                             href={`/kmp/perjanjian/${row.agreementId}`}
                             className="text-accent hover:underline"
@@ -192,46 +194,62 @@ export default function ResiduPage() {
                           </Link>
                         </Td>
                         <Td className="font-medium">{row.farmerName}</Td>
+=======
+                          {agreement ? (
+                            <Link
+                              href={`/kmp/perjanjian/${agreement.id}`}
+                              className="font-mono text-xs font-bold text-[#0c6a78] hover:underline"
+                            >
+                              #{String(agreement.onchainId)}
+                            </Link>
+                          ) : (
+                            row.agreementId
+                          )}
+                        </Td>
+                        <Td className="font-bold text-gray-900">{farmer?.name ?? "(petani)"}</Td>
+>>>>>>> e56fca8 (refactor: overhaul UrbanGreen component structure and update KMP interface styling)
                         <Td>
-                          <RupiahAmount smallest={row.principalAmount} className="font-semibold" />
+                          <RupiahAmount smallest={row.principalAmount} className="font-bold text-gray-900" />
                         </Td>
                         <Td>
                           <ResiduStatusBadge status={currentStatus} />
                         </Td>
-                        <Td className="font-mono text-xs text-muted-foreground">
-                          {currentBankRef ?? <span className="text-muted-foreground">-</span>}
+                        <Td className="font-mono text-xs text-gray-500 font-semibold">
+                          {currentBankRef ?? <span className="text-gray-400">-</span>}
                         </Td>
-                        <Td className="tabular-nums text-muted-foreground">
-                          {currentRemittedAt ?? <span className="text-muted-foreground">-</span>}
+                        <Td className="tabular-nums text-gray-505 font-medium">
+                          {currentRemittedAt ?? <span className="text-gray-400">-</span>}
                         </Td>
-                        <Td className="tabular-nums text-muted-foreground">
-                          {row.clearedAt ?? <span className="text-muted-foreground">-</span>}
+                        <Td className="tabular-nums text-gray-505 font-medium">
+                          {row.clearedAt ?? <span className="text-gray-400">-</span>}
                         </Td>
                         <Td>
                           {currentTxHash ? (
                             <TxHashLink hash={currentTxHash} />
                           ) : (
-                            <span className="text-muted-foreground">-</span>
+                            <span className="text-gray-400">-</span>
                           )}
                         </Td>
                         <Td>
                           {currentStatus === "Pending" && !isActiveRow && (
                             <Button
+                              type="button"
                               variant="accent"
                               size="sm"
                               onClick={() => handleOpenRemit(row.id)}
+                              className="rounded-full bg-[#0c6a78] hover:bg-[#0c6a78]/95 text-white"
                             >
                               Tandai Disetor
                             </Button>
                           )}
                           {currentStatus === "Pending" && isActiveRow && (
-                            <span className="text-xs text-muted-foreground">Sedang diisi...</span>
+                            <span className="text-xs text-gray-500 font-semibold">Sedang diisi...</span>
                           )}
                           {currentStatus === "Remitted" && (
-                            <span className="text-xs text-muted-foreground">Menunggu Agrinas</span>
+                            <span className="text-xs text-gray-500 font-semibold">Menunggu Agrinas</span>
                           )}
                           {currentStatus === "Cleared" && (
-                            <span className="inline-flex items-center gap-1 text-xs text-emerald-700">
+                            <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-800">
                               <CheckCircle2 size={13} />
                               Selesai
                             </span>
@@ -242,22 +260,22 @@ export default function ResiduPage() {
                       {/* Inline action panel for the active row */}
                       {isActiveRow && currentStatus === "Pending" && (
                         <tr key={`${row.id}-panel`}>
-                          <td colSpan={9} className="bg-aqua-50/60 px-4 py-4">
+                          <td colSpan={9} className="bg-[#e7fafc]/30 border-y border-[#c3f2f6]/40 px-5 py-6">
                             {txRemit.state !== "success" ? (
-                              <div className="space-y-3">
+                              <div className="space-y-4">
                                 <div className="flex items-center justify-between">
-                                  <p className="font-semibold text-aqua-800">
+                                  <p className="font-bold text-[#0c6a78]">
                                     Tandai Disetor ke Agrinas
                                   </p>
                                   <button
                                     type="button"
                                     onClick={handleCloseRemit}
-                                    className="text-muted-foreground hover:text-foreground"
+                                    className="text-gray-400 hover:text-gray-700 transition-colors"
                                   >
                                     <X size={16} />
                                   </button>
                                 </div>
-                                <Alert tone="info">
+                                <Alert tone="info" className="rounded-xl">
                                   Masukkan referensi transfer bank dan unggah bukti transfer.
                                   Agrinas akan memverifikasi dan mengkonfirmasi via sistem mereka.
                                   Catatan ini dikunci di blockchain sebagai komitmen KMP.
@@ -269,18 +287,19 @@ export default function ResiduPage() {
                                     placeholder="Contoh: BCA-20260704-123"
                                     value={bankRefInput}
                                     onChange={(e) => setBankRefInput(e.target.value)}
+                                    className="rounded-2xl border-gray-150"
                                     hint={`Nilai: ${formatRupiah(row.principalAmount)}`}
                                   />
                                   <div>
                                     <label
                                       htmlFor={`file-${row.id}`}
-                                      className="mb-1.5 block text-sm font-medium text-foreground"
+                                      className="mb-2 block text-sm font-bold text-gray-900"
                                     >
                                       Bukti Transfer
                                     </label>
                                     <label
                                       htmlFor={`file-${row.id}`}
-                                      className="flex h-11 w-full cursor-pointer items-center gap-2 rounded-md border border-border bg-surface px-3 text-sm text-muted-foreground hover:border-ring"
+                                      className="flex h-12 w-full cursor-pointer items-center gap-3 rounded-2xl border border-gray-150 bg-white px-4 text-sm font-semibold text-gray-500 hover:border-emerald-600 transition-all shadow-sm"
                                     >
                                       {fileName ? fileName : "Pilih file bukti transfer..."}
                                       <input
@@ -293,7 +312,7 @@ export default function ResiduPage() {
                                         }
                                       />
                                     </label>
-                                    <p className="mt-1 text-xs text-muted-foreground">
+                                    <p className="mt-1.5 text-xs text-gray-400 font-semibold leading-relaxed">
                                       Format: gambar atau PDF. Tidak diunggah ke server dalam demo
                                       ini.
                                     </p>
@@ -301,11 +320,13 @@ export default function ResiduPage() {
                                 </div>
                                 <div className="flex gap-2">
                                   <Button
+                                    type="button"
                                     variant="accent"
                                     size="sm"
                                     leftIcon={<ShieldCheck size={14} />}
                                     disabled={!bankRefInput.trim() || txRemit.state !== "idle"}
                                     onClick={() => handleConfirmRemit(row.id)}
+                                    className="rounded-full bg-[#0c6a78] hover:bg-[#0c6a78]/95 text-white"
                                   >
                                     {txRemit.state === "signing"
                                       ? "Menandatangani..."
@@ -313,7 +334,7 @@ export default function ResiduPage() {
                                         ? "Mencatat di Stellar..."
                                         : "Konfirmasi Disetor"}
                                   </Button>
-                                  <Button variant="ghost" size="sm" onClick={handleCloseRemit}>
+                                  <Button type="button" variant="ghost" size="sm" onClick={handleCloseRemit} className="rounded-full">
                                     Batal
                                   </Button>
                                 </div>
@@ -343,7 +364,7 @@ export default function ResiduPage() {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </tr>
                   );
                 })}
               </TBody>
@@ -353,45 +374,46 @@ export default function ResiduPage() {
       </Card>
 
       {/* Bottom explainer */}
-      <Card>
+      <Card className="rounded-[2rem] border border-gray-100 bg-white shadow-sm overflow-hidden p-5 sm:p-6">
         <CardHeader
           title="Cara Kerja Dual Gate Residu"
           description="Dua tahap verifikasi melindungi Agrinas dan memastikan KMP tidak mengklaim residu sebagai milik sendiri."
-          action={<ShieldCheck size={18} className="text-verdant-400" />}
+          action={<ShieldCheck size={18} className="text-emerald-700" />}
+          className="pb-3"
         />
-        <CardContent className="space-y-3">
-          <ol className="space-y-3 text-sm text-foreground">
-            <li className="flex gap-3">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-verdant-100 text-xs font-bold text-verdant-700">
+        <CardContent className="space-y-4 pt-3">
+          <ol className="space-y-4 text-sm text-gray-700">
+            <li className="flex gap-3.5">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-xs font-bold text-emerald-800 border border-emerald-200/50">
                 1
               </span>
               <div>
-                <p className="font-medium">KMP Tandai Disetor</p>
-                <p className="text-muted-foreground">
+                <p className="font-bold text-gray-900">KMP Tandai Disetor</p>
+                <p className="text-xs text-gray-500 font-semibold leading-relaxed mt-0.5">
                   Petugas KMP mencatat referensi transfer dan bukti pengiriman. Komitmen dikunci di
                   blockchain. Status berubah menjadi Menunggu Verifikasi.
                 </p>
               </div>
             </li>
-            <li className="flex gap-3">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-aqua-100 text-xs font-bold text-aqua-700">
+            <li className="flex gap-3.5">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-cyan-50 text-xs font-bold text-cyan-800 border border-cyan-200/50">
                 2
               </span>
               <div>
-                <p className="font-medium">Agrinas Verifikasi</p>
-                <p className="text-muted-foreground">
+                <p className="font-bold text-gray-900">Agrinas Verifikasi</p>
+                <p className="text-xs text-gray-500 font-semibold leading-relaxed mt-0.5">
                   Agrinas mengkonfirmasi penerimaan transfer. Status berubah menjadi Terverifikasi.
                   Kewajiban KMP selesai.
                 </p>
               </div>
             </li>
-            <li className="flex gap-3">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-100 text-xs font-bold text-amber-700">
+            <li className="flex gap-3.5">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-50 text-xs font-bold text-amber-800 border border-amber-200/50">
                 !
               </span>
               <div>
-                <p className="font-medium">Jika Ada Sengketa</p>
-                <p className="text-muted-foreground">
+                <p className="font-bold text-gray-900">Jika Ada Sengketa</p>
+                <p className="text-xs text-gray-500 font-semibold leading-relaxed mt-0.5">
                   Agrinas dapat menandai sebagai Bermasalah jika ada perbedaan. Ini hanya indikator
                   untuk peninjauan manusia. Reputasi on-chain KMP dibekukan sementara. Keputusan
                   diselesaikan di luar sistem oleh pihak yang berwenang.
@@ -417,17 +439,17 @@ function RemitSuccess({
 }) {
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-aqua-200 bg-aqua-50 px-4 py-3">
-        <CheckCircle2 size={18} className="text-aqua-700" />
+      <div className="flex flex-wrap items-center gap-3.5 rounded-2xl border border-[#c3f2f6] bg-[#e7fafc]/45 px-5 py-4 shadow-sm">
+        <CheckCircle2 size={18} className="text-[#0c6a78]" />
         <div className="flex-1">
-          <p className="text-sm font-semibold text-aqua-700">Remitansi residu tercatat di chain</p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm font-bold text-gray-900">Remitansi residu tercatat di chain</p>
+          <p className="text-xs text-gray-500 font-semibold mt-0.5">
             Ref: {bankRef}. Menunggu verifikasi Agrinas.
           </p>
         </div>
         <TxHashLink hash={txHash} />
       </div>
-      <Button variant="ghost" size="sm" onClick={onDone}>
+      <Button type="button" variant="ghost" size="sm" onClick={onDone} className="rounded-full">
         Tutup
       </Button>
     </div>
