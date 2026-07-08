@@ -47,12 +47,24 @@ export default async function KmpHomePage() {
         actions={
           <>
             <Link href="/kmp/petani">
-              <Button variant="outline" size="md" leftIcon={<UserPlus size={16} />}>
+              <Button
+                type="button"
+                variant="outline"
+                size="md"
+                leftIcon={<UserPlus size={16} />}
+                className="rounded-full"
+              >
                 Daftarkan Petani
               </Button>
             </Link>
             <Link href="/kmp/perjanjian/baru">
-              <Button variant="primary" size="md" leftIcon={<FilePlus2 size={16} />}>
+              <Button
+                type="button"
+                variant="primary"
+                size="md"
+                leftIcon={<FilePlus2 size={16} />}
+                className="rounded-full bg-primary-dark hover:bg-opacity-95 text-white"
+              >
                 Buat Perjanjian
               </Button>
             </Link>
@@ -64,8 +76,8 @@ export default async function KmpHomePage() {
       <div
         className={
           cashFunded
-            ? "mb-6 flex flex-wrap items-center gap-4 rounded-lg border border-emerald-200 bg-emerald-50 px-5 py-4"
-            : "mb-6 flex flex-wrap items-center gap-4 rounded-lg border border-red-200 bg-red-50 px-5 py-4"
+            ? "mb-6 flex flex-wrap items-center gap-4 rounded-2xl border border-emerald-200/50 bg-[#ebf5e9]/55 px-5 py-4 shadow-sm"
+            : "mb-6 flex flex-wrap items-center gap-4 rounded-2xl border border-red-250 bg-red-50/50 px-5 py-4 shadow-sm"
         }
       >
         <span
@@ -78,15 +90,20 @@ export default async function KmpHomePage() {
           <Wallet size={18} />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-foreground">
-            {cashFunded ? "Kas siap untuk panen minggu ini" : "Kas kurang untuk panen minggu ini"}
+          <p className="text-sm font-bold text-gray-900">
+            {cashFunded
+              ? "Kas siap untuk panen minggu ini"
+              : "Kas kurang untuk panen minggu ini"}
           </p>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            Perlu disiapkan {formatRupiah(cashNeeded)} untuk pembayaran petani. Saldo kas saat ini{" "}
-            {formatRupiah(coop.prefundedCashBalance)}.
+          <p className="mt-1 text-xs text-gray-500 font-semibold leading-relaxed">
+            Perlu disiapkan {formatRupiah(cashNeeded)} untuk pembayaran petani.
+            Saldo kas saat ini {formatRupiah(coop.prefundedCashBalance)}.
           </p>
         </div>
-        <Badge tone={cashFunded ? "success" : "danger"}>
+        <Badge
+          tone={cashFunded ? "success" : "danger"}
+          className="rounded-full font-bold"
+        >
           {cashFunded ? "Terdanai" : "Kurang dana"}
         </Badge>
       </div>
@@ -95,7 +112,12 @@ export default async function KmpHomePage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Utang Saprotan Berjalan"
-          value={<RupiahAmount smallest={overview.outstandingDebt} className="text-3xl" />}
+          value={
+            <RupiahAmount
+              smallest={overview.outstandingDebt}
+              className="text-3xl font-bold"
+            />
+          }
           hint="Piutang koperasi ke petani aktif"
           icon={<Scale size={18} />}
         />
@@ -114,7 +136,12 @@ export default async function KmpHomePage() {
         />
         <StatCard
           label="Residu Pokok Agrinas"
-          value={<RupiahAmount smallest={overview.residuOwed} className="text-3xl" />}
+          value={
+            <RupiahAmount
+              smallest={overview.residuOwed}
+              className="text-3xl font-bold"
+            />
+          }
           hint="Uang Agrinas di kas KMP, wajib disetor balik"
           tone={overview.residuOwed > 0n ? "warn" : "good"}
           icon={<Landmark size={18} />}
@@ -124,37 +151,41 @@ export default async function KmpHomePage() {
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-5">
         <div className="space-y-6 lg:col-span-3">
           {/* Panen Minggu Ini */}
-          <Card>
+          <Card className="rounded-[2rem] border-gray-100 bg-white shadow-sm overflow-hidden p-5 sm:p-6">
             <CardHeader
               title="Panen Minggu Ini"
               description={`Perkiraan ${formatKg(harvest.totalKg)} senilai ${formatRupiah(harvest.totalValue)} (formula transparan, sumber BPS)`}
               action={
-                <span className="text-ink-400">
+                <span className="text-gray-400">
                   <CalendarClock size={18} />
                 </span>
               }
+              className="pb-3"
             />
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pt-3">
               {harvest.rows.map((a) => {
                 const deliveredKg = Number(a.deliveredVolG / 1000n);
                 return (
                   <Link
                     key={a.id}
                     href={`/kmp/perjanjian/${a.id}`}
-                    className="block rounded-lg border border-border p-4 transition-colors hover:border-verdant-300 hover:bg-surface-muted/60"
+                    className="block rounded-2xl border border-gray-100 p-5 bg-white transition-all hover:border-soft-green hover:bg-[#ebf5e9]/10 shadow-sm"
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
-                        <p className="text-sm font-semibold text-foreground">{a.farmerName}</p>
+                        <p className="text-sm font-semibold text-foreground">
+                          {a.farmerName}
+                        </p>
                         <p className="text-xs text-muted-foreground">
-                          {a.commodityCode === "GABAH" ? "Gabah" : "Jagung"}, perkiraan{" "}
-                          {formatKg(a.expectedVolKg)}, panen {a.expectedHarvestDate}
+                          {a.commodityCode === "GABAH" ? "Gabah" : "Jagung"},
+                          perkiraan {formatKg(a.expectedVolKg)}, panen{" "}
+                          {a.expectedHarvestDate}
                         </p>
                       </div>
                       <StatusBadge status={a.status} />
                     </div>
                     <ProgressBar
-                      className="mt-3"
+                      className="mt-3.5"
                       value={deliveredKg}
                       max={a.expectedVolKg}
                       label={`Setoran masuk ${formatKg(deliveredKg)}`}
@@ -163,7 +194,7 @@ export default async function KmpHomePage() {
                 );
               })}
               {harvest.rows.length === 0 ? (
-                <p className="py-4 text-center text-sm text-muted-foreground">
+                <p className="py-6 text-center text-sm text-gray-500 font-medium">
                   Tidak ada jadwal panen minggu ini.
                 </p>
               ) : null}
@@ -171,7 +202,7 @@ export default async function KmpHomePage() {
           </Card>
 
           {/* Inbound supply strip */}
-          <Card>
+          <Card className="rounded-[2rem] border-gray-100 bg-white shadow-sm overflow-hidden p-5 sm:p-6">
             <CardHeader
               title="Kiriman Saprotan Masuk"
               description="Kargo Agrinas dalam perjalanan, menunggu konfirmasi penerimaan Anda."
@@ -180,25 +211,32 @@ export default async function KmpHomePage() {
                   <Truck size={18} />
                 </span>
               }
+              className="pb-3"
             />
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-3 pt-3">
               {inbound.map((a) => {
                 return (
                   <div
                     key={a.id}
-                    className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-indigo-100 bg-indigo-50/50 px-4 py-3"
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-indigo-100 bg-indigo-50/30 px-5 py-4"
                   >
                     <div>
                       <p className="text-sm font-semibold text-foreground">
                         Perjanjian #{String(a.onchainId)}, {a.farmerName}
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        Nilai pokok {formatRupiah(a.basePriceAgrinas)}, utang belum aktif sebelum
-                        barang diterima
+                      <p className="text-xs text-gray-500 font-semibold mt-1">
+                        Nilai pokok {formatRupiah(a.basePriceAgrinas)}, utang
+                        belum aktif sebelum barang diterima
                       </p>
                     </div>
                     <Link href="/kmp/gudang">
-                      <Button size="sm" variant="accent" rightIcon={<ArrowRight size={14} />}>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="accent"
+                        rightIcon={<ArrowRight size={14} />}
+                        className="rounded-full bg-indigo-600 hover:bg-opacity-95 text-white"
+                      >
                         Periksa & Terima
                       </Button>
                     </Link>
@@ -206,7 +244,7 @@ export default async function KmpHomePage() {
                 );
               })}
               {inbound.length === 0 ? (
-                <p className="py-4 text-center text-sm text-muted-foreground">
+                <p className="py-6 text-center text-sm text-gray-500 font-medium">
                   Tidak ada kiriman dalam perjalanan.
                 </p>
               ) : null}
@@ -218,13 +256,14 @@ export default async function KmpHomePage() {
             the LEFT column (harvest + inbound cards); the feed scrolls inside
             instead of stretching the row. */}
         <div className="relative min-h-96 lg:col-span-2">
-          <Card className="flex h-full flex-col lg:absolute lg:inset-0">
+          <Card className="flex h-full flex-col lg:absolute lg:inset-0 rounded-[2rem] border-gray-100 bg-white shadow-sm overflow-hidden p-5 sm:p-6">
             <CardHeader
               title="Aktivitas Terbaru"
               description="Setiap baris adalah transaksi nyata di Stellar."
+              className="pb-3"
             />
-            <CardContent className="min-h-0 flex-1 p-0">
-              <ScrollArea viewportClassName="h-full px-5 pt-2" className="h-full">
+            <CardContent className="min-h-0 flex-1 p-0 pt-2">
+              <ScrollArea viewportClassName="h-full px-1" className="h-full">
                 <ActivityFeed items={MOCK_ACTIVITY} />
               </ScrollArea>
             </CardContent>

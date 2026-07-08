@@ -34,13 +34,23 @@ import {
   StatusBadge,
   TxHashLink,
 } from "@annona/ui";
-import { ArrowRight, Banknote, CheckCircle2, History, Landmark } from "lucide-react";
+import {
+  ArrowRight,
+  Banknote,
+  CheckCircle2,
+  History,
+  Landmark,
+} from "lucide-react";
 import Link from "next/link";
 import { useRef, useState } from "react";
 
 /** Statuses that can appear in the payment picker. Flagged included but
  *  disabled (needs review before settlement). */
-const PAYABLE_STATUSES: Status[] = ["Delivered", "PartiallyDelivered", "Flagged"];
+const PAYABLE_STATUSES: Status[] = [
+  "Delivered",
+  "PartiallyDelivered",
+  "Flagged",
+];
 
 export default function PembayaranPage() {
   /* ── Live data ───────────────────────────────────────────────────────── */
@@ -106,7 +116,9 @@ export default function PembayaranPage() {
       })
     : null;
 
-  const unsettledKg = agreement ? gramsToKg(agreement.deliveredVolG - agreement.settledVolG) : 0;
+  const unsettledKg = agreement
+    ? gramsToKg(agreement.deliveredVolG - agreement.settledVolG)
+    : 0;
 
   const isStaged = agreement?.status === "PartiallyDelivered";
 
@@ -151,7 +163,9 @@ export default function PembayaranPage() {
       />
 
       {loading && (
-        <p className="text-sm text-muted-foreground">Memuat perjanjian siap bayar...</p>
+        <p className="text-sm text-muted-foreground">
+          Memuat perjanjian siap bayar...
+        </p>
       )}
       {error && (
         <Alert tone="warning" title="Gagal memuat perjanjian">
@@ -186,10 +200,14 @@ export default function PembayaranPage() {
           {agreement && farmer && (
             <div className="mt-4 flex flex-wrap items-center gap-4 rounded-lg border border-border bg-surface-muted/60 px-4 py-3">
               <div>
-                <p className="text-sm font-semibold text-foreground">{farmer.name}</p>
+                <p className="text-sm font-semibold text-foreground">
+                  {farmer.name}
+                </p>
                 <p className="text-xs text-muted-foreground">
-                  {agreement.commodityCode === "GABAH" ? "Gabah Kering Panen" : "Jagung Pipilan"},{" "}
-                  Perjanjian #{String(agreement.onchainId)}
+                  {agreement.commodityCode === "GABAH"
+                    ? "Gabah Kering Panen"
+                    : "Jagung Pipilan"}
+                  , Perjanjian #{String(agreement.onchainId)}
                 </p>
               </div>
               <StatusBadge status={agreement.status} />
@@ -215,9 +233,10 @@ export default function PembayaranPage() {
           <CardContent className="space-y-4">
             {isStaged && (
               <Alert tone="info">
-                Ini adalah pembayaran bertahap. Petani telah menyetor {formatKg(unsettledKg)} sejauh
-                ini. Pembayaran dapat dilakukan sebelum seluruh volume disetor. Utang dicicil
-                terlebih dulu dari setiap tahap.
+                Ini adalah pembayaran bertahap. Petani telah menyetor{" "}
+                {formatKg(unsettledKg)} sejauh ini. Pembayaran dapat dilakukan
+                sebelum seluruh volume disetor. Utang dicicil terlebih dulu dari
+                setiap tahap.
               </Alert>
             )}
 
@@ -231,18 +250,26 @@ export default function PembayaranPage() {
 
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Utang tersisa sebelum bayar</span>
-                <RupiahAmount smallest={agreement.remainingDebt} className="text-sm" />
+                <span className="text-muted-foreground">
+                  Utang tersisa sebelum bayar
+                </span>
+                <RupiahAmount
+                  smallest={agreement.remainingDebt}
+                  className="text-sm"
+                />
               </div>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Utang dicicil kali ini</span>
+                <span className="text-muted-foreground">
+                  Utang dicicil kali ini
+                </span>
                 <RupiahAmount smallest={split.debtPaid} className="text-sm" />
               </div>
             </div>
 
             <p className="text-xs text-muted-foreground">
-              Ini adalah prakiraan. Jumlah final dikunci saat transaksi on-chain selesai. Kas keluar
-              via BRILink atau BRI, bukan langsung dari kontrak.
+              Ini adalah prakiraan. Jumlah final dikunci saat transaksi on-chain
+              selesai. Kas keluar via BRILink atau BRI, bukan langsung dari
+              kontrak.
             </p>
           </CardContent>
         </Card>
@@ -277,7 +304,8 @@ export default function PembayaranPage() {
             )}
             {txSettle.state === "submitting" && (
               <p className="text-xs text-muted-foreground">
-                Mencatat split tiga arah di blockchain. Proses 5 hingga 10 detik.
+                Mencatat split tiga arah di blockchain. Proses 5 hingga 10
+                detik.
               </p>
             )}
           </CardContent>
@@ -293,10 +321,12 @@ export default function PembayaranPage() {
                 <CheckCircle2 size={28} className="text-emerald-600" />
               </span>
               <div>
-                <h3 className="text-lg font-bold text-foreground">Pembayaran Tercatat</h3>
+                <h3 className="text-lg font-bold text-foreground">
+                  Pembayaran Tercatat
+                </h3>
                 <p className="text-sm text-muted-foreground">
-                  Catatan anti-manipulasi di Stellar. Kas keluar dari BRILink atau BRI, split tiga
-                  arah dikunci on-chain.
+                  Catatan anti-manipulasi di Stellar. Kas keluar dari BRILink
+                  atau BRI, split tiga arah dikunci on-chain.
                 </p>
               </div>
             </div>
@@ -314,7 +344,9 @@ export default function PembayaranPage() {
 
           {/* Bank ref note */}
           <div className="rounded-lg border border-border bg-surface px-4 py-3">
-            <p className="text-xs font-medium text-muted-foreground">Referensi kas / BRILink</p>
+            <p className="text-xs font-medium text-muted-foreground">
+              Referensi kas / BRILink
+            </p>
             <p className="mt-0.5 font-mono text-sm text-foreground">
               BRILink-{new Date().toISOString().slice(0, 10).replace(/-/g, "")}-
               {String(agreement.onchainId).padStart(4, "0")}
@@ -326,9 +358,13 @@ export default function PembayaranPage() {
 
           {/* Residu reminder */}
           <Alert tone="warning" title="Residu pokok Agrinas terkunci di kas">
-            Sebesar <RupiahAmount smallest={split.principalToAgrinas} className="text-sm" /> adalah
-            uang Agrinas yang tersimpan sementara di kas koperasi. Segera remitkan ke rekening
-            Agrinas.
+            Sebesar{" "}
+            <RupiahAmount
+              smallest={split.principalToAgrinas}
+              className="text-sm"
+            />{" "}
+            adalah uang Agrinas yang tersimpan sementara di kas koperasi. Segera
+            remitkan ke rekening Agrinas.
           </Alert>
 
           <div className="flex flex-wrap gap-3">

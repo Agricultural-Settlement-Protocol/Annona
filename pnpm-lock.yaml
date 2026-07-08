@@ -72,12 +72,15 @@ importers:
       '@annona/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+<<<<<<< HEAD
       '@stellar/freighter-api':
         specifier: ^4.1.0
         version: 4.1.0
       '@stellar/stellar-sdk':
         specifier: ^13.3.0
         version: 13.3.0
+=======
+>>>>>>> f5f431e (feat: Add off-chain logistics for harvest shipments and user authentication)
       '@supabase/ssr':
         specifier: ^0.12.0
         version: 0.12.0(@supabase/supabase-js@2.110.0)

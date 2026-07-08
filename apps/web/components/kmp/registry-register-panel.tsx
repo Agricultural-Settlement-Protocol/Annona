@@ -90,27 +90,27 @@ export function RegistryRegisterPanel({
   }
 
   return (
-    <div className="rounded-lg border border-verdant-200 bg-verdant-50/40 p-5">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-base font-semibold text-foreground">Daftarkan Petani Baru</h2>
+    <div className="rounded-[2.5rem] border border-soft-green/35 bg-[#ebf5e9]/95 backdrop-blur-md p-8 shadow-2xl">
+      <div className="mb-5 flex items-center justify-between">
+        <h2 className="text-lg font-bold text-gray-900">Daftarkan Petani Baru</h2>
         <button
           type="button"
           onClick={onClose}
           aria-label="Tutup formulir"
-          className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-surface hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="flex h-8 w-8 items-center justify-center rounded-full text-gray-500 hover:bg-white hover:text-gray-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
         >
           <X size={16} />
         </button>
       </div>
 
       {error ? (
-        <Alert tone="danger" className="mb-4">
+        <Alert tone="danger" className="mb-5 rounded-2xl">
           {error}
         </Alert>
       ) : null}
 
-      <form onSubmit={handleSubmit} noValidate className="space-y-4">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <form onSubmit={handleSubmit} noValidate className="space-y-5">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <Input
             label="Nama Lengkap"
             name="reg-name"
@@ -118,6 +118,7 @@ export function RegistryRegisterPanel({
             value={form.name}
             onChange={set("name")}
             required
+            className="rounded-2xl border-gray-100"
           />
           <Input
             label="No. KTP"
@@ -127,6 +128,7 @@ export function RegistryRegisterPanel({
             onChange={set("ktp")}
             hint="Di-hash SHA-256 sebelum dicatat ke chain. Nomor asli tidak pernah ke chain."
             required
+            className="rounded-2xl border-gray-100"
           />
           <Input
             label="Alamat Wallet Stellar"
@@ -135,6 +137,7 @@ export function RegistryRegisterPanel({
             value={form.wallet}
             onChange={set("wallet")}
             hint="Kosongkan untuk dibuat otomatis (simulasi demo)"
+            className="rounded-2xl border-gray-100"
           />
           <Input
             label="Kecamatan"
@@ -143,6 +146,7 @@ export function RegistryRegisterPanel({
             value={form.kecamatan}
             onChange={set("kecamatan")}
             required
+            className="rounded-2xl border-gray-100"
           />
           <Input
             label="Luas Lahan (ha)"
@@ -154,11 +158,12 @@ export function RegistryRegisterPanel({
             value={form.lahan}
             onChange={set("lahan")}
             required
+            className="rounded-2xl border-gray-100"
           />
           <div className="w-full">
             <label
               htmlFor="reg-commodity"
-              className="mb-1.5 block text-sm font-medium text-foreground"
+              className="mb-2 block text-sm font-bold text-gray-900"
             >
               Komoditas Utama
             </label>
@@ -166,7 +171,7 @@ export function RegistryRegisterPanel({
               id="reg-commodity"
               value={form.commodity}
               onChange={set("commodity")}
-              className="h-11 w-full rounded-md border border-border bg-surface px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              className="h-12 w-full rounded-2xl border border-gray-100 bg-white px-4 text-sm font-semibold text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-ring transition-all"
             >
               <option value="GABAH">Gabah Kering Panen</option>
               <option value="JAGUNG">Jagung Pipilan Kering</option>
@@ -174,11 +179,11 @@ export function RegistryRegisterPanel({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
-          <Button type="button" variant="outline" onClick={onClose}>
+        <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
+          <Button type="button" variant="outline" onClick={onClose} className="rounded-full px-5 py-2.5">
             Batal
           </Button>
-          <Button type="submit" variant="primary" disabled={loading}>
+          <Button type="submit" variant="primary" disabled={loading} className="rounded-full px-6 py-2.5 bg-primary-dark hover:bg-opacity-95">
             {loading ? "Memproses..." : "Daftarkan Petani"}
           </Button>
         </div>

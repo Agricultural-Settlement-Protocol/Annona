@@ -20,14 +20,14 @@ import { useMemo, useState } from "react";
 function PaidBadge({ paid }: { paid: boolean }) {
   if (paid) {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+      <span className="inline-flex items-center gap-1 rounded-full bg-[#ebf5e9] px-2.5 py-0.5 text-xs font-semibold text-[#0c7a48] border border-[#d2f9de]">
         <CheckCircle2 size={11} />
         Sudah Dibayar
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700">
+    <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-800 border border-amber-200/50">
       <Clock size={11} />
       Belum Dibayar
     </span>
@@ -71,22 +71,23 @@ export function DepositHistoryTable() {
   }, [allRows, query, dateRange]);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* Controls */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-md border border-border bg-surface px-3 focus-within:ring-2 focus-within:ring-ring">
-          <Search size={14} className="shrink-0 text-muted-foreground" />
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex h-12 min-w-0 flex-1 items-center gap-3 rounded-2xl border border-gray-100 bg-white px-4 shadow-sm focus-within:ring-2 focus-within:ring-ring">
+          <Search size={14} className="shrink-0 text-gray-400" />
           <input
             type="search"
             placeholder="Cari nama petani atau nomor perjanjian..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="h-full w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+            className="h-full w-full bg-transparent text-sm text-gray-800 outline-none placeholder:text-gray-400"
           />
         </div>
         <DateRangePicker value={dateRange} onChange={setDateRange} />
       </div>
 
+<<<<<<< HEAD
       {loading && <p className="text-sm text-muted-foreground">Memuat riwayat setoran...</p>}
       {error && (
         <Alert tone="warning" title="Gagal memuat riwayat setoran">
@@ -155,6 +156,64 @@ export function DepositHistoryTable() {
           </TableFrame>
         </ScrollArea>
       )}
+=======
+      {/* Table inside ScrollArea */}
+      <ScrollArea maxHeight={420} fade>
+        <TableFrame>
+          <Table>
+            <THead>
+              <Th>Tanggal</Th>
+              <Th>Petani</Th>
+              <Th>Perjanjian</Th>
+              <Th>Setoran ke</Th>
+              <Th>Volume (kg)</Th>
+              <Th>Grade</Th>
+              <Th>Kadar Air (%)</Th>
+              <Th>Status Bayar</Th>
+              <Th>Tx</Th>
+            </THead>
+            <TBody>
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="px-4 py-8 text-center text-sm text-gray-500 font-medium">
+                    Tidak ada data setoran ditemukan.
+                  </td>
+                </tr>
+              ) : (
+                filtered.map((row) => (
+                  <Tr key={row.delivery.id}>
+                    <Td className="tabular-nums">{row.delivery.deliveredAt}</Td>
+                    <Td className="font-bold text-gray-900">{row.farmer.name}</Td>
+                    <Td>
+                      <Link
+                        href={`/kmp/perjanjian/${row.agreement.id}`}
+                        className="text-emerald-700 font-bold hover:text-emerald-950 hover:underline"
+                      >
+                        #{String(row.agreement.onchainId)}
+                      </Link>
+                    </Td>
+                    <Td>Ke-{row.delivery.seq}</Td>
+                    <Td className="tabular-nums font-semibold text-gray-900">
+                      {row.delivery.volumeKg.toLocaleString("id-ID")}
+                    </Td>
+                    <Td className="font-semibold">{row.delivery.grade}</Td>
+                    <Td className="tabular-nums">
+                      {(row.delivery.moistureBps / 100).toFixed(1)}
+                    </Td>
+                    <Td>
+                      <PaidBadge paid={row.paid} />
+                    </Td>
+                    <Td>
+                      <TxHashLink hash={row.delivery.receiptTxHash} />
+                    </Td>
+                  </Tr>
+                ))
+              )}
+            </TBody>
+          </Table>
+        </TableFrame>
+      </ScrollArea>
+>>>>>>> e56fca8 (refactor: overhaul UrbanGreen component structure and update KMP interface styling)
     </div>
   );
 }

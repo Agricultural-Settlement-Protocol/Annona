@@ -84,42 +84,41 @@ export function SearchSelect({
           setQuery("");
         }}
         className={cn(
-          "flex h-11 w-full items-center justify-between gap-2 rounded-md border border-border",
-          "bg-surface px-3 text-left text-sm",
-          "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
-          selected ? "text-foreground" : "text-ink-400",
+          "flex h-12 w-full items-center justify-between gap-2.5 rounded-2xl border border-gray-100",
+          "bg-white px-4 text-left text-sm font-semibold shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-ring",
+          selected ? "text-gray-900" : "text-gray-400",
         )}
       >
         <span className="min-w-0 truncate">
           {selected ? (
             <>
-              <span className="font-medium">{selected.label}</span>
+              <span className="font-semibold">{selected.label}</span>
               {selected.sublabel ? (
-                <span className="ml-2 text-xs text-muted-foreground">{selected.sublabel}</span>
+                <span className="ml-2 text-xs text-gray-500 font-normal">{selected.sublabel}</span>
               ) : null}
             </>
           ) : (
             placeholder
           )}
         </span>
-        <ChevronsUpDown size={15} className="shrink-0 text-ink-400" />
+        <ChevronsUpDown size={15} className="shrink-0 text-gray-400" />
       </button>
 
       {open ? (
-        <div className="absolute z-30 mt-1.5 w-full overflow-hidden rounded-lg border border-border bg-surface shadow-lg">
-          <div className="flex items-center gap-2 border-b border-border px-3">
-            <Search size={14} className="shrink-0 text-ink-400" />
+        <div className="absolute z-30 mt-2 w-full overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-lg p-1.5">
+          <div className="flex items-center gap-2.5 border-b border-gray-50 px-4">
+            <Search size={14} className="shrink-0 text-gray-400" />
             <input
               ref={inputRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={searchPlaceholder}
-              className="h-10 w-full bg-transparent text-sm text-foreground outline-none placeholder:text-ink-400"
+              className="h-11 w-full bg-transparent text-sm text-gray-800 outline-none placeholder:text-gray-400 font-semibold"
             />
           </div>
           <ul id={listId} className="max-h-64 overflow-y-auto py-1" aria-label={placeholder}>
             {filtered.length === 0 ? (
-              <li className="px-3 py-4 text-center text-sm text-muted-foreground">{emptyText}</li>
+              <li className="px-3 py-4 text-center text-sm text-gray-500 font-medium">{emptyText}</li>
             ) : (
               filtered.map((item) => (
                 <li key={item.id}>
@@ -131,29 +130,29 @@ export function SearchSelect({
                       setOpen(false);
                     }}
                     className={cn(
-                      "flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm",
-                      "transition-colors hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-50",
-                      item.id === value && "bg-verdant-50",
+                      "flex w-full items-center gap-2.5 px-4 py-3 text-left text-sm font-semibold rounded-xl transition-all",
+                      "hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50",
+                      item.id === value && "bg-soft-green text-gray-900",
                     )}
                   >
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate font-medium text-foreground">
+                      <span className="block truncate font-semibold text-gray-900">
                         {item.label}
                         {item.disabled && item.disabledReason ? (
-                          <span className="ml-2 text-xs font-normal text-muted-foreground">
+                          <span className="ml-2 text-xs font-normal text-gray-400">
                             ({item.disabledReason})
                           </span>
                         ) : null}
                       </span>
                       {item.sublabel ? (
-                        <span className="block truncate text-xs text-muted-foreground">
+                        <span className="block truncate text-xs text-gray-500 font-normal mt-0.5">
                           {item.sublabel}
                         </span>
                       ) : null}
                     </span>
                     {item.extra}
                     {item.id === value ? (
-                      <Check size={15} className="shrink-0 text-verdant-600" />
+                      <Check size={15} className="shrink-0 text-emerald-700" />
                     ) : null}
                   </button>
                 </li>

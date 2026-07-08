@@ -34,9 +34,11 @@ import {
   CloudRain,
   Scale,
   X,
+  ChevronRight,
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
 
 /** Flag banner metadata — no em dashes in any string. */
 function flagMeta(flag: FlagReason | null): {
@@ -142,30 +144,36 @@ export function DepositDetailSheet({ agreement, farmer, onClose }: DepositDetail
   return (
     <>
       {/* Backdrop — click closes the sheet */}
-      <button
+      <motion.button
         type="button"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
         aria-label="Tutup panel"
-        className="fixed inset-0 z-40 cursor-default bg-black/40"
+        className="fixed inset-0 z-40 cursor-default bg-gray-950/20 backdrop-blur-sm pointer-events-auto"
         onClick={onClose}
       />
 
       {/* Panel */}
-      {/* biome-ignore lint/a11y/useSemanticElements: native dialog UA styles conflict with the fixed slide-over layout */}
-      <div
+      <motion.div
         role="dialog"
         aria-modal="true"
         aria-label={`Detail setoran panen ${farmer.name}`}
-        className="fixed right-0 top-0 z-50 flex h-full w-full max-w-xl flex-col border-l border-border bg-surface shadow-xl"
+        initial={{ x: "100%" }}
+        animate={{ x: 0 }}
+        exit={{ x: "100%" }}
+        transition={{ type: "spring", damping: 25, stiffness: 200 }}
+        className="fixed right-0 top-0 bottom-0 z-50 flex h-full w-full max-w-xl flex-col border-l border-gray-150 bg-[#fcf9f8] rounded-l-[2rem] shadow-[0_0_50px_0_rgba(0,0,0,0.08)] overflow-hidden pointer-events-auto"
       >
         {/* Sheet header */}
-        <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-4">
+        <div className="flex items-start justify-between gap-4 border-b border-gray-100 bg-white px-6 py-4.5">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-lg font-bold text-foreground">{farmer.name}</h2>
+              <h2 className="text-lg font-bold text-gray-900">{farmer.name}</h2>
               <ReputationBadge tier={farmer.repTier} />
               <StatusBadge status={agreement.status} />
             </div>
-            <p className="mt-0.5 text-sm text-muted-foreground">
+            <p className="mt-1 text-xs text-gray-500 font-medium">
               {agreement.commodityCode === "GABAH" ? "Gabah Kering Panen" : "Jagung Pipilan"} ·
               Perjanjian #{String(agreement.onchainId)} · Perkiraan{" "}
               {agreement.expectedVolKg.toLocaleString("id-ID")} kg
@@ -174,7 +182,7 @@ export function DepositDetailSheet({ agreement, farmer, onClose }: DepositDetail
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 rounded p-1.5 hover:bg-surface-muted focus:outline-none focus:ring-2 focus:ring-ring"
+            className="shrink-0 rounded-full p-2 hover:bg-gray-100 text-gray-500 hover:text-gray-800 transition-colors"
             aria-label="Tutup"
           >
             <X size={18} />
@@ -182,7 +190,7 @@ export function DepositDetailSheet({ agreement, farmer, onClose }: DepositDetail
         </div>
 
         {/* Scrollable body */}
-        <ScrollArea className="min-h-0 flex-1" viewportClassName="px-6 py-5" fade>
+        <ScrollArea className="min-h-0 flex-1" viewportClassName="px-6 py-6" fade>
           <div className="space-y-6">
             {/* Overall progress */}
             <ProgressBar
@@ -195,23 +203,23 @@ export function DepositDetailSheet({ agreement, farmer, onClose }: DepositDetail
             {/* Existing deposits */}
             {existingDeliveries.length > 0 && (
               <div>
-                <h3 className="mb-3 text-sm font-semibold text-foreground">
+                <h3 className="mb-3 text-sm font-bold text-gray-900">
                   Riwayat Setoran Perjanjian Ini
                 </h3>
                 <div className="space-y-2">
                   {existingDeliveries.map((dlv) => (
                     <div
                       key={dlv.id}
-                      className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-surface-muted/50 px-4 py-3"
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-gray-100 bg-white px-5 py-4 shadow-sm"
                     >
                       <div>
-                        <span className="text-sm font-medium text-foreground">
+                        <span className="text-sm font-bold text-gray-900">
                           Setoran ke-{dlv.seq}
                         </span>
-                        <span className="ml-2 text-xs text-muted-foreground">{dlv.deliveredAt}</span>
+                        <span className="ml-2 text-xs text-gray-500">{dlv.deliveredAt}</span>
                       </div>
-                      <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                        <span className="tabular-nums font-medium text-foreground">
+                      <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 font-medium">
+                        <span className="tabular-nums font-bold text-gray-900">
                           {dlv.volumeKg.toLocaleString("id-ID")} kg
                         </span>
                         <span>Grade {dlv.grade}</span>
@@ -226,15 +234,15 @@ export function DepositDetailSheet({ agreement, farmer, onClose }: DepositDetail
 
             {/* Finalize success panel */}
             {showFinalizeSuccess && txFinalize.txHash && (
-              <div className="rounded-xl border-2 border-aqua-200 bg-aqua-50/70 p-5 space-y-4">
+              <div className="rounded-2xl border border-[#c3f2f6]/60 bg-[#e7fafc]/60 p-5 space-y-4 shadow-sm">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-aqua-100">
-                      <CheckCircle2 size={22} className="text-aqua-700" />
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cyan-100">
+                      <CheckCircle2 size={22} className="text-[#0c6a78]" />
                     </span>
                     <div>
-                      <h3 className="font-bold text-foreground">Jendela panen ditutup</h3>
-                      <p className="text-sm text-muted-foreground">
+                      <h3 className="font-bold text-gray-900">Jendela panen ditutup</h3>
+                      <p className="text-xs text-gray-550">
                         Total setoran aktual dikunci di Stellar.
                       </p>
                     </div>
@@ -246,6 +254,7 @@ export function DepositDetailSheet({ agreement, farmer, onClose }: DepositDetail
                   title={
                     finalFlag === "None" ? "Perjanjian Disetor Penuh" : "Perjanjian Perlu Ditinjau"
                   }
+                  className="rounded-xl"
                 >
                   {finalStatusLabel(finalFlag)}
                   <span className="mt-1 block tabular-nums text-xs">
@@ -256,7 +265,7 @@ export function DepositDetailSheet({ agreement, farmer, onClose }: DepositDetail
                 </Alert>
                 <div className="flex flex-wrap gap-2">
                   <Link href="/kmp/pembayaran" onClick={onClose}>
-                    <Button variant="accent" size="sm" rightIcon={<ArrowRight size={14} />}>
+                    <Button variant="accent" size="sm" rightIcon={<ArrowRight size={14} />} className="rounded-full bg-[#0c6a78] hover:bg-opacity-95 text-white">
                       Lanjut ke Pembayaran
                     </Button>
                   </Link>
@@ -266,14 +275,14 @@ export function DepositDetailSheet({ agreement, farmer, onClose }: DepositDetail
 
             {/* Force majeure success */}
             {txFm.state === "success" && txFm.txHash && (
-              <div className="rounded-xl border-2 border-red-200 bg-red-50/80 p-5 space-y-3">
+              <div className="rounded-2xl border border-red-200 bg-red-50/80 p-5 space-y-3 shadow-sm">
                 <div className="flex flex-wrap items-center gap-3">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100">
                     <CloudRain size={20} className="text-red-600" />
                   </span>
                   <div className="flex-1">
-                    <p className="font-bold text-foreground">Gagal panen dikonfirmasi</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="font-bold text-gray-900">Gagal panen dikonfirmasi</p>
+                    <p className="text-xs text-gray-500">
                       Tanpa penalti reputasi. Utang direstrukturisasi di luar sistem.
                     </p>
                   </div>
@@ -286,8 +295,8 @@ export function DepositDetailSheet({ agreement, farmer, onClose }: DepositDetail
             {!showFinalizeSuccess && (
               <div className="space-y-5">
                 <div className="flex items-center gap-2">
-                  <Scale size={16} className="text-verdant-500" />
-                  <h3 className="text-sm font-semibold text-foreground">
+                  <Scale size={16} className="text-emerald-700" />
+                  <h3 className="text-sm font-bold text-gray-900">
                     Catat Setoran Baru (ke-{seqNum})
                   </h3>
                 </div>
@@ -303,23 +312,24 @@ export function DepositDetailSheet({ agreement, farmer, onClose }: DepositDetail
                     value={volumeKg}
                     onChange={(e) => setVolumeKg(e.target.value)}
                     disabled={formLocked}
+                    className="rounded-2xl border-gray-150"
                     hint={`Sisa: ${(agreement.expectedVolKg - deliveredSoFarKg).toLocaleString("id-ID")} kg`}
                   />
 
                   <div className="w-full">
                     <label
                       htmlFor="sheet-grade"
-                      className="mb-1.5 block text-sm font-medium text-foreground"
+                      className="mb-1.5 block text-sm font-bold text-gray-900"
                     >
                       Grade
                     </label>
-                    <div className="flex h-11 items-center gap-2 rounded-md border border-border bg-surface px-3 focus-within:ring-2 focus-within:ring-ring">
+                    <div className="flex h-12 items-center gap-2.5 rounded-2xl border border-gray-100 bg-white px-4 shadow-sm focus-within:ring-2 focus-within:ring-ring transition-all">
                       <select
                         id="sheet-grade"
                         value={grade}
                         onChange={(e) => setGrade(e.target.value)}
                         disabled={formLocked}
-                        className="h-full w-full bg-transparent text-sm text-foreground outline-none disabled:opacity-50"
+                        className="h-full w-full bg-transparent text-sm font-semibold text-gray-900 outline-none disabled:opacity-50"
                       >
                         <option value="A">Grade A (terbaik)</option>
                         <option value="B">Grade B (standar)</option>
@@ -338,12 +348,13 @@ export function DepositDetailSheet({ agreement, farmer, onClose }: DepositDetail
                     value={moisturePct}
                     onChange={(e) => setMoisturePct(e.target.value)}
                     disabled={formLocked}
+                    className="rounded-2xl border-gray-150"
                     hint="SOP maks 25%"
                   />
                 </div>
 
                 {Number.parseFloat(moisturePct) > 25 && (
-                  <Alert tone="warning">
+                  <Alert tone="warning" className="rounded-xl">
                     Kadar air {moisturePct}% melebihi batas SOP gabah kering panen (maks 25%).
                     Pastikan pengukuran benar sebelum mencatat setoran.
                   </Alert>
@@ -351,14 +362,14 @@ export function DepositDetailSheet({ agreement, farmer, onClose }: DepositDetail
 
                 {/* Live flag preview */}
                 {flagResult !== null && inputKgNum > 0 && (
-                  <div className="rounded-lg border border-border bg-surface-muted/40 p-4 space-y-3">
-                    <div className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
-                      <AlertTriangle size={14} />
+                  <div className="rounded-2xl border border-gray-100 bg-white p-5 space-y-4 shadow-sm">
+                    <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
+                      <AlertTriangle size={15} className="text-amber-600" />
                       Prakiraan flag setoran
                     </div>
-                    <Alert tone={flagTone} title={flagLabel}>
+                    <Alert tone={flagTone} title={flagLabel} className="rounded-xl">
                       {flagDetail}
-                      <span className="mt-1 block tabular-nums text-xs">
+                      <span className="mt-1 block tabular-nums text-xs font-semibold">
                         Total: {totalDeliveredKg.toLocaleString("id-ID")} kg dari{" "}
                         {agreement.expectedVolKg.toLocaleString("id-ID")} kg (
                         {Math.round(ratio * 100)}%)
@@ -366,23 +377,23 @@ export function DepositDetailSheet({ agreement, farmer, onClose }: DepositDetail
                     </Alert>
                     <div className="flex flex-wrap gap-1.5">
                       {[
-                        { label: "98% ke atas: Sesuai", cls: "bg-verdant-100 text-verdant-700" },
+                        { label: "98% ke atas: Sesuai", cls: "bg-[#ebf5e9] text-[#0c7a48] border border-[#d2f9de]" },
                         {
                           label: "80 hingga 98%: Di bawah perkiraan",
-                          cls: "bg-amber-100 text-amber-700",
+                          cls: "bg-amber-50 text-amber-800 border border-amber-200/50",
                         },
                         {
                           label: "40 hingga 80%: Jauh di bawah",
-                          cls: "bg-amber-200 text-amber-800",
+                          cls: "bg-amber-100 text-amber-900 border border-amber-300/50",
                         },
                         {
                           label: "Di bawah 40%: Perlu peninjauan",
-                          cls: "bg-red-100 text-red-700",
+                          cls: "bg-red-50 text-red-700 border border-red-200/55",
                         },
                       ].map((t) => (
                         <span
                           key={t.label}
-                          className={`rounded-full px-2.5 py-1 text-xs font-medium ${t.cls}`}
+                          className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${t.cls}`}
                         >
                           {t.label}
                         </span>
@@ -403,11 +414,12 @@ export function DepositDetailSheet({ agreement, farmer, onClose }: DepositDetail
                   {txDeliver.state !== "success" && (
                     <div className="space-y-2">
                       <Button
+                        type="button"
                         variant="primary"
                         size="md"
                         disabled={!canDeliver || txDeliver.state !== "idle"}
                         onClick={txDeliver.run}
-                        className="w-full"
+                        className="w-full rounded-full bg-primary-dark text-white hover:bg-opacity-95"
                       >
                         {txDeliver.state === "signing"
                           ? "Menandatangani..."
@@ -416,17 +428,17 @@ export function DepositDetailSheet({ agreement, farmer, onClose }: DepositDetail
                             : "Catat Setoran"}
                       </Button>
                       {txDeliver.state === "idle" && !canDeliver && (
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-gray-500 text-center font-medium">
                           Masukkan volume setoran untuk melanjutkan.
                         </p>
                       )}
                       {txDeliver.state === "signing" && (
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-amber-700 text-center font-semibold">
                           Konfirmasi tanda tangan di Freighter. Jangan tutup jendela.
                         </p>
                       )}
                       {txDeliver.state === "submitting" && (
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-emerald-800 text-center font-semibold">
                           Menunggu konfirmasi Stellar. Proses 5 hingga 10 detik.
                         </p>
                       )}
@@ -435,13 +447,13 @@ export function DepositDetailSheet({ agreement, farmer, onClose }: DepositDetail
 
                   {/* Deliver success banner */}
                   {txDeliver.state === "success" && txDeliver.txHash && (
-                    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-verdant-200 bg-verdant-50 px-4 py-3">
-                      <CheckCircle2 size={16} className="text-verdant-700" />
+                    <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[#d2f9de] bg-[#ebf5e9] px-5 py-4 shadow-sm">
+                      <CheckCircle2 size={16} className="text-[#0c7a48]" />
                       <div className="flex-1">
-                        <p className="text-sm font-semibold text-verdant-700">
+                        <p className="text-sm font-bold text-gray-900">
                           Resi panen tercatat di chain
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-gray-500 font-medium">
                           Bukti setoran tersimpan permanen di Stellar testnet.
                         </p>
                       </div>
@@ -451,32 +463,34 @@ export function DepositDetailSheet({ agreement, farmer, onClose }: DepositDetail
 
                   {/* Post-deliver next-step options */}
                   {showPostDeliverOptions && (
-                    <div className="space-y-3 border-t border-border pt-3">
-                      <p className="text-sm font-medium text-foreground">
+                    <div className="space-y-3 border-t border-gray-100 pt-4">
+                      <p className="text-sm font-bold text-gray-900">
                         Setoran tercatat. Pilih langkah berikutnya:
                       </p>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="rounded-lg border border-border p-3">
-                          <p className="mb-1 text-sm font-semibold text-foreground">Setor Lagi</p>
-                          <p className="mb-2 text-xs text-muted-foreground">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                          <p className="mb-1 text-sm font-bold text-gray-900">Setor Lagi</p>
+                          <p className="mb-3 text-xs text-gray-500 font-medium leading-relaxed">
                             Petani masih akan menyetor lagi.
                           </p>
-                          <Button variant="outline" size="sm" onClick={handleSetorLagi}>
+                          <Button type="button" variant="outline" size="sm" onClick={handleSetorLagi} className="rounded-full">
                             Setor Lagi
                           </Button>
                         </div>
-                        <div className="rounded-lg border border-border p-3">
-                          <p className="mb-1 text-sm font-semibold text-foreground">
+                        <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                          <p className="mb-1 text-sm font-bold text-gray-900">
                             Tandai Selesai
                           </p>
-                          <p className="mb-2 text-xs text-muted-foreground">
+                          <p className="mb-3 text-xs text-gray-500 font-medium leading-relaxed">
                             Kunci jendela panen. Flag dihitung.
                           </p>
                           <Button
+                            type="button"
                             variant="accent"
                             size="sm"
                             onClick={() => setShowFinalizeConfirm(true)}
                             disabled={showFinalizeConfirm}
+                            className="rounded-full bg-[#0c6a78] hover:bg-opacity-95 text-white"
                           >
                             Tandai Selesai
                           </Button>
@@ -485,31 +499,32 @@ export function DepositDetailSheet({ agreement, farmer, onClose }: DepositDetail
 
                       {/* Finalize confirm panel */}
                       {showFinalizeConfirm && txFinalize.state !== "success" && (
-                        <div className="rounded-lg border border-aqua-200 bg-aqua-50/60 p-4 space-y-3">
+                        <div className="rounded-2xl border border-[#c3f2f6] bg-[#e7fafc]/60 p-5 space-y-4 shadow-sm">
                           <div className="flex items-center justify-between">
-                            <p className="font-semibold text-aqua-800">
+                            <p className="font-bold text-[#0c6a78]">
                               Konfirmasi Akhiri Jendela Panen
                             </p>
                             <button
                               type="button"
                               onClick={() => setShowFinalizeConfirm(false)}
-                              className="text-muted-foreground hover:text-foreground"
+                              className="text-gray-400 hover:text-gray-800 p-1"
                             >
                               <X size={15} />
                             </button>
                           </div>
-                          <Alert tone="info">
+                          <Alert tone="info" className="rounded-xl">
                             Tindakan ini menutup jendela panen. Total setoran aktual dikunci di
                             blockchain. Jika setoran di bawah 98% perkiraan, perjanjian otomatis
-                            ditandai Perlu Ditinjau. Ini hanya indikator, bukan keputusan final.
-                            Petugas yang memutuskan.
+                            ditandai Perlu Ditinjau.
                           </Alert>
                           <div className="flex gap-2">
                             <Button
+                              type="button"
                               variant="accent"
                               size="sm"
                               disabled={!canFinalize}
                               onClick={txFinalize.run}
+                              className="rounded-full bg-[#0c6a78] text-white"
                             >
                               {txFinalize.state === "signing"
                                 ? "Menandatangani..."
@@ -518,9 +533,11 @@ export function DepositDetailSheet({ agreement, farmer, onClose }: DepositDetail
                                   : "Konfirmasi Selesai"}
                             </Button>
                             <Button
+                              type="button"
                               variant="ghost"
                               size="sm"
                               onClick={() => setShowFinalizeConfirm(false)}
+                              className="rounded-full"
                             >
                               Batal
                             </Button>
@@ -532,39 +549,39 @@ export function DepositDetailSheet({ agreement, farmer, onClose }: DepositDetail
 
                   {/* Force majeure path — only when form is idle */}
                   {txDeliver.state === "idle" && txFm.state !== "success" && (
-                    <div className="border-t border-border pt-3">
+                    <div className="border-t border-gray-100 pt-4">
                       {!showFmConfirm ? (
                         <button
                           type="button"
                           onClick={() => setShowFmConfirm(true)}
-                          className="flex items-center gap-1.5 text-sm text-red-600 hover:underline focus:outline-none"
+                          className="flex items-center gap-1.5 text-sm font-semibold text-red-600 hover:text-red-800 focus:outline-none transition-colors"
                         >
                           <CloudRain size={13} />
                           Tandai Gagal Panen
                         </button>
                       ) : (
-                        <div className="rounded-lg border border-red-200 bg-red-50 p-4 space-y-3">
+                        <div className="rounded-2xl border border-red-100 bg-red-50/50 p-5 space-y-4 shadow-sm">
                           <div className="flex items-center justify-between">
-                            <p className="font-semibold text-red-700">Konfirmasi Gagal Panen</p>
+                            <p className="font-bold text-red-700">Konfirmasi Gagal Panen</p>
                             <button
                               type="button"
                               onClick={() => {
                                 setShowFmConfirm(false);
                                 setFmReason("");
                               }}
-                              className="text-muted-foreground hover:text-foreground"
+                              className="text-gray-400 hover:text-gray-800 p-1"
                             >
                               <X size={15} />
                             </button>
                           </div>
-                          <Alert tone="info">
+                          <Alert tone="info" className="rounded-xl">
                             Gagal panen dikonfirmasi tanpa penalti reputasi. Utang direstrukturisasi
                             di luar sistem sesuai prosedur koperasi.
                           </Alert>
                           <div>
                             <label
                               htmlFor="fm-reason-sheet"
-                              className="mb-1.5 block text-sm font-medium text-foreground"
+                              className="mb-2 block text-sm font-bold text-gray-900"
                             >
                               Alasan gagal panen
                             </label>
@@ -574,16 +591,18 @@ export function DepositDetailSheet({ agreement, farmer, onClose }: DepositDetail
                               onChange={(e) => setFmReason(e.target.value)}
                               placeholder="Contoh: Banjir, hama, kekeringan..."
                               rows={3}
-                              className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
+                              className="w-full rounded-2xl border border-gray-100 bg-white px-4 py-3 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-ring transition-all"
                             />
                           </div>
                           <div className="flex gap-2">
                             <Button
+                              type="button"
                               variant="danger"
                               size="sm"
                               leftIcon={<CloudRain size={13} />}
                               disabled={!fmReason.trim() || txFm.state !== "idle"}
                               onClick={txFm.run}
+                              className="rounded-full bg-red-600 hover:bg-opacity-95 text-white"
                             >
                               {txFm.state === "signing"
                                 ? "Menandatangani..."
@@ -592,12 +611,14 @@ export function DepositDetailSheet({ agreement, farmer, onClose }: DepositDetail
                                   : "Konfirmasi Gagal Panen"}
                             </Button>
                             <Button
+                              type="button"
                               variant="ghost"
                               size="sm"
                               onClick={() => {
                                 setShowFmConfirm(false);
                                 setFmReason("");
                               }}
+                              className="rounded-full"
                             >
                               Batal
                             </Button>
@@ -611,7 +632,7 @@ export function DepositDetailSheet({ agreement, farmer, onClose }: DepositDetail
             )}
           </div>
         </ScrollArea>
-      </div>
+      </motion.div>
     </>
   );
 }
