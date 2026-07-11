@@ -350,21 +350,12 @@ export function CreateAgreementForm() {
                           <span className="block truncate font-bold text-gray-900 text-sm">
                             {cat.name}
                           </span>
-<<<<<<< HEAD
                           <span className="block text-xs text-muted-foreground">
                             {CATEGORY_LABEL[cat.category] ?? cat.category}
                           </span>
                           <span className="mt-0.5 block text-xs text-muted-foreground">
                             <RupiahAmount smallest={cat.basePriceAgrinas} className="text-xs" /> per
                             satuan
-=======
-                          <span className="block text-xs text-gray-500 font-semibold mt-0.5">
-                            {CATEGORY_LABEL[cat.category] ?? cat.category}, {cat.unitLabel}
-                          </span>
-                          <span className="mt-1 block text-xs font-bold text-gray-700">
-                            <RupiahAmount smallest={cat.basePriceAgrinas} className="text-xs" /> per{" "}
-                            {cat.unitLabel}
->>>>>>> e56fca8 (refactor: overhaul UrbanGreen component structure and update KMP interface styling)
                           </span>
                         </label>
                         <div className="flex shrink-0 flex-col items-end gap-1.5">
@@ -543,7 +534,6 @@ export function CreateAgreementForm() {
                 <p className="text-xs font-bold text-gray-400">Formula (transparan)</p>
                 <p className="mt-1.5 text-sm text-gray-800 font-semibold">
                   {selectedFarmer.plotAreaHa} ha &times; {yieldRow.avgYieldTPerHa} t/ha &times;
-<<<<<<< HEAD
                   1.000 = <span className="font-semibold">{expectedVolKg.toLocaleString("id-ID")} kg</span>
                 </p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
@@ -555,18 +545,6 @@ export function CreateAgreementForm() {
                 <p className="text-xs font-semibold text-muted-foreground">Harga HPP</p>
                 <p className="mt-1 text-sm text-foreground">
                   <RupiahAmount smallest={priceRef.hpp} />
-=======
-                  1.000 = <span className="font-bold text-gray-900">{formatKg(expectedVolKg)}</span>
-                </p>
-                <p className="mt-1 text-[11px] text-gray-400 font-medium leading-relaxed">
-                  Sumber: {yieldRow.source}, Kab. Cianjur {yieldRow.year}. Bukan prediksi AI.
-                </p>
-              </div>
-              <div className="border-t border-gray-50 pt-4">
-                <p className="text-xs font-bold text-gray-400">Harga HPP</p>
-                <p className="mt-1.5 text-sm text-gray-900 font-bold">
-                  <RupiahAmount smallest={priceRef.hppPerKg} />
->>>>>>> e56fca8 (refactor: overhaul UrbanGreen component structure and update KMP interface styling)
                   /kg
                 </p>
                 <p className="mt-1 text-[11px] text-gray-400 font-medium">{priceRef.hppSource}</p>
@@ -596,11 +574,7 @@ export function CreateAgreementForm() {
                 Bapak/Ibu <span className="font-bold text-gray-900">{selectedFarmer.name}</span> menerima
                 saprotan senilai <span className="font-bold text-gray-900">{formatRupiah(inputDebt)}</span>.
                 Setelah panen, KMP membeli hasil dengan harga{" "}
-<<<<<<< HEAD
                 <span className="font-semibold">{formatRupiah(priceRef.hpp)}/kg</span>. Utang
-=======
-                <span className="font-bold text-gray-900">{formatRupiah(priceRef.hppPerKg)}/kg</span>. Utang
->>>>>>> e56fca8 (refactor: overhaul UrbanGreen component structure and update KMP interface styling)
                 dipotong otomatis dari pembayaran panen.
               </p>
             </CardContent>
@@ -620,7 +594,6 @@ export function CreateAgreementForm() {
             </div>
           ) : null}
 
-<<<<<<< HEAD
           {txError ? (
             <Alert tone="warning" title="Transaksi gagal">
               {txError}
@@ -628,9 +601,6 @@ export function CreateAgreementForm() {
           ) : null}
 
           <Button className="w-full" variant="primary" disabled={!canSubmit} onClick={handleCreate}>
-=======
-          <Button type="button" className="w-full rounded-full bg-primary-dark hover:bg-opacity-95 text-white py-3 font-bold" variant="primary" disabled={!canSubmit} onClick={runTx}>
->>>>>>> e56fca8 (refactor: overhaul UrbanGreen component structure and update KMP interface styling)
             Buat Perjanjian
           </Button>
 
