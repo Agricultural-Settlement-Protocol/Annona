@@ -409,3 +409,145 @@ export async function fetchHpp(): Promise<ApiPriceRef[]> {
 export function farmerMap(farmers: ApiFarmer[]): Map<string, ApiFarmer> {
   return new Map(farmers.map((f) => [f.id, f]));
 }
+
+// ─── Financier types ─────────────────────────────────────────────────────────
+
+export type FundingStatus = "Requested" | "Approved" | "Rejected" | "Disbursed" | "Reconciled";
+export type RiskBadge = "Rendah" | "Sedang" | "Tinggi";
+
+export interface ApiFundingRequestRow {
+  id: string;
+  onchainId: string;
+  coopId: string;
+  coopName: string;
+  financierId: string;
+  financierName: string;
+  backingHash: string;
+  projectedSettlement: bigint;
+  amountRequested: bigint;
+  amountApproved: bigint;
+  amountDisbursed: bigint;
+  amountReconciled: bigint;
+  coverageRatioBps: number;
+  riskBadge: RiskBadge;
+  status: FundingStatus;
+  proofUrl: string | null;
+  createdAt: string;
+}
+
+export interface ApiBackingLine {
+  id: string;
+  agreementId: string;
+  agreementOnchainId: bigint;
+  farmerName: string;
+  commodityCode: string;
+  status: string;
+  backingValue: bigint;
+}
+
+export interface ApiFinancierOverview {
+  financier: {
+    id: string;
+    name: string;
+    walletAddress: string;
+    poolBalance: bigint;
+    createdAt: string;
+  };
+  totals: {
+    requestCount: number;
+    pendingCount: number;
+    totalRequested: bigint;
+    totalDisbursed: bigint;
+    totalReconciled: bigint;
+    outstanding: bigint;
+  };
+}
+
+type RawFundingRow = {
+  [K in keyof ApiFundingRequestRow]: ApiFundingRequestRow[K] extends bigint ? string : ApiFundingRequestRow[K];
+};
+
+function parseFundingRow(r: RawFundingRow): ApiFundingRequestRow {
+  return {
+    ...r,
+    projectedSettlement: big(r.projectedSettlement),
+    amountRequested: big(r.amountRequested),
+    amountApproved: big(r.amountApproved),
+    amountDisbursed: big(r.amountDisbursed),
+    amountReconciled: big(r.amountReconciled),
+  };
+}
+
+function parseBackingLine(r: Record<string, unknown>): ApiBackingLine {
+  return {
+    id: String(r.id),
+    agreementId: String(r.agreementId),
+    agreementOnchainId: big(String(r.agreementOnchainId)),
+    farmerName: String(r.farmerName),
+    commodityCode: String(r.commodityCode),
+    status: String(r.status),
+    backingValue: big(String(r.backingValue)),
+  };
+}
+
+export async function fetchFinancierOverview(): Promise<ApiFinancierOverview> {
+  const r = await getJSON<{
+    financier: {
+      id: string;
+      name: string;
+      walletAddress: string;
+      poolBalance: string;
+      createdAt: string;
+    };
+    totals: {
+      requestCount: number;
+      pendingCount: number;
+      totalRequested: string;
+      totalDisbursed: string;
+      totalReconciled: string;
+      outstanding: string;
+    };
+  }>("/financier/overview");
+  return {
+    financier: {
+      ...r.financier,
+      poolBalance: big(r.financier.poolBalance),
+    },
+    totals: {
+      requestCount: r.totals.requestCount,
+      pendingCount: r.totals.pendingCount,
+      totalRequested: big(r.totals.totalRequested),
+      totalDisbursed: big(r.totals.totalDisbursed),
+      totalReconciled: big(r.totals.totalReconciled),
+      outstanding: big(r.totals.outstanding),
+    },
+  };
+}
+
+export async function fetchFinancierQueue(): Promise<ApiFundingRequestRow[]> {
+  const { items } = await getJSON<{ items: RawFundingRow[] }>("/financier/queue");
+  return items.map(parseFundingRow);
+}
+
+export async function fetchFinancierPortfolio(): Promise<ApiFundingRequestRow[]> {
+  const { items } = await getJSON<{ items: RawFundingRow[] }>("/financier/portfolio");
+  return items.map(parseFundingRow);
+}
+
+export async function fetchFinancierAll(): Promise<ApiFundingRequestRow[]> {
+  const { items } = await getJSON<{ items: RawFundingRow[] }>("/financier");
+  return items.map(parseFundingRow);
+}
+
+export async function fetchFinancierDetail(
+  id: string,
+): Promise<{ request: ApiFundingRequestRow; lines: ApiBackingLine[] }> {
+  const r = await getJSON<{
+    request: RawFundingRow;
+    lines: Record<string, unknown>[];
+  }>(`/financier/${id}`);
+  return {
+    request: parseFundingRow(r.request),
+    lines: r.lines.map(parseBackingLine),
+  };
+}

@@ -183,7 +183,7 @@ function SidebarContent({
           min-w-0, badge + toggle are shrink-0. Collapsed shows toggle only. */}
       <div
         className={cn(
-          "flex items-center overflow-hidden pt-5 pb-4",
+          "flex items-center pt-5 pb-4",
           collapsed ? "justify-center px-2" : "gap-2.5 px-4.5",
         )}
       >
@@ -193,9 +193,9 @@ function SidebarContent({
               href="/"
               onClick={onNavigate}
               aria-label="Annona"
-              className="min-w-0 overflow-hidden"
+              className="min-w-0"
             >
-              <Logo className="h-6 w-auto" />
+              <Logo size={20} className="shrink-0" />
             </Link>
             <span
               className={cn(
@@ -242,7 +242,13 @@ function SidebarContent({
 
       {/* Navigation */}
       <nav
-        className={cn("flex-1 space-y-4.5 overflow-y-auto pt-2", collapsed ? "px-2" : "px-3")}
+        className={cn(
+          "flex-1 space-y-4.5 overflow-y-auto pt-2 [scrollbar-width:thin]",
+          "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent",
+          "[&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300/60",
+          "hover:[&::-webkit-scrollbar-thumb]:bg-gray-400/70",
+          collapsed ? "px-2" : "px-3",
+        )}
         aria-label="Menu pengawasan"
       >
         {navGroups.map((group) => (

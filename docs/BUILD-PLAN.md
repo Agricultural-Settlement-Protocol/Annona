@@ -321,6 +321,20 @@ Goal: read-model covers every v4.0 surface. Use `/annona-indexer` + `/annona-see
 Goal: every new/renamed read surface renders live. Use `/annona-screen` + `annona-frontend` +
 `frontend-design-guidelines`.
 
+> **Financier-first slice done early (out of phase order, owner request):**
+> - ✅ KMP dashboard polish: "Buat Perjanjian" enlarged, periksa/terima recolored off indigo,
+>   compact sidebar profile block, custom thin nav scrollbar, collapsed-logo hidden, oversight
+>   agrinas logo cut-off fixed (`Logo size={20}`, removed clip).
+> - ✅ Financier vertical **backend + auth foundation**: `/financier` API (overview/queue/portfolio/
+>   detail), seed (1 financier LPDB + 4 funding requests across the lifecycle), Supabase Auth user
+>   `financier@annona.id` (+ identity + `app_user.financier_id`), auth-page entry + `financier` role
+>   routing to `/financier`.
+> - ✅ Financier dashboard at `/financier`: shell + Ringkasan + Antrean Persetujuan (approve/reject/
+>   disburse via `useTx` demo) + Portofolio + request detail (status timeline + backing lines). Auth-guarded.
+> - ✅ KMP "Permintaan Dana" screen (sidebar item + batch-select agreements → total → submit + riwayat
+>   table with clickable perjanjian ids). Integrated web build green (33 routes), zero em dashes.
+> - ⬜ Deferred: supplier vertical (Phase 4b rename first), subsidy badge/tier UI, "Utang ke Supplier" panel.
+
 **Tasks**
 - KMP: subsidy badge (F1); price-tier display in create (F2); "Utang ke Supplier" panel;
   **Screen O — Ajukan Dana Offtake** (select agreements → proof packet → submit → track).

@@ -45,14 +45,14 @@ export default async function KmpHomePage() {
         title="Beranda"
         description="Ringkasan buku offtake dan kesehatan kas koperasi minggu ini."
         actions={
-          <>
+          <div className="flex items-center gap-2.5">
             <Link href="/kmp/petani">
               <Button
                 type="button"
                 variant="outline"
-                size="md"
-                leftIcon={<UserPlus size={16} />}
-                className="rounded-full"
+                size="sm"
+                leftIcon={<UserPlus size={15} />}
+                className="rounded-full border-gray-200 text-gray-600 hover:bg-gray-50"
               >
                 Daftarkan Petani
               </Button>
@@ -61,14 +61,14 @@ export default async function KmpHomePage() {
               <Button
                 type="button"
                 variant="primary"
-                size="md"
-                leftIcon={<FilePlus2 size={16} />}
-                className="rounded-full bg-primary-dark hover:bg-opacity-95 text-white"
+                size="lg"
+                leftIcon={<FilePlus2 size={18} />}
+                className="rounded-full bg-primary-dark px-7 font-bold text-white shadow-md shadow-primary-dark/20 transition-transform hover:bg-opacity-95 active:scale-[0.98]"
               >
                 Buat Perjanjian
               </Button>
             </Link>
-          </>
+          </div>
         }
       />
 
@@ -218,7 +218,7 @@ export default async function KmpHomePage() {
                 return (
                   <div
                     key={a.id}
-                    className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-indigo-100 bg-indigo-50/30 px-5 py-4"
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200/70 bg-amber-50/40 px-5 py-4"
                   >
                     <div>
                       <p className="text-sm font-semibold text-foreground">
@@ -233,9 +233,9 @@ export default async function KmpHomePage() {
                       <Button
                         type="button"
                         size="sm"
-                        variant="accent"
+                        variant="primary"
                         rightIcon={<ArrowRight size={14} />}
-                        className="rounded-full bg-indigo-600 hover:bg-opacity-95 text-white"
+                        className="rounded-full bg-primary-dark font-semibold text-white shadow-sm hover:bg-opacity-95"
                       >
                         Periksa & Terima
                       </Button>

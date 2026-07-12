@@ -68,10 +68,13 @@ async function truncate(): Promise<void> {
   await db.execute(sql`
     truncate table
       ${schema.eventLog}, ${schema.settlement}, ${schema.delivery},
-      ${schema.residuRemittance}, ${schema.agreementInput}, ${schema.agreement},
+      ${schema.residuRemittance}, ${schema.agreementInput},
+      ${schema.fundingRequestLine}, ${schema.fundingRequest}, ${schema.supplierPayable},
+      ${schema.agreement},
       ${schema.reputationCache}, ${schema.coopReputationCache}, ${schema.indexerCursor},
       ${schema.farmer}, ${schema.saprotanCatalog}, ${schema.priceRef},
-      ${schema.yieldTable}, ${schema.commodity}, ${schema.coop}, ${schema.agrinas}
+      ${schema.yieldTable}, ${schema.commodity}, ${schema.coop},
+      ${schema.financier}, ${schema.warehouseOperator}, ${schema.agrinas}
     restart identity cascade
   `);
 }
@@ -379,7 +382,90 @@ async function replayReputation(): Promise<void> {
  * in Supabase Auth (missing emails insert 0 rows — safe). Add supplier/financier
  * rows here once their auth users + the `app_role` enum values exist (v4.0).
  */
-async function seedAppUsers(): Promise<void> {
+/** Rupiah whole -> smallest unit (dIDR is 7-decimal). */
+const R = (whole: number): bigint => BigInt(whole) * 10_000_000n;
+
+/**
+ * v4.0: seed the Offtake Financing demo — one Financier (LPDB Koperasi) + a
+ * spread of funding requests across the lifecycle (Requested / Approved /
+ * Disbursed / Reconciled), each backed by real agreements (the proof packet).
+ * Returns the financier id so the app_user link can point at it.
+ */
+async function seedFinancing(): Promise<string> {
+  const finRows = await db
+    .insert(schema.financier)
+    .values({
+      name: "LPDB Koperasi",
+      walletAddress: "GFINANCIERLPDBKOPERASIDEMOTESTNETWALLETPLACEHOLDER00001",
+      poolBalance: R(500_000_000),
+    })
+    .returning({ id: schema.financier.id });
+  const financierId = finRows[0]?.id;
+  if (!financierId) throw new Error("seed: failed to insert financier");
+
+  const coopId = (await db.select({ id: schema.coop.id }).from(schema.coop).limit(1))[0]?.id;
+  if (!coopId) throw new Error("seed: no coop for financing");
+  const agrs = await db
+    .select({ id: schema.agreement.id, onchainId: schema.agreement.onchainId })
+    .from(schema.agreement)
+    .limit(6);
+
+  // (status, requested, approved, disbursed, reconciled, projected, coverageBps, risk, backingCount)
+  const plan: [
+    (typeof schema.fundingStatus.enumValues)[number],
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    string,
+    number,
+  ][] = [
+    ["Requested", 30_000_000, 0, 0, 0, 52_000_000, 5769, "Rendah", 2],
+    ["Approved", 40_000_000, 35_000_000, 0, 0, 61_000_000, 6557, "Sedang", 2],
+    ["Disbursed", 25_000_000, 25_000_000, 25_000_000, 0, 44_000_000, 5682, "Rendah", 1],
+    ["Reconciled", 20_000_000, 20_000_000, 20_000_000, 20_000_000, 41_000_000, 4878, "Rendah", 1],
+  ];
+
+  let agrCursor = 0;
+  let onchain = 1;
+  for (const [status, req, appr, disb, rec, proj, covBps, risk, lineCount] of plan) {
+    const frRows = await db
+      .insert(schema.fundingRequest)
+      .values({
+        onchainId: BigInt(onchain++),
+        coopId,
+        financierId,
+        backingHash: `demo${onchain.toString().padStart(60, "0")}`,
+        projectedSettlement: R(proj),
+        amountRequested: R(req),
+        amountApproved: R(appr),
+        amountDisbursed: R(disb),
+        amountReconciled: R(rec),
+        coverageRatioBps: covBps,
+        riskBadge: risk,
+        status,
+      })
+      .returning({ id: schema.fundingRequest.id });
+    const frId = frRows[0]?.id;
+    if (!frId) continue;
+    for (let i = 0; i < lineCount; i++) {
+      const a = agrs[agrCursor % agrs.length];
+      agrCursor++;
+      if (!a) break;
+      await db.insert(schema.fundingRequestLine).values({
+        fundingRequestId: frId,
+        agreementId: a.id,
+        backingValue: R(Math.round(proj / lineCount)),
+      });
+    }
+  }
+  console.log(`[seed] seeded 1 financier + ${plan.length} funding requests`);
+  return financierId;
+}
+
+async function seedAppUsers(financierId: string | null): Promise<void> {
   const coopRows = (await db.execute(sql`select id from coop limit 1`)) as unknown as {
     id: string;
   }[];
@@ -390,20 +476,22 @@ async function seedAppUsers(): Promise<void> {
   const agrinasId = agrRows[0]?.id ?? null;
 
   const accounts = [
-    { email: "kmp@annona.id", role: "kmp", name: "Pengurus KMP Sukamaju", coop: coopId, agr: null },
-    { email: "agrinas@annona.id", role: "agrinas", name: "Operator Agrinas", coop: null, agr: agrinasId },
-    { email: "pemerintah@annona.id", role: "pemerintah", name: "Petugas Pengawas Kementan", coop: null, agr: null },
+    { email: "kmp@annona.id", role: "kmp", name: "Pengurus KMP Sukamaju", coop: coopId, agr: null, fin: null },
+    { email: "agrinas@annona.id", role: "agrinas", name: "Operator Agrinas", coop: null, agr: agrinasId, fin: null },
+    { email: "pemerintah@annona.id", role: "pemerintah", name: "Petugas Pengawas Kementan", coop: null, agr: null, fin: null },
+    { email: "financier@annona.id", role: "financier", name: "Pemodal (LPDB Koperasi)", coop: null, agr: null, fin: financierId },
   ] as const;
 
   for (const a of accounts) {
     await db.execute(sql`
-      insert into app_user (id, email, role, display_name, coop_id, agrinas_id)
-      select u.id, ${a.email}, ${a.role}::app_role, ${a.name}, ${a.coop}::uuid, ${a.agr}::uuid
+      insert into app_user (id, email, role, display_name, coop_id, agrinas_id, financier_id)
+      select u.id, ${a.email}, ${a.role}::app_role, ${a.name}, ${a.coop}::uuid, ${a.agr}::uuid, ${a.fin}::uuid
       from auth.users u
       where u.email = ${a.email}
       on conflict (id) do update set
         role = excluded.role, display_name = excluded.display_name,
-        coop_id = excluded.coop_id, agrinas_id = excluded.agrinas_id
+        coop_id = excluded.coop_id, agrinas_id = excluded.agrinas_id,
+        financier_id = excluded.financier_id
     `);
   }
   console.log(`[seed] linked demo app_user roles (only emails present in auth.users)`);
@@ -418,7 +506,8 @@ async function main(): Promise<void> {
   console.log(`[seed] replaying ${MOCK_AGREEMENTS.length} agreements as events...`);
   for (const a of MOCK_AGREEMENTS) await replayAgreement(a);
   await replayReputation();
-  await seedAppUsers();
+  const financierId = await seedFinancing();
+  await seedAppUsers(financierId);
   console.log("[seed] done. read-models populated from the mock-data fixture.");
   process.exit(0);
 }

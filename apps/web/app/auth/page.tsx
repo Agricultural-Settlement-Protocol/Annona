@@ -9,7 +9,7 @@
 import { DEMO_ACCOUNTS } from "@/lib/mock-data";
 import { ROLE_HOME, getSupabase, resolveRole } from "@/lib/supabase";
 import { Alert, Button, Input, Logo } from "@annona/ui";
-import { Building2, Landmark, LogIn, ShieldCheck, Wheat } from "lucide-react";
+import { Banknote, Building2, Landmark, LogIn, ShieldCheck, Wheat } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -17,12 +17,15 @@ const ROLE_ICON = {
   kmp: Wheat,
   agrinas: Building2,
   pemerintah: Landmark,
+  supplier: Building2,
+  financier: Banknote,
 } as const;
 
 const DEMO_PASSWORDS: Record<string, string> = {
   "kmp@annona.id": "AnnonaKMP2026!",
   "agrinas@annona.id": "AnnonaAgrinas2026!",
   "pemerintah@annona.id": "AnnonaGov2026!",
+  "financier@annona.id": "AnnonaFinancier2026!",
 };
 
 export default function AuthPage() {

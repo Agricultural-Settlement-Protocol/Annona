@@ -5,6 +5,7 @@ import { cors } from "hono/cors";
 import { agreementsRoute } from "./routes/agreements.js";
 import { deliveriesRoute } from "./routes/deliveries.js";
 import { farmersRoute } from "./routes/farmers.js";
+import { financierRoute } from "./routes/financier.js";
 import { healthRoute } from "./routes/health.js";
 import { coopRoute, overviewRoute } from "./routes/overview.js";
 import { referenceRoute } from "./routes/reference.js";
@@ -34,6 +35,7 @@ app.route("/overview", overviewRoute);
 app.route("/coop", coopRoute);
 app.route("/settlements", settlementsRoute);
 app.route("/residu", residuRoute);
+app.route("/financier", financierRoute);
 
 app.get("/", (c) => c.json({ name: "annona-api", status: "ok" }));
 

@@ -1,40 +1,28 @@
 "use client";
 
-import { WalletBadge } from "@/components/kmp/wallet-badge";
-import { fetchCoop } from "@/lib/api";
-import { useApi } from "@/lib/use-api";
-import { shortAddr } from "@/lib/mock-data";
 import { signOutToAuth } from "@/lib/supabase";
-import { Logo } from "@annona/ui";
-import { cn } from "@annona/ui";
+import { Logo, cn } from "@annona/ui";
 import type { LucideIcon } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
 import {
-  Banknote,
-  ClipboardList,
-  Coins,
-  FileText,
-  Landmark,
+  ClipboardCheck,
   LayoutDashboard,
   LogOut,
   Menu,
-  PackageCheck,
   PanelLeftClose,
   PanelLeftOpen,
-  Settings,
-  Users,
-  Truck,
-  Warehouse,
+  Wallet,
   Wifi,
   X,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import "../../app/urbangreen/urbangreen.css";
 
-/** KMP dashboard shell: collapsible sidebar (desktop) + drawer (mobile) +
- *  topbar. Calm cream background, white surfaces, no mesh behind data. */
+/** Financier (Pemodal) dashboard shell. Amber/gold capital tone to distinguish
+ *  from KMP (green) and Agrinas (teal). Collapsible sidebar + localStorage
+ *  persist + mobile drawer. Mirrors the KMP shell structure exactly. */
 
 type NavItem = {
   href: string;
@@ -47,36 +35,32 @@ const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
   {
     label: null,
     items: [
-      { href: "/kmp", label: "Beranda", icon: LayoutDashboard, exact: true },
-      { href: "/kmp/petani", label: "Petani", icon: Users },
-      { href: "/kmp/perjanjian", label: "Perjanjian", icon: FileText },
+      {
+        href: "/financier",
+        label: "Ringkasan",
+        icon: LayoutDashboard,
+        exact: true,
+      },
     ],
   },
   {
-    label: "Transaksi",
+    label: "Pendanaan",
     items: [
       {
-        href: "/kmp/permintaan",
-        label: "Permintaan Saprotan",
-        icon: ClipboardList,
+        href: "/financier/antrean",
+        label: "Antrean Persetujuan",
+        icon: ClipboardCheck,
       },
-      { href: "/kmp/setor", label: "Setor Panen", icon: PackageCheck },
-      { href: "/kmp/pembayaran", label: "Pembayaran", icon: Banknote },
-      { href: "/kmp/residu", label: "Residu Agrinas", icon: Landmark },
-      { href: "/kmp/permintaan-dana", label: "Permintaan Dana", icon: Coins },
-    ],
-  },
-  {
-    label: "Lainnya",
-    items: [
-      { href: "/kmp/gudang", label: "Gudang & Pasokan", icon: Warehouse },
-      { href: "/kmp/logistik", label: "Logistik ke Agrinas", icon: Truck },
-      { href: "/kmp/pengaturan", label: "Pengaturan", icon: Settings },
+      {
+        href: "/financier/portofolio",
+        label: "Portofolio",
+        icon: Wallet,
+      },
     ],
   },
 ];
 
-const STORAGE_KEY = "annona.kmp.sidebar.collapsed";
+const STORAGE_KEY = "annona.financier.sidebar.collapsed";
 
 function isActive(pathname: string, item: NavItem) {
   if (item.exact) return pathname === item.href;
@@ -106,20 +90,20 @@ function NavLink({
         "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
         collapsed ? "justify-center px-2.5 py-2.5" : "gap-3 px-4 py-2.5",
         active
-          ? "bg-soft-green text-gray-900 shadow-sm"
+          ? "bg-amber-50 text-amber-900 shadow-sm"
           : "text-gray-600 hover:bg-gray-100/50 hover:text-gray-900",
       )}
     >
       <Icon
         size={18}
-        className={cn("shrink-0", active ? "text-verdant-700" : "text-ink-400")}
+        className={cn("shrink-0", active ? "text-amber-700" : "text-gray-400")}
       />
       {collapsed ? null : (
         <>
           <span>{item.label}</span>
           {active ? (
             <span
-              className="ml-auto h-5 w-1 rounded-full bg-verdant-500"
+              className="ml-auto h-5 w-1 rounded-full bg-amber-500"
               aria-hidden
             />
           ) : null}
@@ -139,8 +123,7 @@ function SidebarContent({
   onToggle?: () => void;
 }) {
   const pathname = usePathname();
-  const { data: coopData } = useApi(fetchCoop);
-  const coop = coopData?.coop;
+
   return (
     <div className="flex h-full flex-col">
       {/* Brand logo header */}
@@ -155,8 +138,8 @@ function SidebarContent({
             <Link href="/" onClick={onNavigate} aria-label="Annona" className="min-w-0">
               <Logo size={20} className="shrink-0" />
             </Link>
-            <span className="rounded-full bg-[#e7fafc] border border-[#c3f2f6]/50 px-2 py-0.5 text-[9px] font-mono font-bold tracking-wide text-[#0c6a78] uppercase">
-              KMP
+            <span className="rounded-full bg-amber-50 border border-amber-200/60 px-2 py-0.5 text-[9px] font-mono font-bold tracking-wide text-amber-800 uppercase">
+              PEMODAL
             </span>
           </>
         )}
@@ -179,18 +162,11 @@ function SidebarContent({
         ) : null}
       </div>
 
-      {/* KUD Showcase Card */}
+      {/* Financier context card */}
       {collapsed ? null : (
-        <div className="mx-4 mb-4 rounded-lg border border-border bg-surface-muted px-3 py-2.5">
-          <p className="text-sm font-semibold text-foreground">
-            {coop?.name ?? "Koperasi"}
-          </p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {coop ? `${coop.kecamatan}, ${coop.kabupaten}` : ""}
-          </p>
-          <p className="mt-1 font-mono text-[11px] text-aqua-700">
-            {coop ? shortAddr(coop.walletAddress) : ""}
-          </p>
+        <div className="mx-4 mb-4 rounded-lg border border-amber-100 bg-amber-50/50 px-3 py-2.5">
+          <p className="text-sm font-semibold text-gray-900">LPDB Koperasi</p>
+          <p className="mt-0.5 text-xs text-gray-500">Lembaga Pengelola Dana Bergulir</p>
         </div>
       )}
 
@@ -203,7 +179,7 @@ function SidebarContent({
           "hover:[&::-webkit-scrollbar-thumb]:bg-gray-400/70",
           collapsed ? "px-2" : "px-3",
         )}
-        aria-label="Menu utama"
+        aria-label="Menu pemodal"
       >
         {NAV_GROUPS.map((group) => (
           <div key={group.label ?? "utama"}>
@@ -230,6 +206,7 @@ function SidebarContent({
         ))}
       </nav>
 
+      {/* Profile + logout footer */}
       <div
         className={cn(
           "border-t border-border py-4",
@@ -238,8 +215,8 @@ function SidebarContent({
       >
         {collapsed ? (
           <div className="flex flex-col items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-800 border border-emerald-250">
-              HU
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-100 text-sm font-bold text-amber-800 border border-amber-200">
+              LP
             </div>
             <button
               type="button"
@@ -254,23 +231,22 @@ function SidebarContent({
         ) : (
           <div className="space-y-2.5">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-800 border border-emerald-200">
-                HU
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100 text-xs font-bold text-amber-800 border border-amber-200">
+                LP
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold text-foreground leading-tight">
-                  H. Usman
+                  Petugas LPDB
                 </p>
                 <p className="text-[11px] text-muted-foreground leading-tight">
-                  Pengurus KMP
+                  Pemodal
                 </p>
               </div>
-              <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-[#e7fafc] px-1.5 py-0.5 text-[8px] font-mono font-bold text-[#0c6a78] border border-[#c3f2f6]/50">
+              <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-amber-50 px-1.5 py-0.5 text-[8px] font-mono font-bold text-amber-700 border border-amber-200/50">
                 <Wifi size={9} className="animate-pulse" />
                 Testnet
               </span>
             </div>
-            <WalletBadge />
             <button
               type="button"
               onClick={() => void signOutToAuth()}
@@ -286,7 +262,7 @@ function SidebarContent({
   );
 }
 
-export function KmpShell({ children }: { children: ReactNode }) {
+export function FinancierShell({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [hydrated, setHydrated] = useState(false);
@@ -324,7 +300,6 @@ export function KmpShell({ children }: { children: ReactNode }) {
       <AnimatePresence>
         {open && (
           <div className="fixed inset-0 z-50 lg:hidden">
-            {/* Backdrop */}
             <motion.button
               type="button"
               aria-label="Tutup menu"
@@ -334,7 +309,6 @@ export function KmpShell({ children }: { children: ReactNode }) {
               className="absolute inset-0 bg-black pointer-events-auto"
               onClick={() => setOpen(false)}
             />
-            {/* Drawer */}
             <motion.aside
               initial={{ x: "-100%" }}
               animate={{ x: 0 }}
@@ -367,8 +341,8 @@ export function KmpShell({ children }: { children: ReactNode }) {
           <Menu size={20} />
         </button>
         <Logo className="h-6 w-auto" />
-        <span className="ml-auto rounded-full bg-[#e7fafc] border border-[#c3f2f6]/50 px-2.5 py-0.5 text-[9px] font-mono font-bold text-[#0c6a78] uppercase">
-          Testnet
+        <span className="ml-auto rounded-full bg-amber-50 border border-amber-200/50 px-2.5 py-0.5 text-[9px] font-mono font-bold text-amber-800 uppercase">
+          PEMODAL
         </span>
       </header>
 

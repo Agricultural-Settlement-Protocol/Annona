@@ -1537,7 +1537,7 @@ export function kmpIncomeStats() {
 
 export interface DemoAccount {
   email: string;
-  role: "kmp" | "agrinas" | "pemerintah";
+  role: "kmp" | "agrinas" | "pemerintah" | "supplier" | "financier";
   displayName: string;
   homePath: string;
 }
@@ -1548,6 +1548,12 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
     role: "kmp",
     displayName: "Pengurus KMP Sukamaju",
     homePath: "/kmp",
+  },
+  {
+    email: "financier@annona.id",
+    role: "financier",
+    displayName: "Pemodal (LPDB Koperasi)",
+    homePath: "/financier",
   },
   {
     email: "agrinas@annona.id",

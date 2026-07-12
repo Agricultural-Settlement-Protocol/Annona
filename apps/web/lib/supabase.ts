@@ -7,13 +7,17 @@
 
 import { createBrowserClient } from "@supabase/ssr";
 
-export type AppRole = "kmp" | "agrinas" | "pemerintah";
+export type AppRole = "kmp" | "agrinas" | "pemerintah" | "supplier" | "financier";
 
 export const ROLE_HOME: Record<AppRole, string> = {
   kmp: "/kmp",
   agrinas: "/oversight/agrinas",
   pemerintah: "/oversight/pemerintah",
+  supplier: "/oversight/supplier",
+  financier: "/financier",
 };
+
+const VALID_ROLES: AppRole[] = ["kmp", "agrinas", "pemerintah", "supplier", "financier"];
 
 let client: ReturnType<typeof createBrowserClient> | null = null;
 
@@ -40,7 +44,7 @@ export async function resolveRole(): Promise<AppRole | null> {
     return null;
   }
   const cached = localStorage.getItem(ROLE_CACHE_KEY);
-  if (cached === "kmp" || cached === "agrinas" || cached === "pemerintah") return cached;
+  if (cached && (VALID_ROLES as string[]).includes(cached)) return cached as AppRole;
 
   const { data } = await supabase.from("app_user").select("role").eq("id", user.id).maybeSingle();
   const role = (data?.role as AppRole | undefined) ?? null;
