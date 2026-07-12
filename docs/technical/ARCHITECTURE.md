@@ -2,40 +2,44 @@
 
 > System architecture, the 3-layer composability stack, project structure (Turborepo), settlement mechanism, and the on-chain/off-chain boundary. Product features live in `../PRD.md`; contract internals in `./SMART-CONTRACT.md`; data entities in `./ERD.md`; ecosystem hooks in `./INTEGRATIONS.md`.
 >
-> **v3.0 — multi-party (PMK 15/2026).** Three commercial parties (**Agrinas** operator, **KMP** koperasi, **Farmer**) + a read-only **Government** regulator. Double-confirmation lifecycle, three-way split settlement, and residu reconciliation. See §0.
+> **v4.0 — corrected multi-party (PMK 15/2026).** Commercial parties (**Supplier** input principal, **KMP** koperasi, **Financier** working-capital, **Farmer**) + a read-only **Government** regulator + a non-transacting **Warehouse Operator** (infra). Double-confirmation lifecycle, three-way split settlement, residu reconciliation, plus an **offtake-financing loop** and a **subsidy (HET/e-RDKK) tier**. See §0. (Corrects the earlier single-"Agrinas" model; only the residu counterparty is renamed to the supplier — settlement math unchanged.)
 
 ---
 
 ## 0. Party & governance model (read first)
 
-PMK 15/2026 splits the ecosystem into a **commercial rail** and a **regulatory rail**. Annona mirrors that split exactly.
+PMK 15/2026 splits the ecosystem into a **commercial rail** and a **regulatory rail**. Annona mirrors that split exactly. Validated 2026 ground truth: the commercial rail is fragmented across real institutions that do not share a record — v4.0 models each as its true role instead of one "Agrinas" super-entity.
 
 ```
   REGULATORY RAIL                         COMMERCIAL RAIL
   ┌───────────────────┐        ┌──────────────────────────────────────────┐
-  │ GOVERNMENT        │        │ AGRINAS (operator) ↔ KMP (koperasi) ↔     │
-  │ (regulator,       │◄──read─│ FARMER                                     │
+  │ GOVERNMENT        │        │ SUPPLIER (input principal) ↔ KMP ↔ FARMER │
+  │ (regulator,       │◄──read─│ FINANCIER (working-capital talangan) ↔ KMP│
   │  read-only)       │        │ catalog · dispatch · pre-funded cash ·     │
-  │ macro + FM/subsidy│        │ residu · settlement                        │
+  │ macro + FM/subsidy│        │ residu · settlement · financing            │
   └───────────────────┘        └──────────────────────────────────────────┘
+   (Warehouse Operator = infra: builds/operates gudang, receives forwarded
+    harvest off-chain; NOT a transacting party — see SMART-CONTRACT §8b.)
 ```
 
-- **Agrinas** owns the master saprotan catalog (`base_price_agrinas` = principal), dispatches logistics, and verifies residu remittance. Operator, not regulator.
-- **KMP** (Koperasi Mitra Petani; KDMP is the flagship Merah Putih instance) is the **decentralized paying agent**: pre-funds cash, drafts agreements, accepts physical supply, settles, holds + remits residu.
-- **Farmer** receives the net payout, accrues reputation.
+- **Supplier** (input principal, e.g. PT Pupuk Indonesia) owns the master saprotan catalog (`base_price` = principal), dispatches logistics, and verifies residu remittance. The old undifferentiated "Agrinas" role; not a regulator, not a financier, not the physical warehouse.
+- **KMP** (Koperasi Mitra Petani; KDMP is the flagship Merah Putih instance) is the **decentralized paying agent**: pre-funds cash, drafts agreements, accepts physical supply, settles, holds + remits residu, and **requests offtake financing**.
+- **Financier** (working-capital, e.g. LPDB-Koperasi) advances *talangan* against an on-chain offtake proof packet and is reconciled at settlement. New commercial party.
+- **Farmer** receives the net payout, accrues reputation; e-RDKK eligibility gates the subsidized (HET) vs commercial price tier offered.
 - **Government** (Dinas Koperasi / Bupati / Desa) is **read-only**: macro food-security oversight + force-majeure/subsidy intervention. Never touches supply-chain operations.
+- **Warehouse Operator** (e.g. PT Agrinas Pangan Nusantara) builds/operates the gerai + gudang and receives forwarded harvest off-chain. **Infra only — signs nothing on-chain, not in the settlement loop.**
 
-**Dashboards (3 shells, not 4):** KMP dashboard · Oversight dashboard (RBAC → Agrinas operator view + Government regulator view) · Farmer view. Agrinas is a role inside the oversight app, not a separate product.
+**Dashboards (3 shells, not 5):** KMP dashboard · Oversight dashboard (RBAC → Supplier + Financier share a "Mitra" view; Government regulator view) · Farmer view. Supplier and Financier are roles inside the oversight app, not separate products.
 
 ---
 
 ## 1. Design principles
 
-1. **Chain only where it earns its place.** ~70% of Annona is a normal web app. On-chain is reserved for: (a) tamper-evident settlement record, (b) programmatic auto-netting + **three-way split-allocation** (farmer / Agrinas principal / KMP margin), (c) **double-confirmation** across parties who don't trust each other, (d) composable financial identity (farmer + coop reputation + receipts). Everything else is Postgres.
+1. **Chain only where it earns its place.** ~70% of Annona is a normal web app. On-chain is reserved for: (a) tamper-evident settlement record, (b) programmatic auto-netting + **three-way split-allocation** (farmer / supplier principal / KMP margin), (c) **double-confirmation** across parties who don't trust each other, (d) composable financial identity (farmer + coop reputation + receipts), (e) **offtake-financing disbursement + reconciliation** — money moving between distrusting parties against an on-chain proof packet. Everything else (including the input payable ledger and the catalog) is Postgres.
 2. **PII never touches the ledger.** KTP, names, GPS, bank proofs → off-chain. On-chain stores hashes, amounts, status, grades, counters. (Mirrors AgTrail's funded "hash-on-chain" pattern.)
-3. **App on top, protocol underneath.** The UI is KMP/Agrinas-specific. The contracts are commodity-agnostic so coffee/fish/cacao coops — and other developers — can build on the same primitives.
+3. **App on top, protocol underneath.** The UI is KMP/supplier/financier-specific. The contracts are commodity-agnostic so coffee/fish/cacao coops — and other developers — can build on the same primitives.
 4. **Graceful degradation between settlement paths.** Same contract + same events whether money moves on-chain (demo/future) or off-chain in rupiah (Path A). Only the trigger of `settle()` changes.
-5. **Split allocation is on-chain, remittance is off-chain-verified.** The residu split (whose money is whose) is locked on-chain; the actual rupiah bank transfer of Agrinas's principal is verified off-chain then anchored (`confirm_remittance`). This is the anti-moral-hazard guarantee.
+5. **Split allocation is on-chain, remittance is off-chain-verified.** The residu split (whose money is whose) is locked on-chain; the actual rupiah bank transfer of the supplier's principal is verified off-chain then anchored (`confirm_remittance`). This is the anti-moral-hazard guarantee. The financing disbursement, by contrast, IS a real on-chain money movement (financier → coop in dIDR).
 
 ---
 
@@ -48,8 +52,8 @@ Mirrors Stellar's canonical Execution → Abstraction → User model (judges rew
 │  USER LAYER  (apps/web — Next.js 15 + Tailwind v4 + Freighter)     │
 │  ┌────────────────┐ ┌─────────────────────────┐ ┌──────────────┐  │
 │  │ KMP Dashboard  │ │ Oversight Dash + AI      │ │ Farmer View  │  │
-│  │ (koperasi)     │ │ RBAC: Agrinas | Government│ │ (petani,     │  │
-│  │                │ │ (operator | regulator)   │ │  mobile)     │  │
+│  │ (koperasi)     │ │ RBAC: Mitra | Government │ │ (petani,     │  │
+│  │                │ │ (supplier+financier|gov) │ │  mobile)     │  │
 │  └────────────────┘ └─────────────────────────┘ └──────────────┘  │
 └───────────────┬───────────────────────────────────┬───────────────┘
                 │ HTTPS (REST + @annona/sdk)         │ wallet sign (Freighter)
@@ -66,7 +70,7 @@ Mirrors Stellar's canonical Execution → Abstraction → User model (judges rew
 │  EXECUTION LAYER  (contracts/, Soroban)│  OFF-CHAIN DB (Supabase/PG)│
 │  • offtake-registry (core protocol)    │  • Farmer PII, plots       │
 │    ├ Agreement lifecycle (2-gate)      │  • Saprotan catalog (base) │
-│    ├ dispatch / accept (Agrinas/KMP)   │  • Input line-items        │
+│    ├ dispatch / accept (Supplier/KMP)  │  • Input line-items        │
 │    ├ Harvest Receipt (immutable)       │  • Yield tables, HPP cache │
 │    ├ 3-way split settle + auto-netting  │  • Residu remittance +proof│
 │    ├ Residu reconciliation             │  • Read-models (dashboards)│
@@ -92,7 +96,7 @@ annona/
 │   ├── web/                    # Next.js 15 — all 3 dashboards (role-routed)
 │   │   ├── app/
 │   │   │   ├── (kmp)/          # koperasi operational cockpit (Screens A–F)
-│   │   │   ├── (oversight)/    # RBAC: Agrinas (M, I) + Government (G) + AI (H)
+│   │   │   ├── (oversight)/    # RBAC: Mitra=supplier+financier (M, I) + Government (G) + AI (H)
 │   │   │   ├── (farmer)/       # mobile farmer view (J–L)
 │   │   │   └── api/            # thin route handlers (BFF) if needed
 │   │   ├── components/         # screen-specific
@@ -147,14 +151,14 @@ annona/
 
 2. CREATE AGREEMENT (draft = collective Surat Pesanan)
    web(KMP) ─build tx─► Freighter sign ─► offtake-registry.create_agreement()
-        · picks catalog item → base_price_agrinas (Agrinas, read-only)
+        · picks catalog item → base_price (Supplier, read-only; HET if e-RDKK-eligible, else commercial)
         · KMP sets saprotan_markup_bps + hpp_handling_fee_bps
-        · contract DERIVES input_debt = base × (1 + markup)
-        └─► emits AgreementCreated ─► indexer ─► Postgres read-model + Agrinas bulk-request queue
+        · contract DERIVES input_debt = base × (1 + markup); records subsidy_tier
+        └─► emits AgreementCreated ─► indexer ─► Postgres read-model + Supplier bulk-request queue
         └─► api stores input-basket detail off-chain (linked by onchain_id)
 
-3. DISPATCH (gate 1 — Agrinas)
-   web(Oversight/Agrinas) ─sign─► dispatch_supply()   Created → SupplyDispatched
+3. DISPATCH (gate 1 — Supplier)
+   web(Oversight/Mitra) ─sign─► dispatch_supply()   Created → SupplyDispatched
         └─► emits SupplyDispatched ─► KMP inbound-cargo monitor updates
 
 4. ACCEPT SUPPLY (gate 2 — KMP)
@@ -169,14 +173,14 @@ annona/
 6. SETTLE (three-way split)
    Demo:  web(KMP) ─sign─► settle()  (contract moves dIDR net_to_farmer)
    Path A: rupiah paid off-chain ─► api/settlement verifies ─► settle()
-        └─► emits Settled{gross, handling_cut, debt_netted, principal_to_agrinas,
-                           coop_margin, net_paid} + ReputationUpdated
-        └─► residu_principal accrued (Agrinas), coop_margin+handling accrued (KMP)
+        └─► emits Settled{gross, handling_cut, debt_netted, principal_to_supplier,
+                           coop_margin, net_paid, settled_vol_g} + ReputationUpdated
+        └─► residu_principal accrued (Supplier), coop_margin+handling accrued (KMP)
         └─► indexer ─► dashboards + farmer view update
 
-7. RESIDU RECONCILIATION (KMP → Agrinas)
+7. RESIDU RECONCILIATION (KMP → Supplier)
    web(KMP) remits principal off-chain (bank) ─sign─► mark_residu_remitted(ref)
-   api verifies bank mutation ─► web(Oversight/Agrinas) ─sign─► confirm_remittance()
+   api verifies bank mutation ─► web(Oversight/Mitra) ─sign─► confirm_remittance()
         └─► ResiduStatus Cleared + CoopReputationUpdated
         └─► mismatch ─► flag_remittance_dispute() freezes coop reputation
 
@@ -185,6 +189,17 @@ annona/
    web(Oversight) ──► api/ai ──► Gemini over read-models (role-scoped) ──► grounded answer
    3rd party ──► @annona/sdk / REST ──► getAgreement/getReputation/getCoopReputation
 ```
+
+**Offtake-financing loop (parallel, v4.0 — Financier ↔ KMP).** Runs alongside the core loop, not inside it: once agreements exist, KMP can borrow working capital against the on-chain offtake proof packet.
+
+```
+F1. REQUEST   web(KMP) ─sign─► request_funding(proof)          → FundingRequested
+F2. APPROVE   web(Oversight/Mitra=financier) ─sign─► approve_funding / reject_funding
+F3. DISBURSE  financier ─sign─► disburse_funding()  (real dIDR: financier → coop)  → FundingDisbursed
+F4. RECONCILE at settlement, coop ─sign─► reconcile_funding()  (repay, capped at disbursed) → FundingReconciled
+```
+
+Unlike residu (an on-chain *accrual* mirroring off-chain rupiah), the funding disbursement in F3 is an **actual on-chain dIDR movement** between distrusting parties — see §1 principle 5 and `SMART-CONTRACT.md` §9 for the auth bindings.
 
 ---
 
@@ -212,12 +227,12 @@ KMP is the **decentralized paying agent** with **pre-funded** cash. One `settle(
 gross = volume × HPP
   ├─ handling_cut  (gross × hpp_handling_fee_bps)   → KMP keeps
   ├─ input_debt netted first, then split pro-rata:
-  │     ├─ residu_principal (base_price_agrinas)     → Agrinas (remit back)
+  │     ├─ residu_principal (base_price)             → Supplier (remit back)
   │     └─ coop_margin      (markup portion)         → KMP keeps
   └─ net_to_farmer = (gross − handling_cut) − input_debt → farmer (dIDR / rupiah)
 ```
 
-Only `net_to_farmer` moves as money in the demo (dIDR transfer). `residu_principal` and KMP's cuts are **on-chain accruals** mirroring the rupiah that physically stays in KMP's cash box until the principal is remitted to Agrinas and confirmed on-chain (`confirm_remittance`). Worked numbers: `SMART-CONTRACT.md` §5.
+Only `net_to_farmer` moves as money in the demo (dIDR transfer). `residu_principal` and KMP's cuts are **on-chain accruals** mirroring the rupiah that physically stays in KMP's cash box until the principal is remitted to the Supplier and confirmed on-chain (`confirm_remittance`). Worked numbers: `SMART-CONTRACT.md` §5.
 
 ---
 
@@ -225,8 +240,8 @@ Only `net_to_farmer` moves as money in the demo (dIDR transfer). `residu_princip
 
 | On-chain (Soroban) | Off-chain (Postgres) |
 |---|---|
-| Agreement id, farmer/coop/agrinas addresses, commodity code/grade/moisture/hpp-version | Farmer name, KTP raw, phone, GPS |
-| base_price_agrinas, saprotan_markup_bps, input_debt (derived), hpp_handling_fee_bps | Saprotan catalog, input-basket line items |
+| Agreement id, farmer/coop/supplier addresses, commodity code/grade/moisture/hpp-version, subsidy_tier | Farmer name, KTP raw, phone, GPS |
+| base_price, saprotan_markup_bps, input_debt (derived), hpp_handling_fee_bps | Saprotan catalog (base + HET tiers), input-basket line items, e-RDKK badge |
 | expected_vol, delivered_vol, hpp, tolerance, status (incl. SupplyDispatched/Active), flag | Yield tables, HPP source decrees, market price refs |
 | residu_principal, coop_margin/handling accrued, residu_status | Residu bank ref + uploaded transfer proof |
 | KTP **hash** only | KTP raw (hashed before anchoring) |
@@ -238,7 +253,7 @@ Only `net_to_farmer` moves as money in the demo (dIDR transfer). `residu_princip
 
 ## 7. Security & hygiene
 
-- **Auth:** each write is bound to its party — `coop.require_auth()` (KMP: create/accept/deliver/settle/remit), `agrinas.require_auth()` (dispatch/confirm/dispute), `admin.require_auth()` (resolve). `settle` caller auth (KMP in MVP; service/multisig in prod). The two confirmation gates (Agrinas dispatch, KMP accept) mean no single party can advance the other's step. Full multisig role separation = roadmap. Detail in `./SMART-CONTRACT.md` §9.
+- **Auth:** each write is bound to its party — `coop.require_auth()` (KMP: create/accept/deliver/settle/remit + request/reconcile funding), `supplier.require_auth()` (dispatch/confirm/dispute), `financier.require_auth()` (approve/reject/disburse funding), `admin.require_auth()` (resolve). `settle` caller auth (KMP in MVP; service/multisig in prod). The two confirmation gates (Supplier dispatch, KMP accept) mean no single party can advance the other's step. Full multisig role separation = roadmap. Detail in `./SMART-CONTRACT.md` §9.
 - **TTL extension** on every public contract fn (instance + accessed persistent entries) — production hygiene that signals maturity to judges/SCF.
 - **Keys:** demo testnet keys in `.env` only; never commit. Farmer/coop demo accounts pre-seeded by `scripts/seed.ts`.
 - **Indexer idempotency:** events keyed by `(tx_hash, event_index)`; re-poll safe.
