@@ -41,7 +41,7 @@ test("settledRowFromEvent recovers per-settle volume delta from cumulative event
     gross: 16_900_000n,
     handlingCut: 845_000n,
     debtNetted: 2_200_000n,
-    principalToAgrinas: 2_000_000n,
+    principalToSupplier: 2_000_000n,
     coopMargin: 200_000n,
     netPaid: 13_855_000n,
     settledVolG: 2_600_000n, // CUMULATIVE on-chain running total

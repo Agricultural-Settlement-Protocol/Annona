@@ -1,8 +1,9 @@
 import type { Commodity } from "./agreement.js";
-import type { FlagReason } from "./status.js";
+import type { FlagReason, SubsidyTier } from "./status.js";
 
 /** Contract event names. Mirrors the event topics in SMART-CONTRACT.md section 7
- *  (v3.0, PMK 15/2026: double-confirmation + residu reconciliation events added).
+ *  (v4.0, PMK 15/2026: the single "Agrinas" party is corrected to `supplier`, and
+ *  the offtake-financing lifecycle events are added).
  *  The indexer keys every event by (txHash, eventIndex) for idempotency. */
 export type AnnonaEventType =
   | "AgreementCreated"
@@ -18,7 +19,13 @@ export type AnnonaEventType =
   | "RemittanceDisputed"
   | "RemittanceResolved"
   | "ReputationUpdated"
-  | "CoopReputationUpdated";
+  | "CoopReputationUpdated"
+  // ── offtake financing (§B) ──
+  | "FundingRequested"
+  | "FundingApproved"
+  | "FundingRejected"
+  | "FundingDisbursed"
+  | "FundingReconciled";
 
 export interface EventEnvelope<T> {
   type: AnnonaEventType;
@@ -33,9 +40,10 @@ export interface AgreementCreatedData {
   id: bigint;
   farmer: string;
   coop: string;
-  agrinas: string;
+  supplier: string;
+  subsidyTier: SubsidyTier;
   commodity: Commodity;
-  basePriceAgrinas: bigint;
+  basePrice: bigint;
   saprotanMarkupBps: number;
   inputDebt: bigint;
   hppHandlingFeeBps: number;
@@ -46,7 +54,7 @@ export interface AgreementCreatedData {
 
 export interface SupplyDispatchedData {
   id: bigint;
-  agrinas: string;
+  supplier: string;
   coop: string;
 }
 
@@ -64,14 +72,14 @@ export interface DeliveryRecordedData {
   deliveredTotalG: bigint;
 }
 
-/** Settled (v3.0, three-way split). */
+/** Settled (v4.0, three-way split). */
 export interface SettledData {
   id: bigint;
   farmer: string;
   gross: bigint;
   handlingCut: bigint;
   debtNetted: bigint;
-  principalToAgrinas: bigint;
+  principalToSupplier: bigint;
   coopMargin: bigint;
   netPaid: bigint;
   settledVolG: bigint;
@@ -98,7 +106,7 @@ export interface RemittanceClearedData {
   id: bigint;
   coop: string;
   principal: bigint;
-  agrinas: string;
+  supplier: string;
 }
 
 export interface RemittanceDisputedData {
@@ -130,4 +138,44 @@ export interface CoopReputationUpdatedData {
   totalResiduCleared: bigint;
   disputes: number;
   frozen: boolean;
+}
+
+/* ── Offtake financing (§B). Parallel lifecycle; references backing agreements
+ *    only off-chain via `backingHash`. No read-model persistence in MVP — the
+ *    reducer logs these to event_log like Flagged/HarvestReceiptMinted until the
+ *    funding read-model tables land (deferred DB phase). ── */
+
+export interface FundingRequestedData {
+  id: bigint;
+  coop: string;
+  financier: string;
+  projectedSettlement: bigint;
+  amountRequested: bigint;
+  backingHash: string;
+}
+
+export interface FundingApprovedData {
+  id: bigint;
+  financier: string;
+  amountApproved: bigint;
+}
+
+export interface FundingRejectedData {
+  id: bigint;
+  financier: string;
+  reason: string;
+}
+
+export interface FundingDisbursedData {
+  id: bigint;
+  financier: string;
+  amountDisbursed: bigint;
+  coop: string;
+}
+
+export interface FundingReconciledData {
+  id: bigint;
+  coop: string;
+  amountReconciled: bigint;
+  remaining: bigint;
 }

@@ -17,7 +17,7 @@ import { type rpc, scValToNative, type xdr } from "@stellar/stellar-sdk";
 /** topic[0] symbol → (event type, ordered #[topic] field names after the name). */
 const TOPIC_REGISTRY: Record<string, { type: AnnonaEventType; topicFields: string[] }> = {
   agreement_created: { type: "AgreementCreated", topicFields: ["id", "farmer", "coop"] },
-  dispatched: { type: "SupplyDispatched", topicFields: ["id", "agrinas"] },
+  dispatched: { type: "SupplyDispatched", topicFields: ["id", "supplier"] },
   accepted: { type: "SupplyAccepted", topicFields: ["id", "coop"] },
   delivery: { type: "DeliveryRecorded", topicFields: ["id"] },
   receipt: { type: "HarvestReceiptMinted", topicFields: ["id", "farmer"] },
@@ -30,6 +30,13 @@ const TOPIC_REGISTRY: Record<string, { type: AnnonaEventType; topicFields: strin
   remittance_resolved: { type: "RemittanceResolved", topicFields: ["id", "coop"] },
   reputation: { type: "ReputationUpdated", topicFields: ["farmer"] },
   coop_reputation: { type: "CoopReputationUpdated", topicFields: ["coop"] },
+  // ── offtake financing (§B). Value-map keys (financier, amounts, backing_hash)
+  //    auto-camelCase through deepCamel; only the #[topic] fields are listed here. ──
+  funding_requested: { type: "FundingRequested", topicFields: ["id", "coop"] },
+  funding_approved: { type: "FundingApproved", topicFields: ["id", "financier"] },
+  funding_rejected: { type: "FundingRejected", topicFields: ["id", "financier"] },
+  funding_disbursed: { type: "FundingDisbursed", topicFields: ["id", "financier"] },
+  funding_reconciled: { type: "FundingReconciled", topicFields: ["id", "coop"] },
 };
 
 const SNAKE = /_([a-z0-9])/g;

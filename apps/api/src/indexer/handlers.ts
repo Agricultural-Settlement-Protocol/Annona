@@ -81,7 +81,10 @@ export function settledRowFromEvent(
     gross: data.gross,
     handlingCut: data.handlingCut,
     debtNetted: data.debtNetted,
-    principalToAgrinas: data.principalToAgrinas,
+    // WIRE→DB bridge (v4.0): the event field is `principalToSupplier`; the
+    // read-model column is still `principal_to_agrinas` (DB rename is a deferred
+    // phase — see the reducer header + CLAUDE.md status).
+    principalToAgrinas: data.principalToSupplier,
     coopMargin: data.coopMargin,
     netPaid: data.netPaid,
     // event.settledVolG is cumulative; store the delta this call settled.
@@ -174,7 +177,10 @@ async function handle(tx: Tx, env: AnyEnvelope): Promise<void> {
       const [coopId, farmerId, agrinasId] = await Promise.all([
         coopIdByAddr(tx, d.coop),
         farmerIdByAddr(tx, d.farmer),
-        agrinasIdByAddr(tx, d.agrinas),
+        // WIRE→DB bridge: the event's `supplier` party resolves to the
+        // (still-named) `agrinas` read-model row; `subsidyTier` has no column yet
+        // (deferred DB phase), so it is not persisted.
+        agrinasIdByAddr(tx, d.supplier),
       ]);
       await tx
         .insert(schema.agreement)
@@ -188,7 +194,7 @@ async function handle(tx: Tx, env: AnyEnvelope): Promise<void> {
           // struct); DeliveryRecorded overwrites grade with the ACTUAL later.
           grade: d.commodity.grade,
           moistureBps: d.commodity.moistureBps,
-          basePriceAgrinas: d.basePriceAgrinas,
+          basePriceAgrinas: d.basePrice,
           saprotanMarkupBps: d.saprotanMarkupBps,
           inputDebt: d.inputDebt,
           hppHandlingFeeBps: d.hppHandlingFeeBps,
@@ -360,9 +366,12 @@ async function handle(tx: Tx, env: AnyEnvelope): Promise<void> {
     }
 
     default: {
-      // Exhaustiveness: unhandled events (HarvestReceiptMinted, Flagged) are
-      // logged in event_log above but have no read-model side effect — the
-      // delivery row + classifyDelivery already capture their information.
+      // Exhaustiveness: unhandled events (HarvestReceiptMinted, Flagged, and the
+      // v4.0 funding lifecycle FundingRequested/Approved/Rejected/Disbursed/
+      // Reconciled) are logged in event_log above but have no read-model side
+      // effect. Deliveries + classifyDelivery already capture the former; the
+      // funding read-model tables are a deferred DB phase, so financing events
+      // are recorded (event_log) but not yet projected.
       return;
     }
   }

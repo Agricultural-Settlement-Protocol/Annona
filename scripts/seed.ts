@@ -185,14 +185,17 @@ async function replayAgreement(a: (typeof MOCK_AGREEMENTS)[number]): Promise<voi
       id: oid,
       farmer: farmerAddr(a.farmerId),
       coop: MOCK_COOP.walletAddress,
-      agrinas: MOCK_AGRINAS.walletAddress,
+      supplier: MOCK_AGRINAS.walletAddress,
+      // Mock fixture predates the subsidy tier; the demo agreements are all
+      // commercial-priced. (The tier is recorded, not verified — §B.)
+      subsidyTier: "Commercial",
       commodity: {
         code: a.commodityCode,
         grade: a.grade,
         moistureBps: a.moistureBps,
         hppVersion: a.hppVersion,
       },
-      basePriceAgrinas: a.basePriceAgrinas,
+      basePrice: a.basePriceAgrinas,
       saprotanMarkupBps: a.saprotanMarkupBps,
       inputDebt: a.inputDebt,
       hppHandlingFeeBps: a.hppHandlingFeeBps,
@@ -211,7 +214,7 @@ async function replayAgreement(a: (typeof MOCK_AGREEMENTS)[number]): Promise<voi
     await emit(
       envelope("SupplyDispatched", `dispatched:${oid}`, bump(), {
         id: oid,
-        agrinas: MOCK_AGRINAS.walletAddress,
+        supplier: MOCK_AGRINAS.walletAddress,
         coop: MOCK_COOP.walletAddress,
       }),
     );
@@ -267,7 +270,9 @@ async function replayAgreement(a: (typeof MOCK_AGREEMENTS)[number]): Promise<voi
         gross: split.grossSmallest,
         handlingCut: split.handlingCut,
         debtNetted: split.debtPaid,
-        principalToAgrinas: split.principalToAgrinas,
+        // event wire field is `principalToSupplier`; the split helper's field
+        // name (money.ts) is unchanged this phase (read-model DB rename deferred).
+        principalToSupplier: split.principalToAgrinas,
         coopMargin: split.coopMargin,
         netPaid: split.netToFarmer,
         settledVolG: settledG,
@@ -296,7 +301,7 @@ async function replayAgreement(a: (typeof MOCK_AGREEMENTS)[number]): Promise<voi
           id: oid,
           coop: MOCK_COOP.walletAddress,
           principal: residu.principalAmount,
-          agrinas: MOCK_AGRINAS.walletAddress,
+          supplier: MOCK_AGRINAS.walletAddress,
         }),
       );
     if (residu.status === "Disputed")

@@ -1,4 +1,4 @@
-import type { FlagReason, ResiduStatus, Status } from "./status.js";
+import type { FlagReason, FundingStatus, ResiduStatus, Status } from "./status.js";
 
 /** Commodity metadata. Mirrors the Soroban `Commodity` struct. */
 export interface Commodity {
@@ -64,6 +64,24 @@ export interface Reputation {
   onTimeSettlements: number;
   flags: number;
   forceMajeureEvents: number;
+}
+
+/** On-chain offtake-financing request. Mirrors the Soroban `FundingRequest`
+ *  struct (SMART-CONTRACT.md §B). Working-capital talangan a Financier advances
+ *  to a KMP against an off-chain proof packet (`backingHash`), reconciled against
+ *  input-principal as the backing agreements settle. Money fields are bigint
+ *  smallest-unit. Additive in v4.0 — no read-model/UI consumer wires it yet. */
+export interface FundingRequest {
+  id: bigint;
+  coop: string; // Stellar G-address — KMP requesting the talangan
+  financier: string; // Stellar G-address — working-capital provider
+  backingHash: string; // hex of BytesN<32>; off-chain Bukti Offtake packet
+  projectedSettlement: bigint; // sum(kg × hpp) across backing agreements
+  amountRequested: bigint;
+  amountApproved: bigint; // 0 until Approved
+  amountDisbursed: bigint;
+  amountReconciled: bigint; // caps at amountDisbursed
+  status: FundingStatus;
 }
 
 /** On-chain reputation counters (KMP). Mirrors `CoopReputation`.
