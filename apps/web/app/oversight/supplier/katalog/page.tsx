@@ -1,8 +1,8 @@
 "use client";
 
 /**
- * Katalog Saprotan (Agrinas view) — catalog management only.
- * Dispatch moved to /oversight/agrinas/logistik.
+ * Katalog Saprotan (Supplier view) — catalog management only.
+ * Dispatch moved to /oversight/supplier/logistik.
  *
  * Full-width table: kode, nama, kategori, satuan, harga pokok, subsidi, stok, region, aksi.
  * Add/Edit via side sheet (all fields). Hapus with confirm step.
@@ -38,7 +38,7 @@ interface CatalogEntry {
   name: string;
   category: "pupuk" | "benih" | "pestisida" | "alsintan";
   region: string;
-  basePriceAgrinas: bigint;
+  basePriceSupplier: bigint;
   unitLabel: string;
   subsidiFlag: boolean;
   source: string;
@@ -423,7 +423,7 @@ export default function KatalogPage() {
       name: r.name,
       category: r.category,
       region: r.region,
-      basePriceAgrinas: r.basePriceAgrinas,
+      basePriceSupplier: r.basePriceSupplier,
       unitLabel: r.unitLabel,
       subsidiFlag: r.subsidiFlag,
       source: r.source,
@@ -456,7 +456,7 @@ export default function KatalogPage() {
       name: entry.name,
       category: entry.category,
       unitLabel: entry.unitLabel,
-      basePriceWhole: String(Number(entry.basePriceAgrinas / 10_000_000n)),
+      basePriceWhole: String(Number(entry.basePriceSupplier / 10_000_000n)),
       subsidiFlag: entry.subsidiFlag ? "Subsidi" : "Non-subsidi",
       stockStatus: entry.stockStatus,
       region: entry.region,
@@ -479,7 +479,7 @@ export default function KatalogPage() {
                 name: form.name.trim(),
                 category: form.category,
                 unitLabel: form.unitLabel,
-                basePriceAgrinas: price,
+                basePriceSupplier: price,
                 subsidiFlag: form.subsidiFlag === "Subsidi",
                 stockStatus: form.stockStatus,
                 region: form.region.trim(),
@@ -499,7 +499,7 @@ export default function KatalogPage() {
           name: form.name.trim(),
           category: form.category,
           unitLabel: form.unitLabel,
-          basePriceAgrinas: price,
+          basePriceSupplier: price,
           subsidiFlag: form.subsidiFlag === "Subsidi",
           stockStatus: form.stockStatus,
           region: form.region.trim(),
@@ -539,7 +539,7 @@ export default function KatalogPage() {
     <div className="space-y-6">
       <OversightPageHeader
         title="Katalog Saprotan"
-        description="Kelola daftar barang saprotan Agrinas. Harga pokok terkunci ke perjanjian saat dibuat. Data katalog bersifat off-chain."
+        description="Kelola daftar barang saprotan Supplier. Harga pokok terkunci ke perjanjian saat dibuat. Data katalog bersifat off-chain."
         actions={
           <Button
             variant="primary"
@@ -656,7 +656,7 @@ export default function KatalogPage() {
                         </Td>
                         <Td className="text-xs text-muted-foreground">{row.unitLabel}</Td>
                         <Td className="text-right">
-                          <RupiahAmount smallest={row.basePriceAgrinas} className="text-sm" />
+                          <RupiahAmount smallest={row.basePriceSupplier} className="text-sm" />
                         </Td>
                         <Td>
                           <Badge tone={row.subsidiFlag ? "success" : "neutral"}>

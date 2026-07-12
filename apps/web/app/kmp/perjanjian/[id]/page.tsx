@@ -315,8 +315,8 @@ export default function AgreementDetailPage() {
               </span>
             </InfoRow>
 
-            <InfoRow label="Harga Pokok Agrinas">
-              <RupiahAmount smallest={agreement.basePriceAgrinas} />
+            <InfoRow label="Harga Pokok Supplier">
+              <RupiahAmount smallest={agreement.basePriceSupplier} />
               <span className="ml-1 text-xs text-muted-foreground">
                 (pokok saprotan)
               </span>
@@ -347,7 +347,7 @@ export default function AgreementDetailPage() {
       <Card>
         <CardHeader
           title="Rincian Saprotan"
-          description="Barang yang diterima petani. Harga pokok Agrinas, markup KMP menghasilkan utang saprotan."
+          description="Barang yang diterima petani. Harga pokok Supplier, markup KMP menghasilkan utang saprotan."
           action={<Boxes size={18} className="text-verdant-400" />}
         />
         <CardContent className="p-0 pb-4">
@@ -386,7 +386,7 @@ export default function AgreementDetailPage() {
                         {inp.qty} unit
                       </Td>
                       <Td className="text-right">
-                        <RupiahAmount smallest={inp.basePriceAgrinas} />
+                        <RupiahAmount smallest={inp.basePriceSupplier} />
                       </Td>
                       <Td className="text-right">
                         <RupiahAmount smallest={lineTotal} />
@@ -400,11 +400,11 @@ export default function AgreementDetailPage() {
                     colSpan={4}
                     className="px-4 py-3 text-sm font-semibold text-foreground"
                   >
-                    Total Pokok Agrinas
+                    Total Pokok Supplier
                   </td>
                   <td className="px-4 py-3 text-right">
                     <RupiahAmount
-                      smallest={agreement.basePriceAgrinas}
+                      smallest={agreement.basePriceSupplier}
                       className="font-bold"
                     />
                   </td>
@@ -579,7 +579,7 @@ export default function AgreementDetailPage() {
                   gross={s.gross}
                   handlingCut={s.handlingCut}
                   netToFarmer={s.netPaid}
-                  residuPrincipal={s.principalToAgrinas}
+                  residuPrincipal={s.principalToSupplier}
                   coopMargin={s.coopMargin}
                 />
               </div>
@@ -588,18 +588,18 @@ export default function AgreementDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Residu pokok Agrinas — always shown, null state when no residu */}
+      {/* Residu pokok Supplier — always shown, null state when no residu */}
       <Card>
         <CardHeader
-          title="Residu Pokok Agrinas"
-          description="Bagian Agrinas dari pembayaran. Wajib disetor balik ke Agrinas."
+          title="Residu Pokok Supplier"
+          description="Bagian Supplier dari pembayaran. Wajib disetor balik ke Supplier."
           action={<Landmark size={18} className="text-aqua-400" />}
         />
         <CardContent className="space-y-4">
           {!residu ? (
             <SectionEmpty icon={<Landmark size={22} />}>
-              Belum ada residu pokok Agrinas. Bagian ini muncul setelah pembayaran
-              menyisakan pokok Agrinas yang wajib disetor balik.
+              Belum ada residu pokok Supplier. Bagian ini muncul setelah pembayaran
+              menyisakan pokok Supplier yang wajib disetor balik.
             </SectionEmpty>
           ) : (
             <>
@@ -645,8 +645,8 @@ export default function AgreementDetailPage() {
                   smallest={residu.principalAmount}
                   className="text-sm"
                 />{" "}
-                adalah uang Agrinas yang tersimpan di kas koperasi. Segera
-                remitkan ke rekening Agrinas untuk menyelesaikan kewajiban.
+                adalah uang Supplier yang tersimpan di kas koperasi. Segera
+                remitkan ke rekening Supplier untuk menyelesaikan kewajiban.
               </Alert>
             )}
             </>

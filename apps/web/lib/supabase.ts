@@ -7,17 +7,16 @@
 
 import { createBrowserClient } from "@supabase/ssr";
 
-export type AppRole = "kmp" | "agrinas" | "pemerintah" | "supplier" | "financier";
+export type AppRole = "kmp" | "supplier" | "pemerintah" | "financier";
 
 export const ROLE_HOME: Record<AppRole, string> = {
   kmp: "/kmp",
-  agrinas: "/oversight/agrinas",
-  pemerintah: "/oversight/pemerintah",
   supplier: "/oversight/supplier",
+  pemerintah: "/oversight/pemerintah",
   financier: "/financier",
 };
 
-const VALID_ROLES: AppRole[] = ["kmp", "agrinas", "pemerintah", "supplier", "financier"];
+const VALID_ROLES: AppRole[] = ["kmp", "supplier", "pemerintah", "financier"];
 
 let client: ReturnType<typeof createBrowserClient> | null = null;
 

@@ -38,10 +38,10 @@ export function computeSettlement(params: {
   return { grossSmallest, debtNetted, netToFarmer };
 }
 
-/** input_debt = base_price_agrinas * (1 + saprotan_markup_bps). Derived, never
+/** input_debt = base_price_supplier * (1 + saprotan_markup_bps). Derived, never
  *  free-entered by KMP. See SMART-CONTRACT.md §4/§5. */
-export function deriveInputDebt(basePriceAgrinas: bigint, saprotanMarkupBps: number): bigint {
-  return (basePriceAgrinas * (BPS_DENOM + BigInt(saprotanMarkupBps))) / BPS_DENOM;
+export function deriveInputDebt(basePriceSupplier: bigint, saprotanMarkupBps: number): bigint {
+  return (basePriceSupplier * (BPS_DENOM + BigInt(saprotanMarkupBps))) / BPS_DENOM;
 }
 
 /** Three-way split settlement math (v3.0, PMK 15/2026), shared by UI preview
@@ -52,21 +52,21 @@ export function deriveInputDebt(basePriceAgrinas: bigint, saprotanMarkupBps: num
  *    netToFarmer   = (gross - handlingCut) - debtPaid                  (to farmer)
  *  Of debtPaid, split principal vs margin pro-rata against inputDebt; any
  *  integer-division remainder goes to margin (KMP) so residuPrincipal never
- *  over-states Agrinas's claim. */
+ *  over-states Supplier's claim. */
 export function computeSplitSettlement(params: {
   deliveredVolG: bigint;
   settledVolG: bigint;
   hppPerKg: bigint;
   remainingDebt: bigint;
   hppHandlingFeeBps: number;
-  basePriceAgrinas: bigint;
+  basePriceSupplier: bigint;
   inputDebt: bigint;
 }): {
   grossSmallest: bigint;
   handlingCut: bigint;
   debtPaid: bigint;
   netToFarmer: bigint;
-  principalToAgrinas: bigint;
+  principalToSupplier: bigint;
   coopMargin: bigint;
 } {
   const unsettledG = params.deliveredVolG - params.settledVolG;
@@ -78,11 +78,11 @@ export function computeSplitSettlement(params: {
   const debtPaid = netBeforeDebt >= params.remainingDebt ? params.remainingDebt : netBeforeDebt;
   const netToFarmer = netBeforeDebt - debtPaid;
 
-  const principalToAgrinas =
-    params.inputDebt === 0n ? 0n : (debtPaid * params.basePriceAgrinas) / params.inputDebt;
-  const coopMargin = debtPaid - principalToAgrinas; // rounding dust falls here, never inflates principal
+  const principalToSupplier =
+    params.inputDebt === 0n ? 0n : (debtPaid * params.basePriceSupplier) / params.inputDebt;
+  const coopMargin = debtPaid - principalToSupplier; // rounding dust falls here, never inflates principal
 
-  return { grossSmallest, handlingCut, debtPaid, netToFarmer, principalToAgrinas, coopMargin };
+  return { grossSmallest, handlingCut, debtPaid, netToFarmer, principalToSupplier, coopMargin };
 }
 
 /** Smallest-unit bigint to a formatted rupiah string. NO em dashes in output. */

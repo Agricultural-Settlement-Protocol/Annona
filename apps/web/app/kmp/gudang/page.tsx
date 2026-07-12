@@ -84,7 +84,7 @@ function InboundCard({
           {doneTxHash && <TxHashLink hash={doneTxHash} />}
         </div>
         <Alert tone="success" className="mt-4 rounded-xl">
-          Status perjanjian berubah menjadi Berjalan. Gerbang konfirmasi ganda selesai: Agrinas
+          Status perjanjian berubah menjadi Berjalan. Gerbang konfirmasi ganda selesai: Supplier
           kirim, KMP terima. Utang saprotan mulai dihitung.
         </Alert>
       </div>
@@ -103,8 +103,8 @@ function InboundCard({
           </p>
           <div className="mt-4 flex flex-wrap gap-6 text-sm font-bold text-gray-700">
             <div>
-              <span className="text-gray-400 font-medium">Pokok Agrinas: </span>
-              <RupiahAmount smallest={agreement.basePriceAgrinas} className="text-sm font-bold text-gray-900" />
+              <span className="text-gray-400 font-medium">Pokok Supplier: </span>
+              <RupiahAmount smallest={agreement.basePriceSupplier} className="text-sm font-bold text-gray-900" />
             </div>
             <div>
               <span className="text-gray-400 font-medium">Utang petani jika diterima: </span>
@@ -116,7 +116,7 @@ function InboundCard({
             </div>
           </div>
           <p className="mt-2.5 text-xs text-gray-400 font-semibold">
-            Tanggal pengiriman Agrinas: {agreement.createdAt}
+            Tanggal pengiriman Supplier: {agreement.createdAt}
           </p>
         </div>
 
@@ -216,7 +216,7 @@ export default function GudangPage() {
         <StatCard
           label="Kargo Menunggu"
           value={String(inbound.length)}
-          hint="Kiriman saprotan dari Agrinas menunggu konfirmasi penerimaan"
+          hint="Kiriman saprotan dari Supplier menunggu konfirmasi penerimaan"
           icon={<Truck size={18} />}
           tone={inbound.length > 0 ? "warn" : "good"}
         />
@@ -237,7 +237,7 @@ export default function GudangPage() {
       {/* Zone 1: On-chain inbound supply */}
       <Card className="rounded-[2rem] border-gray-100 bg-white shadow-sm overflow-hidden p-5 sm:p-6">
         <CardHeader
-          title="Kargo Masuk dari Agrinas"
+          title="Kargo Masuk dari Supplier"
           description="Barang dalam perjalanan menunggu konfirmasi penerimaan fisik. Konfirmasi Anda mengaktifkan utang saprotan petani."
           action={
             <span className="flex items-center gap-1 rounded-full bg-cyan-50 border border-cyan-150/40 px-3 py-0.5 text-xs font-bold text-[#0c6a78] uppercase">
@@ -289,7 +289,7 @@ export default function GudangPage() {
           <div className="mx-5">
             <Alert tone="warning" title="Data off-chain" className="rounded-xl">
               Tabel stok di bawah adalah catatan lokal koperasi. Tidak ada catatan blockchain untuk
-              ini. Konfirmasi kargo Agrinas di zona atas yang menciptakan rekam on-chain.
+              ini. Konfirmasi kargo Supplier di zona atas yang menciptakan rekam on-chain.
             </Alert>
           </div>
 

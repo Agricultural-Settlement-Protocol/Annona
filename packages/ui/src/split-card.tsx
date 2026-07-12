@@ -8,7 +8,7 @@ import { RupiahAmount } from "./rupiah.js";
  * "Automated Cash-Split Settlement Card" (PRD §8.1 Screen D, DESIGN_GUIDE
  * v3.0). Renders the three allocations one `settle()` produces so a KMP
  * officer sees, at a glance, that the debt collected is not all theirs:
- * cash out to the farmer, principal locked for Agrinas, and the coop's own
+ * cash out to the farmer, principal locked for Supplier, and the coop's own
  * margin + handling. Money only via `RupiahAmount`; no em dashes.
  */
 export function SplitSettlementCard({
@@ -25,7 +25,7 @@ export function SplitSettlementCard({
   handlingCut: bigint;
   /** net paid to the farmer after handling cut + debt netted */
   netToFarmer: bigint;
-  /** Agrinas's principal recovered from the netted debt, owed back via remittance */
+  /** Supplier's principal recovered from the netted debt, owed back via remittance */
   residuPrincipal: bigint;
   /** KMP's markup margin recovered from the netted debt, kept by the coop */
   coopMargin: bigint;
@@ -53,7 +53,7 @@ export function SplitSettlementCard({
         <SplitRow
           icon={<Landmark size={16} />}
           iconTone="bg-aqua-100 text-aqua-700"
-          label="Residu pokok Agrinas"
+          label="Residu pokok Supplier"
           hint="Terkunci di kas KMP, wajib disetor balik"
           amount={residuPrincipal}
           tone="default"

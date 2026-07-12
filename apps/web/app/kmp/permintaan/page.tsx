@@ -2,7 +2,7 @@
 
 /** Screen: Permintaan Saprotan — the bulk-request desk.
  *  KMP aggregates Created agreements into a single on-chain bulk request to
- *  Agrinas. Agrinas reads the same mv_bulk_request_queue; no email or Excel
+ *  Supplier. Supplier reads the same mv_bulk_request_queue; no email or Excel
  *  needed. CSV export exists as offline fallback. */
 
 import {
@@ -60,7 +60,7 @@ function RequestStatusBadge({ status }: { status: SupplyRequestStatus }) {
   if (status === "Draft")
     return <Badge tone="neutral" className="rounded-full font-bold">Draf</Badge>;
   if (status === "Terkirim")
-    return <Badge tone="aqua" className="rounded-full font-bold">Terkirim ke Agrinas</Badge>;
+    return <Badge tone="aqua" className="rounded-full font-bold">Terkirim ke Supplier</Badge>;
   if (status === "Dikirim")
     return <Badge tone="aqua" className="rounded-full font-bold">Dalam Pengiriman</Badge>;
   // Diterima
@@ -103,7 +103,7 @@ function buildCsv(rows: EffectiveRow[], catalog: CatalogMap): string {
   const headers = ["Petani", "No. Perjanjian", "Rincian Barang", "Nilai Pokok (Rp)", "Perkiraan Panen", "Status"];
   const lines = rows.map((r) => {
     const items = compactItems(r.agreement, catalog);
-    const principal = formatRupiah(r.agreement.basePriceAgrinas);
+    const principal = formatRupiah(r.agreement.basePriceSupplier);
     return [
       r.farmerName,
       `#${String(r.agreement.onchainId)}`,
@@ -273,7 +273,7 @@ export default function PermintaanPage() {
     <div className="space-y-6">
       <PageHeader
         title="Permintaan Saprotan"
-        description="Rekap kebutuhan input petani (perjanjian Dibuat) yang dikirim KMP ke Agrinas sebagai permintaan gabungan. Setelah dikirim, Agrinas langsung melihat antrean ini di sistem operator tanpa perlu email atau berkas manual."
+        description="Rekap kebutuhan input petani (perjanjian Dibuat) yang dikirim KMP ke Supplier sebagai permintaan gabungan. Setelah dikirim, Supplier langsung melihat antrean ini di sistem operator tanpa perlu email atau berkas manual."
         actions={
           <Button
             type="button"
@@ -301,14 +301,14 @@ export default function PermintaanPage() {
         <StatCard
           label="Draf"
           value={String(countDraft)}
-          hint="Belum dikirim ke Agrinas"
+          hint="Belum dikirim ke Supplier"
           icon={<ClipboardList size={18} />}
           tone="neutral"
         />
         <StatCard
           label="Terkirim"
           value={String(countTerkirim)}
-          hint="Menunggu pengiriman Agrinas"
+          hint="Menunggu pengiriman Supplier"
           icon={<Send size={18} />}
           tone={countTerkirim > 0 ? "good" : "neutral"}
         />
@@ -331,7 +331,7 @@ export default function PermintaanPage() {
       {/* Success alert from last bulk submit */}
       {showSuccess && lastTxHash && (
         <Alert tone="success" title="Permintaan gabungan tercatat di chain" className="rounded-xl">
-          Agrinas melihat antrean ini di dasbor operatornya. Tidak perlu email atau berkas manual.{" "}
+          Supplier melihat antrean ini di dasbor operatornya. Tidak perlu email atau berkas manual.{" "}
           <span className="mt-1 block">
             <TxHashLink hash={lastTxHash} />
           </span>
@@ -416,7 +416,7 @@ export default function PermintaanPage() {
                           </span>
                         </Td>
                         <Td className="text-right font-bold text-gray-900">
-                          <RupiahAmount smallest={r.agreement.basePriceAgrinas} className="text-sm" />
+                          <RupiahAmount smallest={r.agreement.basePriceSupplier} className="text-sm" />
                         </Td>
                         <Td className="text-gray-500 font-semibold text-sm">
                           {r.agreement.expectedHarvestDate}
@@ -434,7 +434,7 @@ export default function PermintaanPage() {
 
           {/* Explainer strip */}
           <div className="rounded-2xl border border-gray-100 bg-[#ebf5e9]/20 px-5 py-4 text-sm text-gray-600 font-medium leading-relaxed">
-            <span className="font-bold text-gray-900">Alur selanjutnya:</span> Setelah Agrinas
+            <span className="font-bold text-gray-900">Alur selanjutnya:</span> Setelah Supplier
             mengirim saprotan, kargo muncul di{" "}
             <Link href="/kmp/gudang" className="text-[#0c6a78] font-bold hover:underline">
               Gudang dan Pasokan
@@ -484,7 +484,7 @@ export default function PermintaanPage() {
 
                     <div className="flex w-fit items-center gap-1.5 rounded-full bg-cyan-50 border border-cyan-150/40 px-3 py-1 text-xs font-bold text-[#0c6a78]">
                       <LinkIcon size={10} />
-                      Nilai dikunci saat submit ke Agrinas
+                      Nilai dikunci saat submit ke Supplier
                     </div>
                   </>
                 )}
@@ -512,7 +512,7 @@ export default function PermintaanPage() {
               </Button>
               <p className="text-center text-xs text-gray-505 font-semibold leading-relaxed">
                 {selectedCount > 0
-                  ? "Permintaan dicatat di chain, langsung terlihat oleh Agrinas."
+                  ? "Permintaan dicatat di chain, langsung terlihat oleh Supplier."
                   : "Pilih draf pada tabel untuk mengirim permintaan gabungan."}
               </p>
             </div>

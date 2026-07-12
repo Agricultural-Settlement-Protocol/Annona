@@ -6,7 +6,7 @@
  * round-trips every builder (scValToNative) as an offline guard.
  *
  * Contract signatures (contracts/offtake-registry/src/lib.rs):
- *   create_agreement(coop, farmer, agrinas, commodity, base_price_agrinas: i128,
+ *   create_agreement(coop, farmer, supplier, commodity, base_price_supplier: i128,
  *     saprotan_markup_bps: u32, hpp_handling_fee_bps: u32, expected_vol_g: i128,
  *     hpp_per_kg: i128, tolerance_bps: u32, ktp_hash: BytesN<32>)
  *   accept_supply(coop, id: u64)
@@ -74,9 +74,9 @@ function commodity(c: CommodityArg): xdr.ScVal {
 export interface CreateAgreementArgs {
   coop: string;
   farmer: string;
-  agrinas: string;
+  supplier: string;
   commodity: CommodityArg;
-  basePriceAgrinas: bigint;
+  basePriceSupplier: bigint;
   saprotanMarkupBps: number;
   hppHandlingFeeBps: number;
   expectedVolG: bigint;
@@ -91,9 +91,9 @@ export function createAgreement(a: CreateAgreementArgs): Invocation {
     args: [
       addr(a.coop),
       addr(a.farmer),
-      addr(a.agrinas),
+      addr(a.supplier),
       commodity(a.commodity),
-      i128(a.basePriceAgrinas),
+      i128(a.basePriceSupplier),
       u32(a.saprotanMarkupBps),
       u32(a.hppHandlingFeeBps),
       i128(a.expectedVolG),

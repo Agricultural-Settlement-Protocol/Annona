@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Agrinas Ringkasan (Screen: Home) — protocol-level health at a glance.
+ * Supplier Ringkasan (Screen: Home) — protocol-level health at a glance.
  *
  * StatCards: total pokok aktif seluruh KMP, residu tertunda, antrean dispatch,
  * KMP bermasalah count. Activity feed + quick-access buttons.
@@ -10,7 +10,7 @@
 import { OversightPageHeader } from "@/components/oversight/page-header";
 import { ScrollArea } from "@/components/scroll-area";
 import {
-  AGRINAS_ACTIVITY,
+  SUPPLIER_ACTIVITY,
   MOCK_COOP_PROFILES,
   OVERSIGHT_SHIPMENTS,
   buildDispatchRequests,
@@ -73,7 +73,7 @@ const KIND_META: Record<KindKey, { icon: React.ReactNode; color: string }> = {
 };
 const FALLBACK_META = { icon: <Package size={14} />, color: "text-ink-400" };
 
-export default function AgrinasHomePage() {
+export default function SupplierHomePage() {
   const metrics = useMemo(() => protocolMetrics(), []);
   const pendingRequests = useMemo(
     () => buildDispatchRequests().filter((r) => r.status === "Menunggu"),
@@ -87,26 +87,26 @@ export default function AgrinasHomePage() {
   return (
     <div>
       <OversightPageHeader
-        title="Ringkasan Operator Agrinas"
+        title="Ringkasan Operator Supplier"
         description="Kesehatan protokol offtake di seluruh jaringan koperasi. Data real-time dari Stellar testnet."
         actions={
           <>
-            <Link href="/oversight/agrinas/katalog">
+            <Link href="/oversight/supplier/katalog">
               <Button variant="outline" size="sm" leftIcon={<Package size={14} />}>
                 Katalog
               </Button>
             </Link>
-            <Link href="/oversight/agrinas/logistik">
+            <Link href="/oversight/supplier/logistik">
               <Button variant="outline" size="sm" leftIcon={<Truck size={14} />}>
                 Logistik
               </Button>
             </Link>
-            <Link href="/oversight/agrinas/penerimaan">
+            <Link href="/oversight/supplier/penerimaan">
               <Button variant="outline" size="sm" leftIcon={<Inbox size={14} />}>
                 Penerimaan
               </Button>
             </Link>
-            <Link href="/oversight/agrinas/residu">
+            <Link href="/oversight/supplier/residu">
               <Button variant="accent" size="sm" leftIcon={<Landmark size={14} />}>
                 Rekonsiliasi Residu
               </Button>
@@ -130,7 +130,7 @@ export default function AgrinasHomePage() {
               rekonsiliasi residu. Ini indikator untuk peninjauan manusia.
             </p>
           </div>
-          <Link href="/oversight/agrinas/residu">
+          <Link href="/oversight/supplier/residu">
             <Button variant="outline" size="sm" rightIcon={<ArrowRight size={13} />}>
               Tinjau Residu
             </Button>
@@ -159,7 +159,7 @@ export default function AgrinasHomePage() {
               className="text-3xl"
             />
           }
-          hint="Pokok Agrinas di kas KMP, belum diverifikasi"
+          hint="Pokok Supplier di kas KMP, belum diverifikasi"
           tone={
             metrics.residuPending + metrics.residuRemitted > 0n ? "warn" : "good"
           }
@@ -183,7 +183,7 @@ export default function AgrinasHomePage() {
 
       {/* Quick-link cards: Katalog / Logistik / Penerimaan */}
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Link href="/oversight/agrinas/katalog" className="group block">
+        <Link href="/oversight/supplier/katalog" className="group block">
           <div className="flex items-center gap-4 rounded-[14px] border border-border bg-surface p-4 shadow-sm transition-shadow group-hover:shadow-md">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-verdant-100 text-verdant-700">
               <Package size={18} />
@@ -202,7 +202,7 @@ export default function AgrinasHomePage() {
             <ArrowRight size={16} className="shrink-0 text-muted-foreground group-hover:text-foreground" />
           </div>
         </Link>
-        <Link href="/oversight/agrinas/logistik" className="group block">
+        <Link href="/oversight/supplier/logistik" className="group block">
           <div className="flex items-center gap-4 rounded-[14px] border border-border bg-surface p-4 shadow-sm transition-shadow group-hover:shadow-md">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-aqua-100 text-aqua-700">
               <Truck size={18} />
@@ -222,7 +222,7 @@ export default function AgrinasHomePage() {
             <ArrowRight size={16} className="shrink-0 text-muted-foreground group-hover:text-foreground" />
           </div>
         </Link>
-        <Link href="/oversight/agrinas/penerimaan" className="group block">
+        <Link href="/oversight/supplier/penerimaan" className="group block">
           <div className="flex items-center gap-4 rounded-[14px] border border-border bg-surface p-4 shadow-sm transition-shadow group-hover:shadow-md">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-verdant-100 text-verdant-700">
               <Inbox size={18} />
@@ -318,9 +318,9 @@ export default function AgrinasHomePage() {
           <Card>
             <CardHeader
               title="Antrean Dispatch Saprotan"
-              description="Permintaan gabungan KMP menunggu konfirmasi pengiriman dari Agrinas."
+              description="Permintaan gabungan KMP menunggu konfirmasi pengiriman dari Supplier."
               action={
-                <Link href="/oversight/agrinas/logistik">
+                <Link href="/oversight/supplier/logistik">
                   <Button variant="ghost" size="sm" rightIcon={<ArrowRight size={13} />}>
                     Kelola
                   </Button>
@@ -350,7 +350,7 @@ export default function AgrinasHomePage() {
                         Total pokok: {formatRupiah(req.grandTotal)}
                       </p>
                     </div>
-                    <Link href="/oversight/agrinas/logistik">
+                    <Link href="/oversight/supplier/logistik">
                       <Button
                         variant="accent"
                         size="sm"
@@ -377,7 +377,7 @@ export default function AgrinasHomePage() {
             <CardContent className="min-h-0 flex-1 p-0">
               <ScrollArea viewportClassName="h-full px-5 pt-2" className="h-full">
                 <div className="space-y-4 pb-5">
-                  {AGRINAS_ACTIVITY.map((act) => {
+                  {SUPPLIER_ACTIVITY.map((act) => {
                     const meta =
                       KIND_META[act.kind as KindKey] ?? FALLBACK_META;
                     return (

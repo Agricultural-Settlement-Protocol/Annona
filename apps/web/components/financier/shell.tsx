@@ -21,7 +21,7 @@ import { motion, AnimatePresence } from "motion/react";
 import "../../app/urbangreen/urbangreen.css";
 
 /** Financier (Pemodal) dashboard shell. Amber/gold capital tone to distinguish
- *  from KMP (green) and Agrinas (teal). Collapsible sidebar + localStorage
+ *  from KMP (green) and Supplier (teal). Collapsible sidebar + localStorage
  *  persist + mobile drawer. Mirrors the KMP shell structure exactly. */
 
 type NavItem = {

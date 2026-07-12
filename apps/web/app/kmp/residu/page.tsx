@@ -1,11 +1,11 @@
 "use client";
 
 /**
- * Screen: Residu Agrinas — manage principal remittances owed back to Agrinas.
+ * Screen: Residu Supplier — manage principal remittances owed back to Supplier.
  *
- * Key constraint: residu pokok is Agrinas's money, not KMP's. KMP holds it
+ * Key constraint: residu pokok is Supplier's money, not KMP's. KMP holds it
  * in pre-funded cash until remitted. The dual gate (KMP submits evidence,
- * Agrinas verifies) is the anti-moral-hazard mechanism.
+ * Supplier verifies) is the anti-moral-hazard mechanism.
  *
  * No automatic accusation. Disputed status = human review freezes reputation
  * pending resolution. This page: record off-chain bank transfer + watch
@@ -108,8 +108,8 @@ export default function ResiduPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Residu Agrinas"
-        description="Residu pokok adalah uang Agrinas yang dikumpulkan saat panen, disimpan sementara di kas KMP, dan wajib disetor balik."
+        title="Residu Supplier"
+        description="Residu pokok adalah uang Supplier yang dikumpulkan saat panen, disimpan sementara di kas KMP, dan wajib disetor balik."
       />
 
       {loading && <Alert tone="info">Memuat ledger residu...</Alert>}
@@ -121,8 +121,8 @@ export default function ResiduPage() {
 
       {/* Top alert: mandatory, prominent */}
       <Alert tone="warning" title="Residu pokok bukan milik koperasi" className="rounded-xl">
-        Uang ini adalah pokok saprotan Agrinas yang dikembalikan saat panen. KMP hanya memegang
-        sementain. Segera remitkan ke rekening Agrinas setelah pembayaran panen selesai.
+        Uang ini adalah pokok saprotan Supplier yang dikembalikan saat panen. KMP hanya memegang
+        sementain. Segera remitkan ke rekening Supplier setelah pembayaran panen selesai.
         Keterlambatan dapat membekukan reputasi on-chain koperasi.
       </Alert>
 
@@ -131,20 +131,20 @@ export default function ResiduPage() {
         <StatCard
           label="Belum Disetor"
           value={<RupiahAmount smallest={stats.pending} className="text-3xl font-bold" />}
-          hint="Residu yang belum diremitkan ke Agrinas"
+          hint="Residu yang belum diremitkan ke Supplier"
           tone={stats.pending > 0n ? "warn" : "good"}
           icon={<Landmark size={18} />}
         />
         <StatCard
           label="Menunggu Verifikasi"
           value={<RupiahAmount smallest={stats.remitted} className="text-3xl font-bold" />}
-          hint="Transfer terkirim, menunggu konfirmasi Agrinas"
+          hint="Transfer terkirim, menunggu konfirmasi Supplier"
           icon={<Building2 size={18} />}
         />
         <StatCard
           label="Terverifikasi"
           value={<RupiahAmount smallest={stats.cleared} className="text-3xl font-bold" />}
-          hint="Residu diterima dan dikonfirmasi Agrinas"
+          hint="Residu diterima dan dikonfirmasi Supplier"
           tone="good"
           icon={<ShieldCheck size={18} />}
         />
@@ -164,7 +164,7 @@ export default function ResiduPage() {
               <THead>
                 <Th>Perjanjian</Th>
                 <Th>Petani</Th>
-                <Th>Pokok Agrinas</Th>
+                <Th>Pokok Supplier</Th>
                 <Th>Status</Th>
                 <Th>Ref Bank</Th>
                 <Th>Tanggal Setor</Th>
@@ -231,7 +231,7 @@ export default function ResiduPage() {
                             <span className="text-xs text-gray-500 font-semibold">Sedang diisi...</span>
                           )}
                           {currentStatus === "Remitted" && (
-                            <span className="text-xs text-gray-500 font-semibold">Menunggu Agrinas</span>
+                            <span className="text-xs text-gray-500 font-semibold">Menunggu Supplier</span>
                           )}
                           {currentStatus === "Cleared" && (
                             <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-800">
@@ -250,7 +250,7 @@ export default function ResiduPage() {
                               <div className="space-y-4">
                                 <div className="flex items-center justify-between">
                                   <p className="font-bold text-[#0c6a78]">
-                                    Tandai Disetor ke Agrinas
+                                    Tandai Disetor ke Supplier
                                   </p>
                                   <button
                                     type="button"
@@ -262,7 +262,7 @@ export default function ResiduPage() {
                                 </div>
                                 <Alert tone="info" className="rounded-xl">
                                   Masukkan referensi transfer bank dan unggah bukti transfer.
-                                  Agrinas akan memverifikasi dan mengkonfirmasi via sistem mereka.
+                                  Supplier akan memverifikasi dan mengkonfirmasi via sistem mereka.
                                   Catatan ini dikunci di blockchain sebagai komitmen KMP.
                                 </Alert>
                                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -362,7 +362,7 @@ export default function ResiduPage() {
       <Card className="rounded-[2rem] border border-gray-100 bg-white shadow-sm overflow-hidden p-5 sm:p-6">
         <CardHeader
           title="Cara Kerja Dual Gate Residu"
-          description="Dua tahap verifikasi melindungi Agrinas dan memastikan KMP tidak mengklaim residu sebagai milik sendiri."
+          description="Dua tahap verifikasi melindungi Supplier dan memastikan KMP tidak mengklaim residu sebagai milik sendiri."
           action={<ShieldCheck size={18} className="text-emerald-700" />}
           className="pb-3"
         />
@@ -385,9 +385,9 @@ export default function ResiduPage() {
                 2
               </span>
               <div>
-                <p className="font-bold text-gray-900">Agrinas Verifikasi</p>
+                <p className="font-bold text-gray-900">Supplier Verifikasi</p>
                 <p className="text-xs text-gray-500 font-semibold leading-relaxed mt-0.5">
-                  Agrinas mengkonfirmasi penerimaan transfer. Status berubah menjadi Terverifikasi.
+                  Supplier mengkonfirmasi penerimaan transfer. Status berubah menjadi Terverifikasi.
                   Kewajiban KMP selesai.
                 </p>
               </div>
@@ -399,7 +399,7 @@ export default function ResiduPage() {
               <div>
                 <p className="font-bold text-gray-900">Jika Ada Sengketa</p>
                 <p className="text-xs text-gray-500 font-semibold leading-relaxed mt-0.5">
-                  Agrinas dapat menandai sebagai Bermasalah jika ada perbedaan. Ini hanya indikator
+                  Supplier dapat menandai sebagai Bermasalah jika ada perbedaan. Ini hanya indikator
                   untuk peninjauan manusia. Reputasi on-chain KMP dibekukan sementara. Keputusan
                   diselesaikan di luar sistem oleh pihak yang berwenang.
                 </p>
@@ -429,7 +429,7 @@ function RemitSuccess({
         <div className="flex-1">
           <p className="text-sm font-bold text-gray-900">Remitansi residu tercatat di chain</p>
           <p className="text-xs text-gray-500 font-semibold mt-0.5">
-            Ref: {bankRef}. Menunggu verifikasi Agrinas.
+            Ref: {bankRef}. Menunggu verifikasi Supplier.
           </p>
         </div>
         <TxHashLink hash={txHash} />

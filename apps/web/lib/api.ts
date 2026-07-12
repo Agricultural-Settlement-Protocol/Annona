@@ -35,7 +35,7 @@ export interface ApiAgreement {
   commodityCode: string;
   grade: string;
   moistureBps: number;
-  basePriceAgrinas: bigint;
+  basePriceSupplier: bigint;
   saprotanMarkupBps: number;
   inputDebt: bigint;
   hppHandlingFeeBps: number;
@@ -64,7 +64,7 @@ export interface ApiAgreementInput {
   agreementId: string;
   catalogId: string;
   qty: number;
-  basePriceAgrinas: bigint;
+  basePriceSupplier: bigint;
   lineTotalPrincipal: bigint;
 }
 
@@ -138,7 +138,7 @@ export interface ApiSettlement {
   gross: bigint;
   handlingCut: bigint;
   debtNetted: bigint;
-  principalToAgrinas: bigint;
+  principalToSupplier: bigint;
   coopMargin: bigint;
   netPaid: bigint;
   settledVolG: bigint;
@@ -164,7 +164,7 @@ export interface ApiResidu {
 
 export interface ApiCoop {
   id: string;
-  agrinasId: string;
+  supplierId: string;
   name: string;
   kecamatan: string;
   kabupaten: string;
@@ -174,7 +174,7 @@ export interface ApiCoop {
   createdAt: string;
 }
 
-export interface ApiAgrinas {
+export interface ApiSupplier {
   id: string;
   name: string;
   walletAddress: string;
@@ -207,7 +207,7 @@ function parseAgreement(r: Raw<ApiAgreement>): ApiAgreement {
   return {
     ...r,
     onchainId: big(r.onchainId),
-    basePriceAgrinas: big(r.basePriceAgrinas),
+    basePriceSupplier: big(r.basePriceSupplier),
     inputDebt: big(r.inputDebt),
     hppPerKg: big(r.hppPerKg),
     expectedVolG: big(r.expectedVolG),
@@ -225,7 +225,7 @@ function parseInput(r: Raw<ApiAgreementInput>): ApiAgreementInput {
   return {
     ...r,
     qty: Number(r.qty),
-    basePriceAgrinas: big(r.basePriceAgrinas),
+    basePriceSupplier: big(r.basePriceSupplier),
     lineTotalPrincipal: big(r.lineTotalPrincipal),
   };
 }
@@ -241,7 +241,7 @@ function parseSettlement(r: Raw<ApiSettlement>): ApiSettlement {
     gross: big(r.gross),
     handlingCut: big(r.handlingCut),
     debtNetted: big(r.debtNetted),
-    principalToAgrinas: big(r.principalToAgrinas),
+    principalToSupplier: big(r.principalToSupplier),
     coopMargin: big(r.coopMargin),
     netPaid: big(r.netPaid),
     settledVolG: big(r.settledVolG),
@@ -300,11 +300,11 @@ export async function fetchResidu(): Promise<ApiResidu[]> {
   return items.map(parseResidu);
 }
 
-export async function fetchCoop(): Promise<{ coop: ApiCoop; agrinas: ApiAgrinas }> {
-  const r = await getJSON<{ coop: Raw<ApiCoop>; agrinas: ApiAgrinas }>("/coop");
+export async function fetchCoop(): Promise<{ coop: ApiCoop; supplier: ApiSupplier }> {
+  const r = await getJSON<{ coop: Raw<ApiCoop>; supplier: ApiSupplier }>("/coop");
   return {
     coop: { ...r.coop, prefundedCashBalance: big(r.coop.prefundedCashBalance) },
-    agrinas: r.agrinas,
+    supplier: r.supplier,
   };
 }
 
@@ -347,7 +347,7 @@ export interface ApiCatalogItem {
   code: string;
   name: string;
   category: string;
-  basePriceAgrinas: bigint;
+  basePriceSupplier: bigint;
   source: string;
 }
 
@@ -367,7 +367,7 @@ export async function fetchCatalog(): Promise<ApiCatalogItem[]> {
     code: r.code,
     name: r.name,
     category: r.category,
-    basePriceAgrinas: big(r.basePriceAgrinas),
+    basePriceSupplier: big(r.basePriceSupplier),
     source: r.source,
   }));
 }

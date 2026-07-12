@@ -72,7 +72,7 @@ export function settledRowFromEvent(
   gross: bigint;
   handlingCut: bigint;
   debtNetted: bigint;
-  principalToAgrinas: bigint;
+  principalToSupplier: bigint;
   coopMargin: bigint;
   netPaid: bigint;
   settledVolG: bigint;
@@ -81,7 +81,7 @@ export function settledRowFromEvent(
     gross: data.gross,
     handlingCut: data.handlingCut,
     debtNetted: data.debtNetted,
-    principalToAgrinas: data.principalToAgrinas,
+    principalToSupplier: data.principalToSupplier,
     coopMargin: data.coopMargin,
     netPaid: data.netPaid,
     // event.settledVolG is cumulative; store the delta this call settled.
@@ -111,13 +111,13 @@ async function farmerIdByAddr(tx: Tx, addr: string): Promise<string> {
   return row.id;
 }
 
-async function agrinasIdByAddr(tx: Tx, addr: string): Promise<string> {
+async function supplierIdByAddr(tx: Tx, addr: string): Promise<string> {
   const rows = await tx
-    .select({ id: schema.agrinas.id })
-    .from(schema.agrinas)
-    .where(eq(schema.agrinas.walletAddress, addr));
+    .select({ id: schema.supplier.id })
+    .from(schema.supplier)
+    .where(eq(schema.supplier.walletAddress, addr));
   const row = rows[0];
-  if (!row) throw new Error(`indexer: no agrinas for wallet ${addr}`);
+  if (!row) throw new Error(`indexer: no supplier for wallet ${addr}`);
   return row.id;
 }
 
@@ -127,7 +127,7 @@ async function agreementByOnchain(tx: Tx, onchainId: bigint) {
     .select({
       id: schema.agreement.id,
       coopId: schema.agreement.coopId,
-      agrinasId: schema.agreement.agrinasId,
+      supplierId: schema.agreement.supplierId,
       status: schema.agreement.status,
       expectedVolG: schema.agreement.expectedVolG,
     })
@@ -171,10 +171,10 @@ async function handle(tx: Tx, env: AnyEnvelope): Promise<void> {
   switch (env.type) {
     case "AgreementCreated": {
       const d = env.data;
-      const [coopId, farmerId, agrinasId] = await Promise.all([
+      const [coopId, farmerId, supplierId] = await Promise.all([
         coopIdByAddr(tx, d.coop),
         farmerIdByAddr(tx, d.farmer),
-        agrinasIdByAddr(tx, d.agrinas),
+        supplierIdByAddr(tx, d.supplier),
       ]);
       await tx
         .insert(schema.agreement)
@@ -182,13 +182,13 @@ async function handle(tx: Tx, env: AnyEnvelope): Promise<void> {
           onchainId: d.id,
           coopId,
           farmerId,
-          agrinasId,
+          supplierId,
           commodityCode: d.commodity.code,
           // grade + moisture are ESTIMATES at creation (from the commodity
           // struct); DeliveryRecorded overwrites grade with the ACTUAL later.
           grade: d.commodity.grade,
           moistureBps: d.commodity.moistureBps,
-          basePriceAgrinas: d.basePriceAgrinas,
+          basePriceSupplier: d.basePriceSupplier,
           saprotanMarkupBps: d.saprotanMarkupBps,
           inputDebt: d.inputDebt,
           hppHandlingFeeBps: d.hppHandlingFeeBps,
@@ -258,7 +258,7 @@ async function handle(tx: Tx, env: AnyEnvelope): Promise<void> {
         gross: row.gross,
         handlingCut: row.handlingCut,
         debtNetted: row.debtNetted,
-        principalToAgrinas: row.principalToAgrinas,
+        principalToSupplier: row.principalToSupplier,
         coopMargin: row.coopMargin,
         netPaid: row.netPaid,
         settledVolG: row.settledVolG,
@@ -268,14 +268,14 @@ async function handle(tx: Tx, env: AnyEnvelope): Promise<void> {
       if (agr.status === "Delivered") {
         await setStatus(tx, d.id, "Settled");
       }
-      // Residu principal owed to Agrinas accrues; upsert the ledger row (Pending
+      // Residu principal owed to Supplier accrues; upsert the ledger row (Pending
       // until KMP marks it remitted). Keyed on the agreement's on-chain id.
-      if (row.principalToAgrinas > 0n) {
+      if (row.principalToSupplier > 0n) {
         await accrueResidu(tx, {
           agreementOnchainId: d.id,
           coopId: agr.coopId,
-          agrinasId: agr.agrinasId,
-          principalDelta: row.principalToAgrinas,
+          supplierId: agr.supplierId,
+          principalDelta: row.principalToSupplier,
         });
       }
       return;
@@ -300,7 +300,7 @@ async function handle(tx: Tx, env: AnyEnvelope): Promise<void> {
       return;
 
     case "RemittanceResolved":
-      // Un-strand the residu row: back to Remitted, awaiting Agrinas re-verify.
+      // Un-strand the residu row: back to Remitted, awaiting Supplier re-verify.
       await setResiduStatus(tx, env.data.id, "Remitted", {});
       return;
 
@@ -395,7 +395,7 @@ async function setResiduStatus(
 
 async function accrueResidu(
   tx: Tx,
-  p: { agreementOnchainId: bigint; coopId: string; agrinasId: string; principalDelta: bigint },
+  p: { agreementOnchainId: bigint; coopId: string; supplierId: string; principalDelta: bigint },
 ): Promise<void> {
   const existing = await tx
     .select({ id: schema.residuRemittance.id, amount: schema.residuRemittance.principalAmount })
@@ -409,7 +409,7 @@ async function accrueResidu(
   } else {
     await tx.insert(schema.residuRemittance).values({
       coopId: p.coopId,
-      agrinasId: p.agrinasId,
+      supplierId: p.supplierId,
       agreementOnchainId: p.agreementOnchainId,
       principalAmount: p.principalDelta,
       status: "Pending",

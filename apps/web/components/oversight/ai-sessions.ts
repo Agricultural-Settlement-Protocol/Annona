@@ -5,7 +5,7 @@
  * Cap: last 50 messages per session to avoid localStorage quota issues.
  */
 
-export type ChatRole = "agrinas" | "pemerintah";
+export type ChatRole = "supplier" | "pemerintah";
 
 export interface AttachmentMeta {
   kind: "table" | "image";

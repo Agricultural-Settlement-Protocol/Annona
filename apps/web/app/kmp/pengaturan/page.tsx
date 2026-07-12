@@ -409,7 +409,7 @@ function NotifikasiSection() {
           {
             id: "notif-residu",
             label: "Residu jatuh tempo",
-            hint: "Residu pokok Agrinas belum diremitkan lebih dari 14 hari",
+            hint: "Residu pokok Supplier belum diremitkan lebih dari 14 hari",
             checked: notifResidu,
             onChange: () => setNotifResidu((v) => !v),
           },

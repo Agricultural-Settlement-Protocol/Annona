@@ -24,12 +24,12 @@ import { usePathname } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 
-/** Shared oversight shell for Agrinas (operator) and Pemerintah (regulator).
- *  Visual identity: aqua/teal for Agrinas, neutral (ink/verdant) for Pemerintah.
+/** Shared oversight shell for Supplier (operator) and Pemerintah (regulator).
+ *  Visual identity: aqua/teal for Supplier, neutral (ink/verdant) for Pemerintah.
  *  Mirrors KMP shell: collapsible sidebar, localStorage persistence, mobile drawer.
  *  "Ganti Peran" returns to /oversight role select. */
 
-export type OversightRole = "agrinas" | "pemerintah";
+export type OversightRole = "supplier" | "pemerintah";
 
 type NavItem = {
   href: string;
@@ -38,12 +38,12 @@ type NavItem = {
   exact?: boolean;
 };
 
-const AGRINAS_NAV: { label: string | null; items: NavItem[] }[] = [
+const SUPPLIER_NAV: { label: string | null; items: NavItem[] }[] = [
   {
     label: null,
     items: [
       {
-        href: "/oversight/agrinas",
+        href: "/oversight/supplier",
         label: "Ringkasan",
         icon: LayoutDashboard,
         exact: true,
@@ -53,15 +53,15 @@ const AGRINAS_NAV: { label: string | null; items: NavItem[] }[] = [
   {
     label: "Operasional",
     items: [
-      { href: "/oversight/agrinas/katalog", label: "Katalog Saprotan", icon: Package },
-      { href: "/oversight/agrinas/logistik", label: "Logistik Saprotan", icon: Truck },
-      { href: "/oversight/agrinas/penerimaan", label: "Penerimaan Panen", icon: PackageCheck },
-      { href: "/oversight/agrinas/residu", label: "Rekonsiliasi Residu", icon: Landmark },
+      { href: "/oversight/supplier/katalog", label: "Katalog Saprotan", icon: Package },
+      { href: "/oversight/supplier/logistik", label: "Logistik Saprotan", icon: Truck },
+      { href: "/oversight/supplier/penerimaan", label: "Penerimaan Panen", icon: PackageCheck },
+      { href: "/oversight/supplier/residu", label: "Rekonsiliasi Residu", icon: Landmark },
     ],
   },
   {
     label: "Asisten",
-    items: [{ href: "/oversight/agrinas/ai", label: "Asisten AI", icon: Bot }],
+    items: [{ href: "/oversight/supplier/ai", label: "Asisten AI", icon: Bot }],
   },
 ];
 
@@ -104,7 +104,7 @@ function NavLink({
   onNavigate?: () => void;
 }) {
   const Icon = item.icon;
-  const isAgrinas = role === "agrinas";
+  const isSupplier = role === "supplier";
   return (
     <Link
       href={item.href}
@@ -116,7 +116,7 @@ function NavLink({
         "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
         collapsed ? "justify-center px-2 py-2" : "gap-3 px-4 py-2.5",
         active
-          ? isAgrinas
+          ? isSupplier
             ? "bg-[#e7fafc] text-[#0c6a78]"
             : "bg-soft-green text-emerald-950"
           : "text-gray-500 hover:bg-gray-50 hover:text-gray-900",
@@ -127,7 +127,7 @@ function NavLink({
         className={cn(
           "shrink-0 transition-colors",
           active
-            ? isAgrinas
+            ? isSupplier
               ? "text-[#0c6a78]"
               : "text-emerald-800"
             : "text-gray-400 group-hover:text-gray-700",
@@ -140,7 +140,7 @@ function NavLink({
             <span
               className={cn(
                 "ml-auto h-5 w-1 rounded-full",
-                isAgrinas ? "bg-[#0c6a78]" : "bg-emerald-700",
+                isSupplier ? "bg-[#0c6a78]" : "bg-emerald-700",
               )}
               aria-hidden
             />
@@ -163,15 +163,15 @@ function SidebarContent({
   onToggle?: () => void;
 }) {
   const pathname = usePathname();
-  const navGroups = role === "agrinas" ? AGRINAS_NAV : PEMERINTAH_NAV;
-  const isAgrinas = role === "agrinas";
+  const navGroups = role === "supplier" ? SUPPLIER_NAV : PEMERINTAH_NAV;
+  const isSupplier = role === "supplier";
 
-  const roleBadgeClass = isAgrinas
+  const roleBadgeClass = isSupplier
     ? "bg-[#e7fafc] text-[#0c6a78] border border-[#c3f2f6]"
     : "bg-soft-green text-emerald-950 border border-soft-green/30";
 
-  const roleLabel = isAgrinas ? "AGRINAS" : "PEMERINTAH";
-  const roleIcon = isAgrinas ? (
+  const roleLabel = isSupplier ? "SUPPLIER" : "PEMERINTAH";
+  const roleIcon = isSupplier ? (
     <Package size={10} className="text-[#0c6a78]" />
   ) : (
     <ShieldCheck size={10} className="text-emerald-800" />
@@ -227,15 +227,15 @@ function SidebarContent({
       {collapsed ? null : (
         <div className={cn(
           "mx-4.5 mb-4 rounded-2xl border p-4 shadow-sm",
-          isAgrinas 
+          isSupplier 
             ? "border-[#c3f2f6] bg-[#e7fafc]/40" 
             : "border-soft-green/30 bg-soft-green/20"
         )}>
           <p className="text-sm font-bold text-gray-900 leading-snug">
-            {isAgrinas ? "PT Agrinas Pangan Nusantara" : "Kementerian Pertanian RI"}
+            {isSupplier ? "PT Agrinas Pangan Nusantara" : "Kementerian Pertanian RI"}
           </p>
           <p className="mt-1 text-xs font-semibold text-gray-500 leading-normal">
-            {isAgrinas ? "Operator protokol offtake" : "Pengawas regional (hanya baca)"}
+            {isSupplier ? "Operator protokol offtake" : "Pengawas regional (hanya baca)"}
           </p>
         </div>
       )}
@@ -284,10 +284,10 @@ function SidebarContent({
             <div
               className={cn(
                 "flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold shadow-sm",
-                isAgrinas ? "bg-[#e7fafc] text-[#0c6a78]" : "bg-soft-green text-emerald-950",
+                isSupplier ? "bg-[#e7fafc] text-[#0c6a78]" : "bg-soft-green text-emerald-950",
               )}
             >
-              {isAgrinas ? "AG" : "PG"}
+              {isSupplier ? "AG" : "PG"}
             </div>
             <button
               type="button"
@@ -305,17 +305,17 @@ function SidebarContent({
               <div
                 className={cn(
                   "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold shadow-sm",
-                  isAgrinas ? "bg-[#e7fafc] text-[#0c6a78]" : "bg-soft-green text-emerald-950",
+                  isSupplier ? "bg-[#e7fafc] text-[#0c6a78]" : "bg-soft-green text-emerald-950",
                 )}
               >
-                {isAgrinas ? "AG" : "PG"}
+                {isSupplier ? "AG" : "PG"}
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-bold text-gray-900">
-                  {isAgrinas ? "Operator Agrinas" : "Petugas Pengawas"}
+                  {isSupplier ? "Operator Supplier" : "Petugas Pengawas"}
                 </p>
                 <p className="text-[11px] font-semibold text-gray-400 mt-0.5">
-                  {isAgrinas ? "Akses penuh operator" : "Hanya baca"}
+                  {isSupplier ? "Akses penuh operator" : "Hanya baca"}
                 </p>
               </div>
               <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-cyan-50 px-2 py-0.5 text-[9px] font-bold text-cyan-800 border border-cyan-100">
@@ -426,12 +426,12 @@ export function OversightShell({
         <span
           className={cn(
             "ml-auto inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase shadow-sm border",
-            role === "agrinas" 
+            role === "supplier" 
               ? "bg-[#e7fafc] text-[#0c6a78] border-[#c3f2f6]" 
               : "bg-soft-green text-emerald-950 border-soft-green/30",
           )}
         >
-          {role === "agrinas" ? "AGRINAS" : "PEMERINTAH"}
+          {role === "supplier" ? "SUPPLIER" : "PEMERINTAH"}
         </span>
       </header>
 

@@ -22,7 +22,7 @@
 - [ ] Phase 1 — Contract: supplier rename + subsidy tier
 - [ ] Phase 2 — Contract: Offtake Financing lifecycle
 - [ ] Phase 3 — `packages/core` sync
-- [~] Phase 4 — Schema + migration `0004` (**4a additive DONE** ✅ · 4b rename scheduled)
+- [x] Phase 4 — Schema + migrations `0004`/`0005` (**4a additive** ✅ · **4b agrinas→supplier rename** ✅)
 - [ ] Phase 5 — Indexer + seed + API
 - [ ] Phase 6 — Web read cutover
 - [ ] Phase 7 — Web write path
@@ -278,10 +278,10 @@ Goal: retire the `agrinas` name for the input-principal role across ALL lanes in
 `db diff` clean; seed replays; every renamed route walked.
 
 **Checklist**
-- [ ] Schema rename migration (`0005`) generated + pushed
-- [ ] Core + API + seed + indexer refs updated
-- [ ] Web routes + labels renamed
-- [ ] grep clean, full app smoke green
+- [x] Schema rename migration (`0005`) applied to shared Supabase + recorded in the migration tracker
+- [x] Core + API + seed + indexer refs updated (table `supplier`, `supplier_id`, `base_price_supplier`, `principal_to_supplier`; role `agrinas`→`supplier`)
+- [x] Web routes + labels renamed (`/oversight/agrinas`→`/oversight/supplier`; UI label "Supplier"; PT Agrinas entity + gudang/logistik warehouse copy intentionally kept)
+- [x] grep clean (only PT-Agrinas entity, gudang/Logistik warehouse, `agrinas@` email, rename-history comments remain); typecheck + api/web tests + web build (33 routes) all green; seed→API smoke verified
 
 **Blocks:** Phase 5 depends on 4a (done). 4b can land alongside Phase 6.
 

@@ -33,9 +33,9 @@ export interface AgreementCreatedData {
   id: bigint;
   farmer: string;
   coop: string;
-  agrinas: string;
+  supplier: string;
   commodity: Commodity;
-  basePriceAgrinas: bigint;
+  basePriceSupplier: bigint;
   saprotanMarkupBps: number;
   inputDebt: bigint;
   hppHandlingFeeBps: number;
@@ -46,7 +46,7 @@ export interface AgreementCreatedData {
 
 export interface SupplyDispatchedData {
   id: bigint;
-  agrinas: string;
+  supplier: string;
   coop: string;
 }
 
@@ -71,7 +71,7 @@ export interface SettledData {
   gross: bigint;
   handlingCut: bigint;
   debtNetted: bigint;
-  principalToAgrinas: bigint;
+  principalToSupplier: bigint;
   coopMargin: bigint;
   netPaid: bigint;
   settledVolG: bigint;
@@ -98,7 +98,7 @@ export interface RemittanceClearedData {
   id: bigint;
   coop: string;
   principal: bigint;
-  agrinas: string;
+  supplier: string;
 }
 
 export interface RemittanceDisputedData {

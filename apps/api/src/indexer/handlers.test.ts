@@ -22,14 +22,14 @@ test("§5 worked example: 2600kg gabah splits farmer/handling/margin/principal",
     hppPerKg: 6_500n,
     remainingDebt: 2_200_000n, // = inputDebt on first settle
     hppHandlingFeeBps: 500, // 5%
-    basePriceAgrinas: 2_000_000n, // principal
+    basePriceSupplier: 2_000_000n, // principal
     inputDebt: 2_200_000n, // base * (1 + 10% markup)
   });
 
   assert.equal(split.grossSmallest, 16_900_000n, "gross");
   assert.equal(split.handlingCut, 845_000n, "handling (KMP)");
   assert.equal(split.debtPaid, 2_200_000n, "debt netted");
-  assert.equal(split.principalToAgrinas, 2_000_000n, "residu principal (Agrinas)");
+  assert.equal(split.principalToSupplier, 2_000_000n, "residu principal (Supplier)");
   assert.equal(split.coopMargin, 200_000n, "coop margin (KMP)");
   assert.equal(split.netToFarmer, 13_855_000n, "net to farmer");
 });
@@ -41,7 +41,7 @@ test("settledRowFromEvent recovers per-settle volume delta from cumulative event
     gross: 16_900_000n,
     handlingCut: 845_000n,
     debtNetted: 2_200_000n,
-    principalToAgrinas: 2_000_000n,
+    principalToSupplier: 2_000_000n,
     coopMargin: 200_000n,
     netPaid: 13_855_000n,
     settledVolG: 2_600_000n, // CUMULATIVE on-chain running total
@@ -64,7 +64,7 @@ test("staged split totals reconstruct the single-settle result (no rounding loss
   const p = {
     hppPerKg: 6_500n,
     hppHandlingFeeBps: 500,
-    basePriceAgrinas: 2_000_000n,
+    basePriceSupplier: 2_000_000n,
     inputDebt: 2_200_000n,
   };
   const s1 = computeSplitSettlement({
@@ -83,6 +83,6 @@ test("staged split totals reconstruct the single-settle result (no rounding loss
   assert.equal(s1.grossSmallest + s2.grossSmallest, 16_900_000n);
   assert.equal(s1.handlingCut + s2.handlingCut, 845_000n);
   assert.equal(s1.debtPaid + s2.debtPaid, 2_200_000n);
-  assert.equal(s1.principalToAgrinas + s2.principalToAgrinas, 2_000_000n);
+  assert.equal(s1.principalToSupplier + s2.principalToSupplier, 2_000_000n);
   assert.equal(s1.netToFarmer + s2.netToFarmer, 13_855_000n);
 });

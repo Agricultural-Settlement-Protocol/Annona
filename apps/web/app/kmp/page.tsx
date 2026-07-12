@@ -135,14 +135,14 @@ export default async function KmpHomePage() {
           icon={<Banknote size={18} />}
         />
         <StatCard
-          label="Residu Pokok Agrinas"
+          label="Residu Pokok Supplier"
           value={
             <RupiahAmount
               smallest={overview.residuOwed}
               className="text-3xl font-bold"
             />
           }
-          hint="Uang Agrinas di kas KMP, wajib disetor balik"
+          hint="Uang Supplier di kas KMP, wajib disetor balik"
           tone={overview.residuOwed > 0n ? "warn" : "good"}
           icon={<Landmark size={18} />}
         />
@@ -205,7 +205,7 @@ export default async function KmpHomePage() {
           <Card className="rounded-[2rem] border-gray-100 bg-white shadow-sm overflow-hidden p-5 sm:p-6">
             <CardHeader
               title="Kiriman Saprotan Masuk"
-              description="Kargo Agrinas dalam perjalanan, menunggu konfirmasi penerimaan Anda."
+              description="Kargo Supplier dalam perjalanan, menunggu konfirmasi penerimaan Anda."
               action={
                 <span className="text-indigo-400">
                   <Truck size={18} />
@@ -225,7 +225,7 @@ export default async function KmpHomePage() {
                         Perjanjian #{String(a.onchainId)}, {a.farmerName}
                       </p>
                       <p className="text-xs text-gray-500 font-semibold mt-1">
-                        Nilai pokok {formatRupiah(a.basePriceAgrinas)}, utang
+                        Nilai pokok {formatRupiah(a.basePriceSupplier)}, utang
                         belum aktif sebelum barang diterima
                       </p>
                     </div>

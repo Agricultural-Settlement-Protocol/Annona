@@ -17,7 +17,7 @@ import { type rpc, scValToNative, type xdr } from "@stellar/stellar-sdk";
 /** topic[0] symbol → (event type, ordered #[topic] field names after the name). */
 const TOPIC_REGISTRY: Record<string, { type: AnnonaEventType; topicFields: string[] }> = {
   agreement_created: { type: "AgreementCreated", topicFields: ["id", "farmer", "coop"] },
-  dispatched: { type: "SupplyDispatched", topicFields: ["id", "agrinas"] },
+  dispatched: { type: "SupplyDispatched", topicFields: ["id", "supplier"] },
   accepted: { type: "SupplyAccepted", topicFields: ["id", "coop"] },
   delivery: { type: "DeliveryRecorded", topicFields: ["id"] },
   receipt: { type: "HarvestReceiptMinted", topicFields: ["id", "farmer"] },

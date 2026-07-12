@@ -49,10 +49,10 @@ import { motion, AnimatePresence } from "motion/react";
 
 const RESIDU_EXPLANATION: Record<ResiduStatus, string> = {
   Pending:
-    "Residu belum disetor ke Agrinas. Segera remitkan ke rekening Agrinas setelah pembayaran tunai.",
-  Remitted: "Residu sudah disetor ke rekening Agrinas, menunggu verifikasi konfirmasi.",
-  Cleared: "Residu terverifikasi penuh oleh Agrinas. Kewajiban ini selesai.",
-  Disputed: "Residu bermasalah. Hubungi Agrinas untuk klarifikasi dan penyelesaian.",
+    "Residu belum disetor ke Supplier. Segera remitkan ke rekening Supplier setelah pembayaran tunai.",
+  Remitted: "Residu sudah disetor ke rekening Supplier, menunggu verifikasi konfirmasi.",
+  Cleared: "Residu terverifikasi penuh oleh Supplier. Kewajiban ini selesai.",
+  Disputed: "Residu bermasalah. Hubungi Supplier untuk klarifikasi dan penyelesaian.",
 };
 
 interface PaymentDetailSheetProps {
@@ -81,7 +81,7 @@ export function PaymentDetailSheet({ agreement, farmer, onClose }: PaymentDetail
     hppPerKg: agreement.hppPerKg,
     remainingDebt: agreement.remainingDebt,
     hppHandlingFeeBps: agreement.hppHandlingFeeBps,
-    basePriceAgrinas: agreement.basePriceAgrinas,
+    basePriceSupplier: agreement.basePriceSupplier,
     inputDebt: agreement.inputDebt,
   });
 
@@ -171,7 +171,7 @@ export function PaymentDetailSheet({ agreement, farmer, onClose }: PaymentDetail
                 gross={split.grossSmallest}
                 handlingCut={split.handlingCut}
                 netToFarmer={split.netToFarmer}
-                residuPrincipal={split.principalToAgrinas}
+                residuPrincipal={split.principalToSupplier}
                 coopMargin={split.coopMargin}
               />
               <div className="mt-4 space-y-2 text-sm bg-white border border-gray-100 rounded-2xl p-5 shadow-sm font-semibold text-gray-700">
@@ -225,11 +225,11 @@ export function PaymentDetailSheet({ agreement, farmer, onClose }: PaymentDetail
                   </p>
                 </div>
 
-                <Alert tone="warning" title="Residu pokok Agrinas terkunci di kas" className="rounded-xl">
+                <Alert tone="warning" title="Residu pokok Supplier terkunci di kas" className="rounded-xl">
                   Sebesar{" "}
-                  <RupiahAmount smallest={split.principalToAgrinas} className="text-sm font-bold" /> adalah
-                  uang Agrinas yang tersimpan sementara di kas koperasi. Segera remitkan ke rekening
-                  Agrinas.
+                  <RupiahAmount smallest={split.principalToSupplier} className="text-sm font-bold" /> adalah
+                  uang Supplier yang tersimpan sementara di kas koperasi. Segera remitkan ke rekening
+                  Supplier.
                 </Alert>
 
                 <div className="flex flex-wrap gap-2">
@@ -303,7 +303,7 @@ export function PaymentDetailSheet({ agreement, farmer, onClose }: PaymentDetail
             {residu && (
               <div>
                 <h3 className="mb-3 text-sm font-bold text-gray-900">
-                  Status Residu Agrinas
+                  Status Residu Supplier
                 </h3>
                 <div className="rounded-2xl border border-gray-100 bg-white p-5 space-y-3.5 shadow-sm font-semibold text-gray-700">
                   <div className="flex items-center justify-between">

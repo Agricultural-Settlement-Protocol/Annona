@@ -96,7 +96,7 @@ const splitExample = computeSplitSettlement({
   hppPerKg: rupiah(6_500),
   remainingDebt: inputDebt,
   hppHandlingFeeBps: 500,
-  basePriceAgrinas: rupiah(2_000_000),
+  basePriceSupplier: rupiah(2_000_000),
   inputDebt,
 });
 
@@ -310,7 +310,7 @@ export default function DesignSystem() {
 
         <Section
           title="Residu reconciliation"
-          description="Agrinas <-> KMP principal remittance. Map 1:1 to ResiduStatus. Disputed freezes coop reputation, review only, never an automatic accusation."
+          description="Supplier <-> KMP principal remittance. Map 1:1 to ResiduStatus. Disputed freezes coop reputation, review only, never an automatic accusation."
         >
           <div className="flex flex-wrap gap-2">
             {RESIDU_STATUSES.map((s) => (
@@ -321,14 +321,14 @@ export default function DesignSystem() {
 
         <Section
           title="Automated Cash-Split Settlement Card"
-          description="PRD Screen D. One settle() produces three allocations: farmer net, Agrinas principal residu, KMP margin + handling. Worked example: base Rp2.000.000, markup 10%, handling 5%, 2.600 kg gabah @ Rp6.500/kg."
+          description="PRD Screen D. One settle() produces three allocations: farmer net, supplier principal residu, KMP margin + handling. Worked example: base Rp2.000.000, markup 10%, handling 5%, 2.600 kg gabah @ Rp6.500/kg."
         >
           <div className="max-w-md">
             <SplitSettlementCard
               gross={splitExample.grossSmallest}
               handlingCut={splitExample.handlingCut}
               netToFarmer={splitExample.netToFarmer}
-              residuPrincipal={splitExample.principalToAgrinas}
+              residuPrincipal={splitExample.principalToSupplier}
               coopMargin={splitExample.coopMargin}
             />
           </div>

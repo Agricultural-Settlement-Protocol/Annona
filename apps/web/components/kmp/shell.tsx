@@ -62,7 +62,7 @@ const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
       },
       { href: "/kmp/setor", label: "Setor Panen", icon: PackageCheck },
       { href: "/kmp/pembayaran", label: "Pembayaran", icon: Banknote },
-      { href: "/kmp/residu", label: "Residu Agrinas", icon: Landmark },
+      { href: "/kmp/residu", label: "Residu Supplier", icon: Landmark },
       { href: "/kmp/permintaan-dana", label: "Permintaan Dana", icon: Coins },
     ],
   },

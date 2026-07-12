@@ -1,5 +1,5 @@
 /**
- * Oversight (Agrinas operator + Pemerintah regulator) read-models.
+ * Oversight (Supplier operator + Pemerintah regulator) read-models.
  *
  * Imports KMP Sukamaju data from mock-data and extends it with 5 additional
  * fabricated koperasi so leaderboards, residu reconciliation, and regional
@@ -66,7 +66,7 @@ export interface MockCoopProfile {
   residuCompliancePct: number;
 }
 
-// ─── Residu row extended with KMP identity (for Agrinas reconciliation desk) ─
+// ─── Residu row extended with KMP identity (for Supplier reconciliation desk) ─
 
 export interface OversightResiduRow extends MockResiduRow {
   coopId: string;
@@ -76,7 +76,7 @@ export interface OversightResiduRow extends MockResiduRow {
   settledAt: string;
 }
 
-// ─── Supply dispatch request (Agrinas sees aggregated KMP needs) ─────────────
+// ─── Supply dispatch request (Supplier sees aggregated KMP needs) ─────────────
 
 export interface DispatchRequest {
   requestId: string;
@@ -692,7 +692,7 @@ export const OVERSIGHT_RESIDU_ROWS: OversightResiduRow[] = [
   }),
 ];
 
-// ─── Supply dispatch requests (Agrinas sees Created agreements per KMP) ──────
+// ─── Supply dispatch requests (Supplier sees Created agreements per KMP) ──────
 
 /** Build dispatch requests from KMP Sukamaju's Created agreements (live data)
  *  plus synthetic Created rows for the other KMPs. */
@@ -725,9 +725,9 @@ export function buildDispatchRequests(): DispatchRequest[] {
   }
 
   const mekarjayaItems: DispatchRequest["items"] = [
-    { item: catUrea, qty: 6, principal: catUrea.basePriceAgrinas * 6n },
-    { item: catNpk, qty: 4, principal: catNpk.basePriceAgrinas * 4n },
-    { item: catInpari, qty: 3, principal: catInpari.basePriceAgrinas * 3n },
+    { item: catUrea, qty: 6, principal: catUrea.basePriceSupplier * 6n },
+    { item: catNpk, qty: 4, principal: catNpk.basePriceSupplier * 4n },
+    { item: catInpari, qty: 3, principal: catInpari.basePriceSupplier * 3n },
   ];
   requests.push({
     requestId: "req-coop-0002",
@@ -741,8 +741,8 @@ export function buildDispatchRequests(): DispatchRequest[] {
   });
 
   const taniMandiriItems: DispatchRequest["items"] = [
-    { item: catUrea, qty: 4, principal: catUrea.basePriceAgrinas * 4n },
-    { item: catBisi, qty: 5, principal: catBisi.basePriceAgrinas * 5n },
+    { item: catUrea, qty: 4, principal: catUrea.basePriceSupplier * 4n },
+    { item: catBisi, qty: 5, principal: catBisi.basePriceSupplier * 5n },
   ];
   requests.push({
     requestId: "req-coop-0003",
@@ -1005,10 +1005,10 @@ export const COMMODITY_DIST = [
   { code: "JAGUNG", name: "Jagung Pipilan Kering", kgTotal: 54_100, pct: 21 },
 ];
 
-// ─── Editable base price snapshot (Agrinas catalog control) ──────────────────
+// ─── Editable base price snapshot (Supplier catalog control) ──────────────────
 
 /** Wraps MOCK_CATALOG with a mutable price layer for the Katalog & Logistik UI.
- *  The real system would write to the Agrinas admin API; here it is local state. */
+ *  The real system would write to the Supplier admin API; here it is local state. */
 export type EditableCatalogRow = MockCatalogItem & {
   proposedPrice: bigint | null;
 };
@@ -1017,7 +1017,7 @@ export function buildEditableCatalog(): EditableCatalogRow[] {
   return MOCK_CATALOG.map((item) => ({ ...item, proposedPrice: null }));
 }
 
-// ─── Agrinas activity feed ────────────────────────────────────────────────────
+// ─── Supplier activity feed ────────────────────────────────────────────────────
 
 export interface AgrinarActivity {
   id: string;
@@ -1123,8 +1123,8 @@ const OVERSIGHT_SYNTH: OversightShipment[] = [
     ref: "SHP-2026-004",
     coopId: "coop-0002",
     coopName: "KMP Mekarjaya",
-    agrinasId: "agr-0001",
-    agrinasName: "Gudang Agrinas Subang",
+    supplierId: "agr-0001",
+    supplierName: "Gudang Agrinas Subang",
     commodityCode: "GABAH",
     status: "Dikirim",
     totalVolumeKg: 6_200,
@@ -1144,8 +1144,8 @@ const OVERSIGHT_SYNTH: OversightShipment[] = [
     ref: "SHP-2026-005",
     coopId: "coop-0003",
     coopName: "KMP Tani Mandiri",
-    agrinasId: "agr-0001",
-    agrinasName: "Gudang Agrinas Tasikmalaya",
+    supplierId: "agr-0001",
+    supplierName: "Gudang Agrinas Tasikmalaya",
     commodityCode: "GABAH",
     status: "Dikirim",
     totalVolumeKg: 3_900,
@@ -1164,8 +1164,8 @@ const OVERSIGHT_SYNTH: OversightShipment[] = [
     ref: "SHP-2026-006",
     coopId: "coop-0004",
     coopName: "KMP Sumber Makmur",
-    agrinasId: "agr-0001",
-    agrinasName: "Gudang Agrinas Brebes",
+    supplierId: "agr-0001",
+    supplierName: "Gudang Agrinas Brebes",
     commodityCode: "GABAH",
     status: "Selisih",
     totalVolumeKg: 5_100,
@@ -1187,7 +1187,7 @@ export const OVERSIGHT_SHIPMENTS: OversightShipment[] = [
   ...OVERSIGHT_SYNTH,
 ];
 
-export const AGRINAS_ACTIVITY: AgrinarActivity[] = [
+export const SUPPLIER_ACTIVITY: AgrinarActivity[] = [
   {
     id: "aact-1",
     text: "Residu Rp2.000.000 dari KMP Sukamaju menunggu verifikasi remitansi",

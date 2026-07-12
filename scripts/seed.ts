@@ -30,7 +30,7 @@ import { getDb, schema } from "../apps/api/src/db/client.js";
 import { applyEvent } from "../apps/api/src/indexer/handlers.js";
 import {
   MOCK_AGREEMENTS,
-  MOCK_AGRINAS,
+  MOCK_SUPPLIER,
   MOCK_CATALOG,
   MOCK_COMMODITIES,
   MOCK_COOP,
@@ -74,7 +74,7 @@ async function truncate(): Promise<void> {
       ${schema.reputationCache}, ${schema.coopReputationCache}, ${schema.indexerCursor},
       ${schema.farmer}, ${schema.saprotanCatalog}, ${schema.priceRef},
       ${schema.yieldTable}, ${schema.commodity}, ${schema.coop},
-      ${schema.financier}, ${schema.warehouseOperator}, ${schema.agrinas}
+      ${schema.financier}, ${schema.warehouseOperator}, ${schema.supplier}
     restart identity cascade
   `);
 }
@@ -82,16 +82,16 @@ async function truncate(): Promise<void> {
 async function seedBaseRows(): Promise<Map<string, string>> {
   // Parties.
   const agrRows = await db
-    .insert(schema.agrinas)
-    .values({ name: MOCK_AGRINAS.name, walletAddress: MOCK_AGRINAS.walletAddress })
-    .returning({ id: schema.agrinas.id });
-  const agrinasId = agrRows[0]?.id;
-  if (!agrinasId) throw new Error("seed: failed to insert agrinas");
+    .insert(schema.supplier)
+    .values({ name: MOCK_SUPPLIER.name, walletAddress: MOCK_SUPPLIER.walletAddress })
+    .returning({ id: schema.supplier.id });
+  const supplierId = agrRows[0]?.id;
+  if (!supplierId) throw new Error("seed: failed to insert supplier");
 
   const coRows = await db
     .insert(schema.coop)
     .values({
-      agrinasId,
+      supplierId,
       name: MOCK_COOP.name,
       kecamatan: MOCK_COOP.kecamatan,
       kabupaten: MOCK_COOP.kabupaten,
@@ -138,12 +138,12 @@ async function seedBaseRows(): Promise<Map<string, string>> {
     const rows = await db
       .insert(schema.saprotanCatalog)
       .values({
-        agrinasId,
+        supplierId,
         code: item.code,
         name: item.name,
         category: item.category,
         region: item.region,
-        basePriceAgrinas: item.basePriceAgrinas,
+        basePriceSupplier: item.basePriceSupplier,
         subsidiFlag: item.subsidiFlag,
         source: item.source,
       })
@@ -188,14 +188,14 @@ async function replayAgreement(a: (typeof MOCK_AGREEMENTS)[number]): Promise<voi
       id: oid,
       farmer: farmerAddr(a.farmerId),
       coop: MOCK_COOP.walletAddress,
-      agrinas: MOCK_AGRINAS.walletAddress,
+      supplier: MOCK_SUPPLIER.walletAddress,
       commodity: {
         code: a.commodityCode,
         grade: a.grade,
         moistureBps: a.moistureBps,
         hppVersion: a.hppVersion,
       },
-      basePriceAgrinas: a.basePriceAgrinas,
+      basePriceSupplier: a.basePriceSupplier,
       saprotanMarkupBps: a.saprotanMarkupBps,
       inputDebt: a.inputDebt,
       hppHandlingFeeBps: a.hppHandlingFeeBps,
@@ -214,7 +214,7 @@ async function replayAgreement(a: (typeof MOCK_AGREEMENTS)[number]): Promise<voi
     await emit(
       envelope("SupplyDispatched", `dispatched:${oid}`, bump(), {
         id: oid,
-        agrinas: MOCK_AGRINAS.walletAddress,
+        supplier: MOCK_SUPPLIER.walletAddress,
         coop: MOCK_COOP.walletAddress,
       }),
     );
@@ -259,7 +259,7 @@ async function replayAgreement(a: (typeof MOCK_AGREEMENTS)[number]): Promise<voi
       hppPerKg: a.hppPerKg,
       remainingDebt,
       hppHandlingFeeBps: a.hppHandlingFeeBps,
-      basePriceAgrinas: a.basePriceAgrinas,
+      basePriceSupplier: a.basePriceSupplier,
       inputDebt: a.inputDebt,
     });
     remainingDebt -= split.debtPaid;
@@ -270,7 +270,7 @@ async function replayAgreement(a: (typeof MOCK_AGREEMENTS)[number]): Promise<voi
         gross: split.grossSmallest,
         handlingCut: split.handlingCut,
         debtNetted: split.debtPaid,
-        principalToAgrinas: split.principalToAgrinas,
+        principalToSupplier: split.principalToSupplier,
         coopMargin: split.coopMargin,
         netPaid: split.netToFarmer,
         settledVolG: settledG,
@@ -299,7 +299,7 @@ async function replayAgreement(a: (typeof MOCK_AGREEMENTS)[number]): Promise<voi
           id: oid,
           coop: MOCK_COOP.walletAddress,
           principal: residu.principalAmount,
-          agrinas: MOCK_AGRINAS.walletAddress,
+          supplier: MOCK_SUPPLIER.walletAddress,
         }),
       );
     if (residu.status === "Disputed")
@@ -330,8 +330,8 @@ async function replayAgreement(a: (typeof MOCK_AGREEMENTS)[number]): Promise<voi
           agreementId: agreementUuid,
           catalogId: catalogIdMapGlobal.get(inp.catalogId) as string,
           qty: String(inp.qty),
-          basePriceAgrinas: inp.basePriceAgrinas,
-          lineTotalPrincipal: inp.basePriceAgrinas * BigInt(inp.qty),
+          basePriceSupplier: inp.basePriceSupplier,
+          lineTotalPrincipal: inp.basePriceSupplier * BigInt(inp.qty),
         })),
       );
     }
@@ -372,8 +372,8 @@ async function replayReputation(): Promise<void> {
 /**
  * Link the seeded Supabase Auth users to their dashboard role in `app_user`.
  *
- * WHY this must run every seed: `truncate()` clears `coop`/`agrinas` with
- * CASCADE, and `app_user.coop_id`/`agrinas_id` are FKs — so truncating cascades
+ * WHY this must run every seed: `truncate()` clears `coop`/`supplier` with
+ * CASCADE, and `app_user.coop_id`/`supplier_id` are FKs — so truncating cascades
  * into `app_user` and wipes the role links. Without this step, every login
  * succeeds at Supabase Auth but `resolveRole()` finds no row and the UI shows
  * "Akun ini belum memiliki peran. Hubungi administrator."
@@ -469,28 +469,28 @@ async function seedAppUsers(financierId: string | null): Promise<void> {
   const coopRows = (await db.execute(sql`select id from coop limit 1`)) as unknown as {
     id: string;
   }[];
-  const agrRows = (await db.execute(sql`select id from agrinas limit 1`)) as unknown as {
+  const agrRows = (await db.execute(sql`select id from supplier limit 1`)) as unknown as {
     id: string;
   }[];
   const coopId = coopRows[0]?.id ?? null;
-  const agrinasId = agrRows[0]?.id ?? null;
+  const supplierId = agrRows[0]?.id ?? null;
 
   const accounts = [
     { email: "kmp@annona.id", role: "kmp", name: "Pengurus KMP Sukamaju", coop: coopId, agr: null, fin: null },
-    { email: "agrinas@annona.id", role: "agrinas", name: "Operator Agrinas", coop: null, agr: agrinasId, fin: null },
+    { email: "agrinas@annona.id", role: "supplier", name: "Operator Supplier", coop: null, agr: supplierId, fin: null },
     { email: "pemerintah@annona.id", role: "pemerintah", name: "Petugas Pengawas Kementan", coop: null, agr: null, fin: null },
     { email: "financier@annona.id", role: "financier", name: "Pemodal (LPDB Koperasi)", coop: null, agr: null, fin: financierId },
   ] as const;
 
   for (const a of accounts) {
     await db.execute(sql`
-      insert into app_user (id, email, role, display_name, coop_id, agrinas_id, financier_id)
+      insert into app_user (id, email, role, display_name, coop_id, supplier_id, financier_id)
       select u.id, ${a.email}, ${a.role}::app_role, ${a.name}, ${a.coop}::uuid, ${a.agr}::uuid, ${a.fin}::uuid
       from auth.users u
       where u.email = ${a.email}
       on conflict (id) do update set
         role = excluded.role, display_name = excluded.display_name,
-        coop_id = excluded.coop_id, agrinas_id = excluded.agrinas_id,
+        coop_id = excluded.coop_id, supplier_id = excluded.supplier_id,
         financier_id = excluded.financier_id
     `);
   }

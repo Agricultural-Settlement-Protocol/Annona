@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 export const metadata: Metadata = {
   title: "Oversight | Annona",
   description:
-    "Dasbor pengawasan Annona Protocol: Agrinas (operator) dan Pemerintah (regulasi, hanya baca).",
+    "Dasbor pengawasan Annona Protocol: Supplier (operator) dan Pemerintah (regulasi, hanya baca).",
 };
 
 export default function OversightRootLayout({ children }: { children: ReactNode }) {

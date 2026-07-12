@@ -55,7 +55,7 @@ export function AiSessionPanel({
   collapsed,
   onToggleCollapse,
 }: SessionPanelProps) {
-  const isAgrinas = viewRole === "agrinas";
+  const isSupplier = viewRole === "supplier";
   const sorted = sortSessions(sessions);
 
   const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -103,15 +103,15 @@ export function AiSessionPanel({
     setRenamingId(null);
   }
 
-  const accentNew = isAgrinas
+  const accentNew = isSupplier
     ? "bg-aqua-50 text-aqua-700 hover:bg-aqua-100 border-aqua-200"
     : "bg-verdant-50 text-verdant-700 hover:bg-verdant-100 border-verdant-200";
 
-  const accentActive = isAgrinas
+  const accentActive = isSupplier
     ? "bg-aqua-50 text-aqua-900"
     : "bg-verdant-50 text-verdant-900";
 
-  const accentIconActive = isAgrinas
+  const accentIconActive = isSupplier
     ? "bg-aqua-100 text-aqua-700"
     : "bg-verdant-100 text-verdant-700";
 
