@@ -75,6 +75,22 @@ function InfoRow({
   );
 }
 
+/** Consistent null-state block so every detail section renders even with no data. */
+function SectionEmpty({
+  icon,
+  children,
+}: {
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border/70 bg-surface-muted/30 px-4 py-8 text-center">
+      {icon ? <span className="text-muted-foreground/50">{icon}</span> : null}
+      <p className="max-w-md text-sm text-muted-foreground">{children}</p>
+    </div>
+  );
+}
+
 export default function AgreementDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data, loading, error } = useApi(
@@ -345,6 +361,16 @@ export default function AgreementDetailPage() {
                 <Th className="text-right">Subtotal Pokok</Th>
               </THead>
               <TBody>
+                {agreement.inputs.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={5}
+                      className="px-4 py-6 text-center text-sm text-muted-foreground"
+                    >
+                      Belum ada rincian saprotan tercatat untuk perjanjian ini.
+                    </td>
+                  </tr>
+                )}
                 {agreement.inputs.map((inp) => {
                   const item = catalogById.get(inp.catalogId);
                   const lineTotal = inp.lineTotalPrincipal;
@@ -449,15 +475,20 @@ export default function AgreementDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Riwayat setoran */}
-      {deliveries.length > 0 && (
-        <Card>
-          <CardHeader
-            title="Riwayat Setoran Panen"
-            description="Setiap setoran memiliki resi on-chain yang dapat diverifikasi."
-            action={<Calendar size={18} className="text-aqua-400" />}
-          />
-          <CardContent className="p-0 pb-4">
+      {/* Riwayat setoran — always shown, null state before first delivery */}
+      <Card>
+        <CardHeader
+          title="Riwayat Setoran Panen"
+          description="Setiap setoran memiliki resi on-chain yang dapat diverifikasi."
+          action={<Calendar size={18} className="text-aqua-400" />}
+        />
+        <CardContent className={deliveries.length === 0 ? "" : "p-0 pb-4"}>
+          {deliveries.length === 0 ? (
+            <SectionEmpty icon={<Calendar size={22} />}>
+              Belum ada setoran panen. Riwayat setoran muncul di sini setelah
+              setoran pertama dicatat on-chain.
+            </SectionEmpty>
+          ) : (
             <TableFrame className="border-0 shadow-none">
               <Table>
                 <THead>
@@ -506,20 +537,25 @@ export default function AgreementDetailPage() {
                 </TBody>
               </Table>
             </TableFrame>
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </CardContent>
+      </Card>
 
-      {/* Penyelesaian (settlements) */}
-      {settlements.length > 0 && (
-        <Card>
-          <CardHeader
-            title="Catatan Penyelesaian"
-            description="Catatan pembayaran anti-manipulasi. Kas keluar dari BRILink/BRI, split tercatat di Stellar."
-            action={<Landmark size={18} className="text-aqua-400" />}
-          />
-          <CardContent className="space-y-6">
-            {settlements.map((s) => (
+      {/* Penyelesaian (settlements) — always shown, null state before first settle */}
+      <Card>
+        <CardHeader
+          title="Catatan Penyelesaian"
+          description="Catatan pembayaran anti-manipulasi. Kas keluar dari BRILink/BRI, split tercatat di Stellar."
+          action={<Landmark size={18} className="text-aqua-400" />}
+        />
+        <CardContent className="space-y-6">
+          {settlements.length === 0 ? (
+            <SectionEmpty icon={<Landmark size={22} />}>
+              Belum ada penyelesaian pembayaran. Rincian split tiga arah muncul
+              setelah pembayaran pertama diproses.
+            </SectionEmpty>
+          ) : (
+            settlements.map((s) => (
               <div
                 key={s.id}
                 className="rounded-lg border border-border bg-surface-muted/40 p-4"
@@ -547,20 +583,26 @@ export default function AgreementDetailPage() {
                   coopMargin={s.coopMargin}
                 />
               </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
+            ))
+          )}
+        </CardContent>
+      </Card>
 
-      {/* Residu pokok Agrinas */}
-      {residu && (
-        <Card>
-          <CardHeader
-            title="Residu Pokok Agrinas"
-            description="Bagian Agrinas dari pembayaran. Wajib disetor balik ke Agrinas."
-            action={<Landmark size={18} className="text-aqua-400" />}
-          />
-          <CardContent className="space-y-4">
+      {/* Residu pokok Agrinas — always shown, null state when no residu */}
+      <Card>
+        <CardHeader
+          title="Residu Pokok Agrinas"
+          description="Bagian Agrinas dari pembayaran. Wajib disetor balik ke Agrinas."
+          action={<Landmark size={18} className="text-aqua-400" />}
+        />
+        <CardContent className="space-y-4">
+          {!residu ? (
+            <SectionEmpty icon={<Landmark size={22} />}>
+              Belum ada residu pokok Agrinas. Bagian ini muncul setelah pembayaran
+              menyisakan pokok Agrinas yang wajib disetor balik.
+            </SectionEmpty>
+          ) : (
+            <>
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <ResiduStatusBadge status={residu.status} />
@@ -607,9 +649,10 @@ export default function AgreementDetailPage() {
                 remitkan ke rekening Agrinas untuk menyelesaikan kewajiban.
               </Alert>
             )}
-          </CardContent>
-        </Card>
-      )}
+            </>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Tautan explorer */}
       {agreement.createTxHash && (

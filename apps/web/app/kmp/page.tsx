@@ -61,9 +61,9 @@ export default async function KmpHomePage() {
               <Button
                 type="button"
                 variant="primary"
-                size="lg"
-                leftIcon={<FilePlus2 size={18} />}
-                className="rounded-full bg-primary-dark px-7 font-bold text-white shadow-md shadow-primary-dark/20 transition-transform hover:bg-opacity-95 active:scale-[0.98]"
+                size="sm"
+                leftIcon={<FilePlus2 size={15} />}
+                className="rounded-full bg-primary-dark px-4 font-semibold text-white shadow-sm shadow-primary-dark/20 transition-transform hover:bg-opacity-95 active:scale-[0.98]"
               >
                 Buat Perjanjian
               </Button>

@@ -42,11 +42,11 @@ import {
   TxHashLink,
 } from "@annona/ui";
 import {
+  CheckCheck,
   CheckCircle2,
   Coins,
-  Minus,
-  Plus,
   Search,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -56,18 +56,15 @@ import { useMemo, useState } from "react";
 /** Statuses where an agreement has projected future value to back financing. */
 const BACKABLE_STATUSES: Status[] = ["Created", "Active", "PartiallyDelivered", "Delivered"];
 
-/** Estimated backing value for one agreement: expectedVolG * hppPerKg (in smallest units).
- *  Formula: (g / 1_000_000_000) * (hppPerKg in smallest units / 10_000_000)
- *  = (g * hppPerKg) / 10_000_000_000_000_000
- *  Simplify: volume_kg * hpp_per_kg (both in whole units) */
+/** Estimated backing value (in smallest units) for the *remaining* harvest of one
+ *  agreement = remaining_kg * hppPerKg.
+ *  hppPerKg is already per-kg in smallest units, so kg * hppPerKg = smallest total.
+ *  remaining_kg = (expectedVolG - deliveredVolG) / 1000 (volume stored in grams). */
 function estimateBacking(a: ApiAgreement): bigint {
-  // hppPerKg is in smallest units (7 decimal), volume in grams
-  // backing_value_smallest = (volumeG / 1000 grams_per_kg) * hppPerKg_smallest / 10^7
-  // = volumeG * hppPerKg / (1000 * 10_000_000)
   const grams = a.expectedVolG > a.deliveredVolG ? a.expectedVolG - a.deliveredVolG : 0n;
   if (grams === 0n || a.hppPerKg === 0n) return 0n;
-  // (grams / 1000) kg * (hppPerKg / 10^7) Rp = grams * hppPerKg / (1000 * 10^7)
-  return (grams * a.hppPerKg) / 10_000_000_000n;
+  // (grams / 1000) kg * hppPerKg (smallest/kg) = grams * hppPerKg / 1000
+  return (grams * a.hppPerKg) / 1000n;
 }
 
 function riskBadgeClass(badge: RiskBadge): string {
@@ -104,7 +101,7 @@ function AgreementRow({
   onToggle: (id: string) => void;
 }) {
   const backing = estimateBacking(agreement);
-  const volKg = Number(agreement.expectedVolG / 1_000_000n); // g -> kg (integer)
+  const volKg = Number(agreement.expectedVolG / 1000n); // g -> kg
 
   return (
     <button
@@ -113,14 +110,14 @@ function AgreementRow({
       className={[
         "w-full text-left flex items-center gap-3 rounded-xl border px-4 py-3 transition-all",
         selected
-          ? "border-amber-300 bg-amber-50/50"
+          ? "border-emerald-300 bg-emerald-50/60"
           : "border-gray-100 bg-white hover:border-gray-200 hover:bg-gray-50/40",
       ].join(" ")}
     >
       <div
         className={[
           "flex h-6 w-6 shrink-0 items-center justify-center rounded border-2 transition-colors",
-          selected ? "border-amber-500 bg-amber-500" : "border-gray-300",
+          selected ? "border-emerald-600 bg-emerald-600" : "border-gray-300",
         ].join(" ")}
       >
         {selected ? <CheckCircle2 size={14} className="text-white" /> : null}
@@ -213,7 +210,7 @@ function FundingHistoryTable() {
                       <Td>
                         <Link
                           href={`/financier/${req.id}`}
-                          className="font-mono text-xs text-amber-700 hover:underline"
+                          className="font-mono text-xs text-emerald-700 hover:underline"
                         >
                           Lihat detail
                         </Link>
@@ -340,13 +337,12 @@ export default function PermintaanDanaPage() {
       />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* ── LEFT: Agreement selector + summary ─────────────────────────── */}
-        <div className="space-y-4">
-          <Card className="rounded-2xl border-gray-100 bg-white shadow-sm">
+        {/* ── LEFT: Agreement selector ───────────────────────────────────── */}
+        <Card className="rounded-2xl border-gray-100 bg-white shadow-sm">
             <CardHeader
               title="Pilih Perjanjian Offtake"
               description="Centang perjanjian yang akan dijadikan jaminan. Nilai jaminan adalah proyeksi sisa panen dikali HPP."
-              action={<Coins size={18} className="text-amber-500" />}
+              action={<Coins size={18} className="text-emerald-600" />}
             />
             <CardContent className="space-y-3">
               {/* Search within agreements */}
@@ -394,17 +390,17 @@ export default function PermintaanDanaPage() {
                     onClick={() =>
                       setSelectedIds(new Set(filteredAgreements.map((a) => a.id)))
                     }
-                    className="flex items-center gap-1 text-xs font-semibold text-gray-500 hover:text-amber-700"
+                    className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-semibold text-gray-500 transition-colors hover:bg-emerald-50 hover:text-emerald-700"
                   >
-                    <Plus size={12} />
+                    <CheckCheck size={14} />
                     Pilih semua
                   </button>
                   <button
                     type="button"
                     onClick={() => setSelectedIds(new Set())}
-                    className="flex items-center gap-1 text-xs font-semibold text-gray-500 hover:text-red-600"
+                    className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-semibold text-gray-500 transition-colors hover:bg-red-50 hover:text-red-600"
                   >
-                    <Minus size={12} />
+                    <Trash2 size={14} />
                     Hapus pilihan
                   </button>
                 </div>
@@ -426,7 +422,7 @@ export default function PermintaanDanaPage() {
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-500">Total proyeksi panen</span>
-                  <RupiahAmount smallest={totalBacking} className="text-sm font-bold text-amber-700" />
+                  <RupiahAmount smallest={totalBacking} className="text-sm font-bold text-emerald-700" />
                 </div>
               </div>
 
@@ -458,7 +454,7 @@ export default function PermintaanDanaPage() {
                 leftIcon={<Coins size={16} />}
                 disabled={!canSubmit}
                 onClick={handleAjukan}
-                className="w-full rounded-xl bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-50"
+                className="w-full rounded-xl bg-primary-dark hover:bg-opacity-95 text-white disabled:opacity-50"
               >
                 {tx.state === "signing"
                   ? "Menandatangani..."
@@ -482,21 +478,18 @@ export default function PermintaanDanaPage() {
               </p>
             </CardContent>
           </Card>
-        </div>
-
-        {/* ── RIGHT: History table ────────────────────────────────────────── */}
-        <div>
-          <Card className="rounded-2xl border-gray-100 bg-white shadow-sm">
-            <CardHeader
-              title="Riwayat Permintaan Dana"
-              description="Semua permohonan talangan yang pernah diajukan koperasi ini. Klik detail untuk melihat perjanjian yang dijaminkan."
-            />
-            <CardContent>
-              <FundingHistoryTable />
-            </CardContent>
-          </Card>
-        </div>
       </div>
+
+      {/* ── History table (full width, long table needs the room) ───────── */}
+      <Card className="rounded-2xl border-gray-100 bg-white shadow-sm">
+        <CardHeader
+          title="Riwayat Permintaan Dana"
+          description="Semua permohonan talangan yang pernah diajukan koperasi ini. Klik detail untuk melihat perjanjian yang dijaminkan."
+        />
+        <CardContent>
+          <FundingHistoryTable />
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -80,7 +80,9 @@ const STORAGE_KEY = "annona.kmp.sidebar.collapsed";
 
 function isActive(pathname: string, item: NavItem) {
   if (item.exact) return pathname === item.href;
-  return pathname.startsWith(item.href);
+  // Match on segment boundary so /kmp/permintaan does not also light up for
+  // /kmp/permintaan-dana (plain startsWith would match the shared prefix).
+  return pathname === item.href || pathname.startsWith(`${item.href}/`);
 }
 
 function NavLink({
