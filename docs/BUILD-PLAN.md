@@ -23,7 +23,7 @@
 - [ ] Phase 2 — Contract: Offtake Financing lifecycle
 - [ ] Phase 3 — `packages/core` sync
 - [x] Phase 4 — Schema + migrations `0004`/`0005` (**4a additive** ✅ · **4b agrinas→supplier rename** ✅)
-- [ ] Phase 5 — Indexer + seed + API
+- [x] Phase 5 — Indexer + seed + API (funding + subsidy + payable read-model; live seed→curl green)
 - [ ] Phase 6 — Web read cutover
 - [ ] Phase 7 — Web write path
 - [ ] Phase 8 — Deploy testnet + wire live (kills the "static" bug)
@@ -314,9 +314,11 @@ Goal: read-model covers every v4.0 surface. Use `/annona-indexer` + `/annona-see
 - [x] `agrinas` → `supplier` in existing queries (done in Phase 4b)
 - [x] Seed extended to 4 wallets + funding demo (financier wallet + event-driven funding
   lifecycle incl. a Rejected row; subsidy-tier + e-RDKK spreads)
-- [~] Reducer tests + live curl slice green, split exact — pure reducer tests GREEN
-  (deriveCoverage + payableStatusFor, 5/5); **live curl slice PENDING** (no local Postgres:
-  docker WSL-integration off + no local pg server this session)
+- [x] Reducer tests + live curl slice green, split exact — pure reducer tests GREEN
+  (deriveCoverage + payableStatusFor, 5/5); live seed→API→curl GREEN against Supabase:
+  §5 split EXACT (13,855,000 / 845,000 / 200,000 / 2,000,000), 5 funding statuses with
+  reducer-derived coverage/risk, payable ledger (accrue/clear), subsidy distribution
+  (4 Subsidized / 8 Commercial, e-RDKK farmer spread, 2 HET catalog items)
 
 **Blocks:** Phase 6, Phase 7.
 

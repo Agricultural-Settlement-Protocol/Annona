@@ -146,6 +146,11 @@ async function seedBaseRows(): Promise<Map<string, string>> {
         basePriceSupplier: item.basePriceSupplier,
         subsidiFlag: item.subsidiFlag,
         source: item.source,
+        // v4.0 HET / e-RDKK tier: subsidized items are priced at HET and gated
+        // on e-RDKK verification (recorded, never computed — Golden Rule 4).
+        priceTier: item.subsidiFlag ? "subsidi" : "non_subsidi",
+        hetPrice: item.subsidiFlag ? item.basePriceSupplier : null,
+        erdkkGated: item.subsidiFlag ?? false,
       })
       .returning({ id: schema.saprotanCatalog.id });
     const id = rows[0]?.id;
