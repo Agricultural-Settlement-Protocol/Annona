@@ -185,7 +185,6 @@ export default function ResiduPage() {
                     <tr key={row.id} className="contents">
                       <Tr className={isActiveRow ? "bg-cyan-50/20" : undefined}>
                         <Td>
-<<<<<<< HEAD
                           <Link
                             href={`/kmp/perjanjian/${row.agreementId}`}
                             className="text-accent hover:underline"
@@ -194,20 +193,6 @@ export default function ResiduPage() {
                           </Link>
                         </Td>
                         <Td className="font-medium">{row.farmerName}</Td>
-=======
-                          {agreement ? (
-                            <Link
-                              href={`/kmp/perjanjian/${agreement.id}`}
-                              className="font-mono text-xs font-bold text-[#0c6a78] hover:underline"
-                            >
-                              #{String(agreement.onchainId)}
-                            </Link>
-                          ) : (
-                            row.agreementId
-                          )}
-                        </Td>
-                        <Td className="font-bold text-gray-900">{farmer?.name ?? "(petani)"}</Td>
->>>>>>> e56fca8 (refactor: overhaul UrbanGreen component structure and update KMP interface styling)
                         <Td>
                           <RupiahAmount smallest={row.principalAmount} className="font-bold text-gray-900" />
                         </Td>

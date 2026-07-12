@@ -160,7 +160,6 @@ function PetaniPageInner() {
 
       {successMessage ? <Alert tone="success" title={successMessage} className="mb-6" /> : null}
 
-<<<<<<< HEAD
       {loading ? <PetaniPageSkeleton /> : null}
       {error ? (
         <Alert tone="warning" title="Gagal memuat daftar petani" className="mb-6">
@@ -176,38 +175,6 @@ function PetaniPageInner() {
           />
         </div>
       ) : null}
-=======
-      <AnimatePresence>
-        {showRegister && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            {/* Backdrop */}
-            <motion.button
-              type="button"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              aria-label="Tutup formulir"
-              className="fixed inset-0 cursor-default bg-gray-950/20 backdrop-blur-sm pointer-events-auto"
-              onClick={() => setShowRegister(false)}
-            />
-
-            {/* Modal Content */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              transition={{ type: "spring", damping: 25, stiffness: 350 }}
-              className="relative z-10 w-full max-w-2xl pointer-events-auto"
-            >
-              <RegistryRegisterPanel
-                onSuccess={handleRegisterSuccess}
-                onClose={() => setShowRegister(false)}
-              />
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
->>>>>>> e56fca8 (refactor: overhaul UrbanGreen component structure and update KMP interface styling)
 
       {!loading && !error ? (
         <>

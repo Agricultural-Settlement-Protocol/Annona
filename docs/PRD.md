@@ -13,9 +13,9 @@
 | **Hackathon scope** | Stellar **Testnet** + a real, deployed Soroban contract + live demo transactions. No mainnet rupiah, no off-ramp in MVP. |
 | **Post-hackathon** | SCF Build Award track (MVP → Testnet → Mainnet tranches), positioned as reusable ecosystem infrastructure. |
 | **Team** | 3: (1) PM + Fullstack/Vibecode, (2) Frontend + UI/UX, (3) Backend + Smart Contract |
-| **Status** | v3.0 — multi-party model (PMK 15/2026), build-ready |
+| **Status** | v4.0 — corrected multi-party model, build-ready |
 
-> **v3.0 change (read):** Under PMK 15/2026 the loop is **three commercial parties** — **Agrinas** (operator: master saprotan catalog + logistics dispatch + residu verification), **KMP** (koperasi: pre-funded cash agent), **Farmer** — plus a read-only **Government** regulator. New this version: a **double-confirmation lifecycle** (Agrinas dispatches → KMP accepts), a **three-way split settlement** (farmer net / Agrinas principal residu / KMP margin), and an on-chain **residu reconciliation** loop. Dashboards are 3 shells: KMP · Oversight (RBAC: Agrinas + Government) · Farmer. "KMP" = Koperasi Mitra Petani; **KDMP** (Koperasi Desa Merah Putih) is the flagship instance.
+> **v4.0 change (read):** Validated 2026 ground truth: the KDMP offtake loop is fragmented across **four institutions that do not share a record**, and that fragmentation is the problem. v4.0 corrects the earlier single-operator ("Agrinas") assumption by splitting it into its real roles — **Supplier** (input principal: master saprotan catalog + logistics dispatch + residu counterparty), **Warehouse Operator** (infra: builds/operates gerai + gudang, non-transacting), **Financier** (working-capital *talangan* against offtake proof), **KMP** (koperasi: pre-funded cash agent), **Farmer** — plus read-only **Government**. New this version: an **Offtake Financing loop** (request → approve → disburse → reconcile) and a **subsidized-input (HET/e-RDKK) price tier**. The **double-confirmation lifecycle**, **three-way split settlement**, and **residu reconciliation** are unchanged — only the residu counterparty is correctly named the **supplier**. Dashboards are 3 shells: KMP · Oversight (RBAC: Supplier + Financier + Government) · Farmer. "KMP" = Koperasi Mitra Petani; **KDMP** (Koperasi Desa Merah Putih) is the flagship instance.
 
 > **This PRD is the product document** — problem, users, features, interfaces, roadmap, business. **All technical depth lives in [`docs/technical/`](./technical/):** [ARCHITECTURE](./technical/ARCHITECTURE.md) · [SMART-CONTRACT](./technical/SMART-CONTRACT.md) · [ERD](./technical/ERD.md) · [INTEGRATIONS](./technical/INTEGRATIONS.md) · [DATA-SOURCES](./technical/DATA-SOURCES.md) · [TECH-STACK](./technical/TECH-STACK.md).
 
@@ -37,7 +37,7 @@
    - 7.5 [Feature F5 — Graded Flags & Force-Majeure](#75-f5--graded-flags--force-majeure)
    - 7.6 [Feature F6 — On-chain Reputation (seed)](#76-f6--on-chain-reputation-seed)
    - 7.7 [Feature F7 — Coop Dashboard](#77-f7--cooperative-dashboard)
-   - 7.8 [Feature F8 — Oversight Dashboard (RBAC: Agrinas + Government) + AI Assistant](#78-f8--oversight-dashboard-rbac-agrinas--government--ai-assistant-updated)
+   - 7.8 [Feature F8 — Oversight Dashboard (RBAC: Supplier + Financier + Government) + AI Assistant](#78-f8--oversight-dashboard-rbac-supplier--financier--government--ai-assistant-updated)
    - 7.9 [Feature F9 — Farmer View](#79-f9--farmer-view)
    - 7.10 [Feature F10 — Lightweight Inventory](#710-f10--lightweight-inventory)
    - 7.11 [MVP cut order](#711-mvp-cut-order-3-person-reality)
@@ -57,11 +57,11 @@
 
 ## 1. TL;DR
 
-Koperasi Desa Merah Putih (KDMP) is mandated to act as an **offtaker**: supply farmers with production inputs (pupuk, benih, pestisida) on credit, then buy their harvest back at the government floor price (HPP), cutting out the *tengkulak*. The fatal weakness: there is **no trustworthy shared record** linking "inputs given on credit" to "harvest delivered back." That gap is where money leaks, where farmers side-sell, where disputes fester — and it's exactly the **"underlying transaksi"** banks and the state demand before trusting a cooperative with capital.
+Koperasi Desa Merah Putih (KDMP) is mandated to act as an **offtaker**: supply farmers with production inputs (pupuk, benih, pestisida) on credit, then buy their harvest back at the government floor price (HPP), cutting out the *tengkulak*. The fatal weakness: the loop is **split across real institutions** — an input supplier, a warehouse operator, a working-capital financier, the coop, and the farmer — and **no single one links input-credit → harvest → payment → downstream sale**. That missing shared record is where money leaks, where farmers side-sell, where disputes fester — and it's exactly the **"underlying transaksi"** banks and the state demand before trusting a cooperative with capital.
 
-Annona encodes that loop as a Soroban smart contract: register farmer → issue inputs on credit (on-chain **Offtake Agreement** with debt + HPP anchor) → record graded delivery (immutable **Harvest Receipt**) → **settle** (`payment = volume × HPP`, **auto-net the debt**, release the rest, supports **partial settlement**) → every loop grows an on-chain **reputation** (the seed of farmer financial identity). Three dashboards (coop / auditor+AI / farmer) read one shared ledger.
+Annona encodes that loop as a Soroban smart contract: register farmer → issue inputs on credit (on-chain **Offtake Agreement** with debt + HPP anchor) → record graded delivery (immutable **Harvest Receipt**) → **settle** (`payment = volume × HPP`, **auto-net the debt**, release the rest, supports **partial settlement**) → every loop grows an on-chain **reputation** (the seed of farmer financial identity). On top of the settlement loop, Annona adds **offtake financing** — the coop requests working capital against verifiable on-chain proof, turning a record-keeping rail into a growth engine — and a **subsidy-eligibility price tier** so e-RDKK-verified farmers are correctly offered the subsidized HET ceiling. Three dashboards (KMP / oversight+AI / farmer) read one shared ledger.
 
-The chain earns its place in exactly one spot: **multi-party, tamper-evident auto-netting + record-keeping between parties who don't trust each other** (farmer ↔ coop ↔ bank ↔ government). Everything else is a normal web app — and we say so.
+The chain earns its place in exactly one spot: **multi-party, tamper-evident settlement *and financing* between parties who don't trust each other** (farmer ↔ coop ↔ supplier ↔ financier ↔ government). Everything else is a normal web app — and we say so.
 
 **We ship one app (Annona for KDMP) but architect a protocol** (a generic offtake settlement standard any commodity coop, or any developer, can build on). That duality is the whole pitch.
 
@@ -73,13 +73,15 @@ The chain earns its place in exactly one spot: **multi-party, tamper-evident aut
 The original framing — *"KMP can't repay its 6% / Rp3bn loan — help them repay"* — is **obsolete**. Under **PMK 15/2026 (eff. 1 Apr 2026)**, banks lend to **PT Agrinas Pangan Nusantara** (not the coop), which builds + **operates the units for 2 years**; repayment is **deducted at-source** from Dana Desa / DAU-DBH before money reaches the village. **Default risk is socialized to the state.** Pitching "help them repay" would get us killed by a finance judge.
 
 ### 2.2 The real problem (what we solve)
-1. **The offtaker loop is not auditable** — inputs out, harvest back, money moving, all in spreadsheets/WhatsApp. No shared truth → skimming, side-selling, disputes, no audit at scale.
-2. **Moral hazard is now WORSE** — because the state backstops the loan, the incentive to run the business cleanly *weakens*; an independent tamper-evident record of real activity is *more* valuable, not less. (The counter-intuitive insight judges love.)
-3. **Residu risk — the new, specific leak.** Under PMK 15/2026, KMP is a **decentralized paying agent** that pre-funds cash and buys harvest directly, **deducting input debt at source**. That means Agrinas's **principal sits inside KMP's cash box** as *uang residu* until remitted back. Without split-allocation, that principal can be squatted on or misused. Annona locks the split on-chain (farmer / Agrinas principal / KMP margin) and reconciles the remittance — the exact control the state's structure demands.
-4. **PT Agrinas runs units 2 years** → an external operator needs **verifiable proof** of each coop's real transactions, dispatch confirmations, and residu owed, separate from the coop's own books. Annona is that proof layer.
-5. **Underlying transaksi must exist before goods ship.** Agrinas does not release saprotan on trust — the on-chain agreement drafted at `Created` **is** the collective Surat Pesanan that authorizes warehouse mobilization. Chain-first, goods-second.
-6. **Banks lend against the "underlying transaksi"** (DPR Komisi XI: *"selama ada underlying transaksinya"*). **Annona's on-chain ledger IS that proof.**
-7. **Stakes:** Celios estimated **Rp85.96T** default risk over 6 years — modeled at 3%, real rate 6%, so *worse*. The 1998 KUD collapse (top-down, government-dependent, mass *kredit macet*) is the structural-parallel cautionary tale Annona's transparency breaks.
+1. **Institutional fragmentation — the core problem.** The loop is split across **four real institutions that do not share a record**: the input **supplier** (owns the saprotan catalog + principal, dispatches stock, is owed the residu), the **warehouse operator** (builds/operates the gerai + gudang, receives forwarded harvest — infra, not a money party), the **financier** (advances working capital), and the **KMP** (pre-funded cash agent). No single one links "inputs given on credit" to "harvest delivered back" to "money moving downstream." That fragmentation is where money leaks, where farmers side-sell, where disputes fester, and no audit exists at scale — inputs out, harvest back, money moving, all in spreadsheets/WhatsApp.
+2. **Moral hazard is now WORSE** — because the state backstops the loan, the incentive to run the business cleanly *weakens*; an independent tamper-evident record of real activity is *more* valuable, not less. (The counter-intuitive insight judges love.) With more genuinely distrusting parties in the loop, a shared ledger is *more* justified, not less.
+3. **Residu risk — the new, specific leak.** Under PMK 15/2026, KMP is a **decentralized paying agent** that pre-funds cash and buys harvest directly, **deducting input debt at source**. That means the **supplier's principal sits inside KMP's cash box** as *uang residu* until remitted back. Without split-allocation, that principal can be squatted on or misused. Annona locks the split on-chain (farmer / supplier principal / KMP margin) and reconciles the remittance — the exact control the state's structure demands.
+4. **The two-debt model.** Utang #1 = the coop→supplier **trade payable** (the *tebus*/principal price of stock drawn; off-chain running ledger, paid down by on-chain residu remittances). Utang #2 = the farmer→coop **yarnen credit** (`input_debt`, netted first on-chain at settlement). The old single-"Agrinas" framing hid Utang #1 because one party owned everything; splitting the roles makes it explicit.
+5. **Working-capital gap — why a financier exists.** The coop must pay the supplier for stock *and* pay the farmer at harvest **before** it earns from the downstream sale. No official channel funds that gap. A charter-appropriate **financier** (KDMP-prioritized in 2026, e.g. LPDB-Koperasi) can fill it — but only against **verifiable proof**, and Annona is the proof. Proof-gated financing lifts the coop's cash-box ceiling → more transactions → more volume.
+6. **External operator needs verifiable proof.** An external operator (2-year run under Inpres 17/2025) needs **verifiable proof** of each coop's real transactions, dispatch confirmations, and residu owed, separate from the coop's own books. Annona is that proof layer.
+7. **Underlying transaksi must exist before goods ship.** The supplier does not release saprotan on trust — the on-chain agreement drafted at `Created` **is** the collective Surat Pesanan that authorizes warehouse mobilization. Chain-first, goods-second.
+8. **Banks lend against the "underlying transaksi"** (DPR Komisi XI: *"selama ada underlying transaksinya"*). **Annona's on-chain ledger IS that proof.**
+9. **Stakes:** Celios estimated **Rp85.96T** default risk over 6 years — modeled at 3%, real rate 6%, so *worse*. The 1998 KUD collapse (top-down, government-dependent, mass *kredit macet*) is the structural-parallel cautionary tale Annona's transparency breaks.
 
 ### 2.3 Why the offtaker unit
 KDMP must run **7 mandatory units**; the offtaker/saprotan flow is the one with a clean, contractable, on-chain-able loop, and it's policy-aligned (KDMP is an official channel for gabah procurement at HPP + CBP distribution). We build this rail first; architecture extends to other units later.
@@ -139,10 +141,12 @@ Stellar fit: sub-cent fees (thousands of micro-settlements), SEP-41/SAC tokens, 
 
 | Persona | Goal | Pain today | What Annona gives |
 |---|---|---|---|
-| **Petani** (farmer) | Inputs without cash; fair price; track record | Tengkulak prices; opaque debt; no credit history | Inputs on credit, transparent debt, net payout at HPP, **reputation → future cash loans** |
+| **Petani** (farmer) | Inputs without cash; fair price; track record | Tengkulak prices; opaque debt; no credit history | Inputs on credit, transparent debt, net payout at HPP, **reputation → future cash loans**, **subsidized (HET) pricing when e-RDKK-verified** (recorded, not computed) |
 | **Pengurus KMP** (koperasi officer) | Clean, defensible offtaker book + cash agent; not a finance/tech expert | Spreadsheets, leakage accusations, residu ambiguity, no proof | One ledger, auto-netting, **three-way split clarity**, auditable proof, **AI in plain Bahasa** |
-| **Agrinas** (operator) | Standardize input prices; mobilize logistics; recover principal residu | No base-price control; can't verify dispatch or residu owed per KMP | **Master catalog** (base price), **dispatch confirmation**, **residu reconciliation desk** with dispute freeze |
-| **Government** (Dinas Koperasi / Bupati / Desa — regulator) | Macro food-security oversight; intervene on gagal panen | "Why can't this KDMP pay?" with zero visibility; no macro view | **Read-only** production/reputation aggregates + force-majeure/subsidy intervention queue, via **chatbot** |
+| **Supplier** (input principal) | Standardize input prices; mobilize logistics; recover principal residu | No base-price control; can't verify dispatch or residu owed per KMP | **Master catalog** (base price), **dispatch confirmation**, **residu reconciliation desk** with dispute freeze, **per-coop input payable ledger** (Utang #1) |
+| **Warehouse Operator** (infra) *(narrative only)* | Build + operate gerai/gudang; receive forwarded harvest | Physical logistics, no shared record of what arrived | Off-chain harvest-forwarding attestation. **Not a settlement participant** — infra/non-transacting |
+| **Financier** (pemodal) | Deploy working capital to KDMP safely; recover it; grow a verified pipeline | No verifiable underlying transaksi; can't safely advance capital; manual due diligence | **Offtake-financing approval desk** with on-chain proof (`backing_hash`), coverage ratio + risk badge, reconciliation against settlement, portfolio view |
+| **Government** (Dinas Koperasi / Bupati / Desa — regulator) | Macro food-security oversight; intervene on gagal panen | "Why can't this KDMP pay?" with zero visibility; no macro view | **Read-only** production/reputation aggregates + force-majeure/subsidy intervention queue + subsidy-tier distribution, via **chatbot** |
 | **Bank / Himbara** *(Tier 2)* | Lend against verifiable activity | No trustworthy underlying-transaksi proof | On-chain settlement + coop-reputation history as collateralizable proof |
 | **Investor / Pemodal** *(Tier 3)* | Finance harvest receivables | No transparent instrument | Tokenized offtake receivables under OJK RWA |
 | **Other developers** *(protocol)* | Build lending/insurance/analytics on farmer data | Rebuild registry + history from scratch | **SDK/API** to read agreements/receipts/reputation |
@@ -151,17 +155,19 @@ Stellar fit: sub-cent fees (thousands of micro-settlements), SEP-41/SAC tokens, 
 
 ## 6. The Core Loop (user stories)
 
-1. *Pengurus KMP* registers a farmer (plot + commodity; PII off-chain, hash on-chain).
-2. *Farmer* requests inputs → KMP drafts an on-chain **Offtake Agreement** from Agrinas's **catalog base price** + KMP **markup** + **handling fee**; contract derives `input_debt`. Status `Created` — this is the collective **Surat Pesanan**. (e.g., base Rp2,000,000 + 10% markup = Rp2,200,000 debt.)
-3. *Agrinas* validates the collective order and **dispatches** logistics → status `SupplyDispatched` (price frozen). *(gate 1)*
+1. *Pengurus KMP* registers a farmer (plot + commodity + **e-RDKK subsidy badge**; PII off-chain, hash on-chain). The badge decides subsidized (**HET**) vs commercial pricing.
+2. *Farmer* requests inputs → KMP drafts an on-chain **Offtake Agreement** from the **supplier's catalog base price** (**HET if the farmer is e-RDKK-verified and the item is subsidized**, else commercial) + KMP **markup** + **handling fee**; contract derives `input_debt`. Status `Created` — this is the collective **Surat Pesanan**. (e.g., base Rp2,000,000 + 10% markup = Rp2,200,000 debt.)
+3. *Supplier* validates the collective order and **dispatches** logistics → status `SupplyDispatched` (price frozen); the coop now accrues the **input payable (Utang #1)** for the tebus price. *(gate 1)*
 4. *KMP* inspects the physical delivery on arrival and **accepts** it → status `Active`; `input_debt` becomes a live liability. *(gate 2)*
 5. *Contract* stores expected volume (transparent estimate), settlement price = **HPP**, tolerance band.
-6. *Pengurus* records delivered volume + grade at harvest → contract mints immutable **Harvest Receipt**; status `Delivered`/`PartiallyDelivered`.
-7. *Contract* settles with the **three-way split**: `gross = kg × HPP`, minus KMP `handling_cut`, net the debt, release net to farmer; the collected debt splits into **Agrinas principal residu** + **KMP margin**. Emits `Settled`, updates farmer + coop **reputation**. Partial deliveries settle incrementally.
-8. *KMP* remits the **principal residu** to Agrinas off-chain; *Agrinas* verifies the bank mutation and **confirms** → `Cleared` (or raises a **dispute** that freezes coop reputation).
-9. *Contract* raises a **graded flag** (`Warning`/`PartialDelivery`/`Suspected`) for human review if under tolerance — never an auto-accusation.
-10. *Pengurus* records **force-majeure** on crop failure → closes without reputation penalty.
-11. *Government* sees macro production/reputation/flags from one ledger (read-only) — or asks the **AI assistant** in plain Bahasa; *Agrinas* sees dispatch queue + residu ledger.
+6. **⭐ (optional, new) Working capital:** to fund the buy, KMP opens **Permintaan Dana Offtake** — it bundles active agreements + receipts into a proof packet (hashed on-chain as `backing_hash`) and requests *talangan* from the **Financier**, who verifies and **disburses** dIDR into the coop. *(new feature; a second visible on-chain money movement)*
+7. *Pengurus* records delivered volume + grade at harvest → contract mints immutable **Harvest Receipt**; status `Delivered`/`PartiallyDelivered`.
+8. *Contract* settles with the **three-way split**: `gross = kg × HPP`, minus KMP `handling_cut`, net the debt, release net to farmer; the collected debt splits into **supplier principal residu** + **KMP margin**. Emits `Settled`, updates farmer + coop **reputation**. Partial deliveries settle incrementally.
+9. *KMP* remits the **principal residu** to the supplier off-chain; *Supplier* verifies the bank mutation and **confirms** → `Cleared` (or raises a **dispute** that freezes coop reputation). This pays down the input payable.
+10. **(new) The disbursed talangan is reconciled** against settlement — the input-principal collected nets the advance → `Reconciled`.
+11. *Contract* raises a **graded flag** (`Warning`/`PartialDelivery`/`Suspected`) for human review if under tolerance — never an auto-accusation.
+12. *Pengurus* records **force-majeure** on crop failure → closes without reputation penalty.
+13. *Government* sees macro production/reputation/flags from one ledger (read-only) — or asks the **AI assistant** in plain Bahasa; *Supplier* sees dispatch queue + residu ledger; *Financier* sees the funding queue + portfolio.
 
 ---
 
@@ -170,40 +176,42 @@ Stellar fit: sub-cent fees (thousands of micro-settlements), SEP-41/SAC tokens, 
 Each feature: **what it does, why, acceptance criteria, on/off-chain split, which interface.** Contract mechanics → [`technical/SMART-CONTRACT.md`](./technical/SMART-CONTRACT.md).
 
 ### 7.1 F1 — Farmer Registry
-- **What:** coop registers/manages farmers (name, KTP, wallet, plot area, default commodity, kecamatan/kabupaten).
-- **Why:** every agreement ties to a real plot; the base for estimates + reputation.
-- **On/off-chain:** PII off-chain; KTP **hash** anchored on first agreement. Wallet generated or connected.
-- **Interface:** Coop Dashboard → Screen B.
-- **Acceptance:** create/search/edit farmer; reputation badge shows; KTP never leaves off-chain DB; hash verifiable.
+- **What:** coop registers/manages farmers (name, KTP, wallet, plot area, default commodity, kecamatan/kabupaten, **e-RDKK subsidy badge**).
+- **Why:** every agreement ties to a real plot; the base for estimates + reputation; the subsidy badge gates the price tier offered in F2.
+- **Subsidy badge:** `subsidy_status` = **Terverifikasi / Belum / Non-Subsidi**, seeded in demo, designed as a `SubsidyEligibilityProvider` adapter (external Kementan e-RDKK/i-Pubers is the source of truth). **Recorded, never computed** — same discipline as "estimate, never AI prediction." Kartu Tani is legacy; verification is NIK/KTP via i-Pubers.
+- **On/off-chain:** PII + subsidy badge off-chain; KTP **hash** anchored on first agreement. Only the *tier that applied to a specific agreement* is anchored on-chain (`subsidy_tier`). Wallet generated or connected.
+- **Interface:** KMP Dashboard → Screen B.
+- **Acceptance:** create/search/edit farmer; reputation badge + subsidy badge show; KTP never leaves off-chain DB; hash verifiable.
 
 ### 7.2 F2 — Offtake Agreement Creation (the core write)
-- **What:** draft the on-chain agreement from Agrinas's catalog base price + KMP markup + handling fee (debt derived, expected volume, HPP anchor, tolerance, commodity metadata). `Created` doubles as the collective Surat Pesanan.
-- **Why:** this is the *yarnen* contract — the thing banks call the "underlying transaksi," and the order Agrinas pulls to mobilize goods.
+- **What:** draft the on-chain agreement from the supplier's catalog base price + KMP markup + handling fee (debt derived, expected volume, HPP anchor, tolerance, commodity metadata, subsidy tier). `Created` doubles as the collective Surat Pesanan.
+- **Why:** this is the *yarnen* contract — the thing banks call the "underlying transaksi," and the order the supplier pulls to mobilize goods.
 - **Details:**
-  - **Master Product Catalog selector** — input basket from Agrinas's catalog; `base_price_agrinas` shown transparently (read-only to KMP).
+  - **Master Product Catalog selector** — input basket from the **supplier's** catalog; `base_price` shown transparently (read-only to KMP). The catalog shows each item's `price_tier`.
+  - **Subsidy tier** — selecting a **subsidized** item requires the farmer's **e-RDKK badge = Terverifikasi** and prices at **HET** (subsidized ceiling); otherwise the **commercial** price applies. The chosen `subsidy_tier` is written on-chain in `create_agreement` + `AgreementCreated`. Invariant: `subsidy_tier == Subsidized` ⇒ `base_price == HET`.
   - **Dynamic markup input** — KMP sets `saprotan_markup_bps` (e.g. 10%) per contract → contract derives `input_debt = base × (1 + markup)`.
   - **Handling-fee slider** — `hpp_handling_fee_bps` (e.g. 5%) applied at settlement.
   - **Cost-Structure Ledger panel** — instant breakdown: farmer's principal burden, projected KMP margin, total receivable, before signing.
   - **Auto-estimate** `expected_vol = area × yield/ha(kabupaten)` with formula + BPS/KATAM source (labeled estimate, not AI).
   - **HPP panel** auto-fills current decree price + version. **Tolerance slider** default 20%.
-- **On/off-chain:** agreement core on-chain (`create_agreement`, derives debt); input line-items + catalog snapshot off-chain linked by `onchain_id`.
-- **Multi-Agrinas readiness (explicit, per owner question):** the contract and ERD already parameterize the operator **per agreement** — `create_agreement` takes an `agrinas: Address`, and `agreement.agrinas_id` is an FK, not a global constant. A KMP choosing among several Agrinas operators is a UI/data question only (seed more operators, add a picker to Screen C) — **no contract or ERD change required**. See `SMART-CONTRACT.md` §1a.
+- **On/off-chain:** agreement core on-chain (`create_agreement`, derives debt, records `subsidy_tier`); input line-items + catalog snapshot + e-RDKK badge off-chain linked by `onchain_id`.
+- **Multi-supplier / multi-financier readiness (explicit, per owner question):** the contract and ERD already parameterize the supplier **per agreement** — `create_agreement` takes a `supplier: Address`, and `agreement.supplier_id` is an FK, not a global constant; financing likewise takes a `financier: Address` per request. Choosing among several suppliers or funders is a UI/data question only (seed more rows, add a picker) — **no contract or ERD change required**. See `SMART-CONTRACT.md` §1a.
 - **Interface:** KMP Dashboard → Screen C. Freighter signs.
-- **Acceptance:** agreement on-chain with tx hash; `AgreementCreated` indexed; `input_debt = base × (1 + markup)` correct; cost-ledger matches chain; appears in Agrinas bulk-request queue.
+- **Acceptance:** agreement on-chain with tx hash; `AgreementCreated` (incl. `subsidy_tier`) indexed; `input_debt = base × (1 + markup)` correct; subsidized items gate on the e-RDKK badge and price at HET; cost-ledger matches chain; appears in the supplier bulk-request queue.
 
 ### 7.2b F2.1 — Supply Dispatch & Acceptance (double-confirmation) *(new)*
-- **What:** two on-chain gates between draft and active debt — Agrinas `dispatch_supply()` (Created → SupplyDispatched) then KMP `accept_supply()` (SupplyDispatched → Active).
+- **What:** two on-chain gates between draft and active debt — supplier `dispatch_supply()` (Created → SupplyDispatched) then KMP `accept_supply()` (SupplyDispatched → Active).
 - **Why:** mitigates field manipulation; neither party advances the other's step; debt only becomes a live liability once goods are physically received.
-- **Details:** Agrinas dispatch trigger reads the aggregated bulk-request queue; KMP accept button only enables when the inbound cargo is marked arrived.
-- **On/off-chain:** both transitions on-chain (`SupplyDispatched`, `SupplyAccepted` events); logistics/cargo notes off-chain.
-- **Interface:** Agrinas view Screen M2 (dispatch); KMP Screen F (accept). Freighter signs each party.
+- **Details:** the supplier's dispatch trigger reads the aggregated bulk-request queue; KMP accept button only enables when the inbound cargo is marked arrived. On dispatch, the **input payable (Utang #1)** accrues at the tebus price (off-chain ledger, paid down later by the on-chain residu remittance).
+- **On/off-chain:** both transitions on-chain (`SupplyDispatched`, `SupplyAccepted` events); logistics/cargo notes + input-payable ledger off-chain.
+- **Interface:** Supplier view Screen M2 (dispatch); KMP Screen F (accept). Freighter signs each party.
 - **Acceptance:** cannot `accept_supply` before `dispatch_supply`; cannot `record_delivery` before `Active`; both tx hashes shown.
 
 ### 7.2c F2.2 — Harvest Forwarding Logistics (off-chain) *(new)*
-- **What:** the other direction of logistics — KMP forwards accepted harvest to the **gudang Agrinas** warehouse. Shipments are batch lots per commodity; per-farmer traceability is preserved via lot lines referencing the original deliveries. Double gate mirrors the residu pattern: KMP marks a shipment `Dikirim`, Agrinas confirms `Diterima` or flags `Selisih` with a mandatory note.
-- **Why:** physical goods movement, not money settlement — off-chain for now (golden rule 2); the two-party attestation is chain-worthy long-term (see `SMART-CONTRACT.md` §8b for the planned v3.1 `forward_harvest`/`confirm_harvest_receipt` dual-gate).
+- **What:** the other direction of logistics — KMP forwards accepted harvest to the **warehouse operator's gudang** (the infra party — *not* the supplier, and not a settlement participant; see §5 personas). Shipments are batch lots per commodity; per-farmer traceability is preserved via lot lines referencing the original deliveries. Double gate mirrors the residu pattern: KMP marks a shipment `Dikirim`, the warehouse operator confirms `Diterima` or flags `Selisih` with a mandatory note.
+- **Why:** physical goods movement, not money settlement — off-chain for now (golden rule 2); the two-party attestation is chain-worthy long-term (see `SMART-CONTRACT.md` §8b for the planned v3.1 `forward_harvest`/`confirm_harvest_receipt` dual-gate, whose confirming party is the warehouse operator).
 - **On/off-chain:** entirely off-chain in MVP (`harvest_shipment`, `harvest_shipment_line`); **not implemented on-chain**.
-- **Interface:** KMP Screen N (forward + history); Agrinas Screen M3 (receive + history).
+- **Interface:** KMP Screen N (forward + history); warehouse-operator Screen M3 (receive + history).
 - **Acceptance:** shipment history searchable on both sides; Selisih requires a note; weighted-average moisture per grade-lot displays correctly when lines share a grade but differ in moisture.
 
 ### 7.3 F3 — Delivery & Harvest Receipt
@@ -215,20 +223,30 @@ Each feature: **what it does, why, acceptance criteria, on/off-chain split, whic
 - **Acceptance:** each delivery mints a sequenced receipt with tx link; `delivered_vol_g` accumulates; status transitions correctly.
 
 ### 7.4 F4 — Settlement & Three-Way Split *(updated)*
-- **What:** compute `gross = delivered_kg × HPP`, take KMP `handling_cut`, **net the debt first**, release net to farmer; split the collected debt into **Agrinas principal residu** + **KMP margin**; supports **partial/staged settlement**.
-- **Why:** the trust primitive — no officer can divert the difference; the on-chain split allocation stops KMP squatting on Agrinas's principal; debt cleared before farmer cashflow protects the coop.
-- **Details:** worked example — 2,600 kg gabah × Rp6,500 = Rp16.9M − 5% handling (Rp845k, KMP) − Rp2.2M debt = **Rp13.855M** to farmer; residu Rp2.2M splits into **Rp2.0M Agrinas principal** + **Rp0.2M KMP margin**. Partial: settle per delivery, debt+residu net down across them (see `SMART-CONTRACT.md` §5).
+- **What:** compute `gross = delivered_kg × HPP`, take KMP `handling_cut`, **net the debt first**, release net to farmer; split the collected debt into **supplier principal residu** + **KMP margin**; supports **partial/staged settlement**.
+- **Why:** the trust primitive — no officer can divert the difference; the on-chain split allocation stops KMP squatting on the supplier's principal; debt cleared before farmer cashflow protects the coop.
+- **Details:** worked example — 2,600 kg gabah × Rp6,500 = Rp16.9M − 5% handling (Rp845k, KMP) − Rp2.2M debt = **Rp13.855M** to farmer; residu Rp2.2M splits into **Rp2.0M supplier principal** + **Rp0.2M KMP margin**. Partial: settle per delivery, debt+residu net down across them (see `SMART-CONTRACT.md` §5).
 - **On/off-chain:** `settle()` moves dIDR net (demo) / records verified rupiah (Path A); residu principal + KMP cuts are on-chain accruals; `Settled` + `ReputationUpdated` events.
 - **Interface:** KMP Dashboard → Screen D (cash-split settlement card); reflected in Farmer Screen K.
 - **Acceptance:** three-way math correct incl. debt-exceeds-net (floors at 0) + pro-rata principal/margin; ≥1 full + ≥1 partial settlement demoed on-chain; split card shows all three allocations.
 
 ### 7.4b F4.1 — Residu Reconciliation *(new)*
-- **What:** KMP remits Agrinas's principal residu off-chain (bank), marks it remitted with proof; Agrinas verifies the mutation and `confirm_remittance()` (→ Cleared) or `flag_remittance_dispute()` (→ freezes coop reputation).
-- **Why:** closes the moral-hazard loop — Agrinas provably recovers principal; disputes are visible and freeze the coop's on-chain trust signal until resolved.
+- **What:** KMP remits the supplier's principal residu off-chain (bank), marks it remitted with proof; the supplier verifies the mutation and `confirm_remittance()` (→ Cleared) or `flag_remittance_dispute()` (→ freezes coop reputation). This remittance also pays down the off-chain input payable (Utang #1).
+- **Why:** closes the moral-hazard loop — the supplier provably recovers principal; disputes are visible and freeze the coop's on-chain trust signal until resolved.
 - **Details:** Inter-institutional ledger per KMP: principal owed, collected, remitted, cleared; dual-gate Approve/Dispute actions; bank proof upload off-chain.
-- **On/off-chain:** `ResiduStatus` + `CoopReputation` on-chain; bank ref + proof off-chain (Path-A verification pattern).
-- **Interface:** KMP marks remitted (Screen D/F); Agrinas reconciliation desk Screen I.
+- **On/off-chain:** `ResiduStatus` + `CoopReputation` on-chain; bank ref + proof + input-payable ledger off-chain (Path-A verification pattern).
+- **Interface:** KMP marks remitted (Screen D/F); supplier reconciliation desk Screen I.
 - **Acceptance:** status transitions Pending→Remitted→Cleared with tx links; dispute freezes coop reputation; resolve unfreezes.
+
+### 7.4c F4.2 — Offtake Financing (Permintaan Dana Offtake) *(new)*
+- **What:** KMP requests working-capital *talangan* from a **Financier**, backed by an on-chain-verifiable proof packet (active agreements + harvest receipts hashed into `backing_hash`); the Financier verifies + disburses dIDR; the advance is reconciled against the input-principal collected as the backing agreements settle.
+- **Why:** the coop's cash box is the hard cap on offtake volume; proof-gated financing lifts it → more transactions → more volume. It gives the financier a safe, proof-gated way to advance capital — the exact gap a real KDMP-prioritized funder (e.g. LPDB-Koperasi) faces.
+- **Why on-chain:** money moving between distrusting parties against a proof packet = tamper-evident settlement + programmatic reconciliation (golden rule clauses 1–2). The disbursement is a real dIDR movement; the reconciliation consumes the same `Settled` events, no second source of truth.
+- **Lifecycle:** `request_funding` → `approve_funding` (amount_approved ≤ requested) → `disburse_funding` (dIDR financier→coop) → `reconcile_funding` (input-principal nets the advance). Reject path included.
+- **Details:** **coverage ratio** (requested ÷ projected settlement) + **risk badge** (from coop reputation) shown to the financier; proof-gated (no packet, no request); **financier-agnostic** (address/FK).
+- **On/off-chain:** funding record + 5 fns + 5 events on-chain (`FundingRequest`, §B of `SMART-CONTRACT.md`); proof packet detail + bank proof off-chain (`backing_hash` anchors it).
+- **Interface:** KMP Screen O (Ajukan & riwayat Dana Offtake); Financier approval desk (Oversight Screen P).
+- **Acceptance:** request needs a valid backing packet; approve ≤ requested; disburse moves dIDR + shows tx; reconcile nets input-principal against outstanding; full lifecycle in the audit trail; coverage ratio + risk badge render; swapping the financier address needs no code change.
 
 ### 7.5 F5 — Graded Flags & Force-Majeure
 - **What:** under-tolerance delivery → graded flag (`Warning` 80–98% / `PartialDelivery` 40–80% / `Suspected` <40%); crop failure → `ForceMajeure` (no penalty).
@@ -239,22 +257,22 @@ Each feature: **what it does, why, acceptance criteria, on/off-chain split, whic
 
 ### 7.6 F6 — On-chain Reputation (farmer + coop) *(updated)*
 - **What:** append-only per-farmer counters (deliveries, on-time settlements, total settled volume, flags, force-majeure) **plus per-KMP coop counters** (agreements, settlements, residu principal handled/cleared, disputes, frozen flag).
-- **Why:** farmer reputation = the "grind to unlock cash loans" hook (Layer 2); coop reputation = the residu-integrity signal Agrinas + Government + banks read.
+- **Why:** farmer reputation = the "grind to unlock cash loans" hook (Layer 2); coop reputation = the residu-integrity signal supplier + financier + Government + banks read (the financier's risk badge derives from it).
 - **On/off-chain:** on-chain counters; off-chain caches for fast reads + derived scores.
-- **Interface:** Farmer Screen L (progress-to-unlock); coop reputation on Agrinas Screen I + Government Screen G; badges across all screens.
+- **Interface:** Farmer Screen L (progress-to-unlock); coop reputation on Supplier Screen I + Financier Screen P + Government Screen G; badges across all screens.
 - **Acceptance:** farmer counters update on every settle/flag; coop counters update on settle + remittance/dispute; caches match chain; badges render.
 
 ### 7.7 F7 — KMP Dashboard
-- **What:** the operational cockpit (overview, registry, create, inbound-supply accept, deliver, settle, agreement detail, inventory).
+- **What:** the operational cockpit (overview, registry, create, inbound-supply accept, deliver, settle, agreement detail, inventory, **"Utang ke Supplier" (input payable) view**, **offtake-financing request/history panel**).
 - **Why:** the daily tool for a non-expert village officer running the on-site cash agent.
-- **Interface:** Screens A–F, N ([§8](#8-interface-specifications-screen-by-screen)).
-- **Acceptance:** all stat cards live from indexer; every on-chain action shows tx hash; mobile/tablet responsive.
+- **Interface:** Screens A–F, N, **O** ([§8](#8-interface-specifications-screen-by-screen)).
+- **Acceptance:** all stat cards live from indexer; every on-chain action shows tx hash; input-payable + financing panels render; mobile/tablet responsive.
 
-### 7.8 F8 — Oversight Dashboard (RBAC: Agrinas + Government) + AI Assistant *(updated)*
-- **What:** one oversight app, role-gated into two views. **Agrinas (operator):** master catalog CRUD (Screen M1), logistics dispatch (Screen M2), harvest-receiving desk (Screen M3), residu reconciliation desk (Screen I), commercial coop performance. **Government (regulator, read-only):** macro production/payout aggregates, coop leaderboard, force-majeure/subsidy intervention queue (Screen G). Both share a plain-Bahasa **chatbot** over read-models, scoped to the caller's role.
-- **Why:** separation of concerns — Agrinas runs the supply chain; Government only watches food security and intervenes on gagal panen. Answers "which KMP underperforms / owes residu / why?"
-- **Interface:** Screens G (Gov), I (Agrinas residu), M1–M3 (Agrinas catalog/dispatch/receiving); plus AI.
-- **Acceptance:** RBAC gates the two views; metrics aggregate across all on-chain agreements; Agrinas can dispatch + reconcile residu; AI answers ≥3 demo queries grounded with source links (no hallucinated numbers), scoped per role; AI is cuttable.
+### 7.8 F8 — Oversight Dashboard (RBAC: Supplier + Financier + Government) + AI Assistant *(updated)*
+- **What:** one oversight app, role-gated into three views (supplier + financier share a **"Mitra"** shell; government separate — see §18 open decisions). **Supplier (input principal):** master catalog CRUD (Screen M1), logistics dispatch (Screen M2), residu reconciliation desk (Screen I), per-coop input payable, commercial coop performance. **Financier (pemodal):** funding approval desk + portfolio + reconciliation (Screen P). **Government (regulator, read-only):** macro production/payout aggregates, coop leaderboard, force-majeure/subsidy intervention queue + subsidy-tier distribution (Screen G). *(The warehouse-operator receiving desk (Screen M3) is an infra view, off-chain — kept for logistics but outside the settlement RBAC.)* All share a plain-Bahasa **chatbot** over read-models, scoped to the caller's role.
+- **Why:** separation of concerns — the supplier runs the supply chain, the financier funds the working-capital gap, the Government watches food security and intervenes on gagal panen. Answers "which KMP underperforms / owes residu / what's our talangan exposure / why?"
+- **Interface:** Screens G (Gov), I (Supplier residu), M1–M2 (Supplier catalog/dispatch), M3 (warehouse receiving, off-chain), P (Financier); plus AI.
+- **Acceptance:** RBAC gates the three views; metrics aggregate across all on-chain agreements; supplier can dispatch + reconcile residu; financier can approve + disburse + reconcile funding; AI answers ≥3 demo queries grounded with source links (no hallucinated numbers), scoped per role; AI is cuttable.
 
 ### 7.9 F9 — Farmer View
 - **What:** mobile-first, dignity-first view of debt, harvest, payout, and reputation.
@@ -270,80 +288,91 @@ Each feature: **what it does, why, acceptance criteria, on/off-chain split, whic
 
 ### 7.11 MVP cut order (3-person reality)
 The new multi-party flow IS the MVP. Under time pressure, cut in this order (last-in first-out on nice-to-haves), and thin UI before cutting contract logic:
-**(1) SDK build → (2) AI chat → (3) residu-dispute UI (keep confirm path) → (4) force-majeure UI → (5) partial-settlement UI → (6) rich Agrinas catalog UI (keep one dispatch button).**
-**Sacred (never cut):** the contract (double-confirmation lifecycle + three-way split + residu accrual), happy-path settlement, KMP Dashboard, Oversight Dashboard (at least Agrinas dispatch + residu confirm, Government macro read). Agrinas dispatch/accept + split settlement are the moat — thin their UI, never remove the on-chain logic.
+**(1) SDK build → (2) AI chat → (3) financing reconcile UI + reject path (keep request→approve→disburse→settle-nets) → (4) residu-dispute UI (keep confirm path) → (5) force-majeure UI → (6) partial-settlement UI → (7) rich supplier catalog UI (keep one dispatch button).**
+**Keep (cheap, high-signal):** subsidy tier — one enum + a badge check; the financing **happy-path** (request→approve→disburse) is the new differentiator, thin its UI but do **not** cut the on-chain logic.
+**Sacred (never cut):** the contract (double-confirmation lifecycle + three-way split + residu accrual), happy-path settlement, KMP Dashboard, Oversight Dashboard (at least supplier dispatch + residu confirm, financier approve+disburse, Government macro read). Supplier dispatch/accept + split settlement + financing disburse are the moat — thin their UI, never remove the on-chain logic.
 
 ---
 
 ## 8. Interface Specifications (screen-by-screen)
 
-Three interface shells + AI. Each screen: **purpose · components · data source · actions.** All mobile-responsive. Bahasa primary, English toggle. Shells: **KMP** (operational) · **Oversight** (RBAC: Agrinas operator + Government regulator) · **Farmer** (mobile).
+Three interface shells + AI. Each screen: **purpose · components · data source · actions.** All mobile-responsive. Bahasa primary, English toggle. Shells: **KMP** (operational) · **Oversight** (RBAC: Supplier + Financier + Government; supplier + financier share a "Mitra" shell, government separate) · **Farmer** (mobile).
 
 > **Design principle:** KMP operators are *not* finance/tech experts. Big color-coded numbers, plain Bahasa, AI does the heavy lifting. Every on-chain action shows a **tx hash + explorer link** (proves "real transactions").
 
-> **Login (updated 2026-07-07):** one shared `/auth` page, Supabase Auth email+password — replaces the earlier manual role-select at `/oversight`. `app_user.role` (kmp/agrinas/pemerintah) routes the signed-in user straight to `/kmp`, `/oversight/agrinas`, or `/oversight/pemerintah`.
+> **Login (updated v4.0):** one shared `/auth` page, Supabase Auth email+password — replaces the earlier manual role-select at `/oversight`. `app_user.role` (kmp/supplier/financier/pemerintah) routes the signed-in user straight to `/kmp`, `/oversight/supplier`, `/oversight/financier`, or `/oversight/pemerintah` (supplier + financier live under a shared "Mitra" shell). *(Note: the v3.0 `agrinas` role is renamed `supplier`; the `financier` role is new.)*
 
 ### 8.1 KMP Dashboard (Pengurus) — operational cockpit
 
 **Screen A — Home / Overview**
 - *Purpose:* at-a-glance offtaker-book + cash-agent health.
-- *Components:* hero cards (**Outstanding Debt**, **Active Agreements**, **Expected Harvest This Week** kg+Rp, **Settlement Rate**, **Residu Owed to Agrinas**); **"Panen Minggu Ini"** panel; **Pre-funded cash banner** (Rp to have ready this week, green=funded/red=shortfall); **inbound-supply strip** (dispatched cargo awaiting acceptance); **recent activity feed** (live events).
+- *Components:* hero cards (**Outstanding Debt**, **Active Agreements**, **Expected Harvest This Week** kg+Rp, **Settlement Rate**, **Residu Owed to Supplier**, **Utang ke Supplier (input payable)**); **"Panen Minggu Ini"** panel; **Pre-funded cash banner** (Rp to have ready this week, green=funded/red=shortfall) + **outstanding offtake-financing** strip; **inbound-supply strip** (dispatched cargo awaiting acceptance); **recent activity feed** (live events).
 - *Data:* indexer read-models + estimator. *Actions:* + Daftarkan Petani, + Buat Perjanjian, jump to farmer.
 
 **Screen B — Farmer Registry** *(F1)*
-- *Components:* searchable table — name, kecamatan, plot(ha), commodity, active agreements, reputation badge 🟢🟡🔴, outstanding debt.
-- *Actions:* register (name, KTP→hashed, wallet, plot, commodity, region), edit, open detail. *Data:* off-chain DB + on-chain reputation.
+- *Components:* searchable table — name, kecamatan, plot(ha), commodity, active agreements, reputation badge 🟢🟡🔴, **subsidy badge** (Terverifikasi / Belum / Non-Subsidi), outstanding debt.
+- *Actions:* register (name, KTP→hashed, wallet, plot, commodity, region, e-RDKK subsidy status), edit, open detail. *Data:* off-chain DB + on-chain reputation.
 
 **Screen C — Create Offtake Agreement** *(F2)*
-- *Components:* select farmer (autofill) → **Master Product Catalog selector** (Agrinas items + `base_price_agrinas`, read-only) → **Dynamic Markup input** (`saprotan_markup_percent`) + **Handling-fee slider** (`hpp_handling_fee_percent`) → **Cost-Structure Ledger panel** (farmer burden, KMP margin, total receivable, derived `input_debt`) → auto-estimate panel (formula + BPS source) → HPP panel (decree + date) → tolerance slider → plain-language preview.
-- *Actions:* Buat Perjanjian → Freighter → `create_agreement` (derives debt) → tx hash shown. *Data:* Agrinas catalog, yield table, HPP cache.
+- *Components:* select farmer (autofill, shows e-RDKK badge) → **Master Product Catalog selector** (supplier items + `base_price` + `price_tier`, read-only) → **Price-tier selector** (subsidized item requires the farmer's e-RDKK badge = Terverifikasi → prices at **HET**; else commercial; writes `subsidy_tier`) → **Dynamic Markup input** (`saprotan_markup_percent`) + **Handling-fee slider** (`hpp_handling_fee_percent`) → **Cost-Structure Ledger panel** (farmer burden, KMP margin, total receivable, derived `input_debt`) → auto-estimate panel (formula + BPS source) → HPP panel (decree + date) → tolerance slider → plain-language preview.
+- *Actions:* Buat Perjanjian → Freighter → `create_agreement` (derives debt, records `subsidy_tier`) → tx hash shown. *Data:* supplier catalog, yield table, HPP cache.
 
 **Screen D — Record Delivery / Settle** *(F3, F4, F4.1, F5)*
-- *Components:* select agreement (must be `Active`) → **Actual Measurement Matrix** (net kg + grade A/B/C + moisture) → live gross/handling/net/flag preview → **Automated Cash-Split Settlement Card** showing the three allocations: **cash out to farmer**, **residu locked (Agrinas principal)**, **margin locked (KMP)** → status banner 🟢/🟡/🔴 + "Tandai Gagal Panen" + "Tandai Residu Disetor" (mark residu remitted, upload proof).
+- *Components:* select agreement (must be `Active`) → **Actual Measurement Matrix** (net kg + grade A/B/C + moisture) → live gross/handling/net/flag preview → **Automated Cash-Split Settlement Card** showing the three allocations: **cash out to farmer**, **residu locked (supplier principal)**, **margin locked (KMP)** → status banner 🟢/🟡/🔴 + "Tandai Gagal Panen" + "Tandai Residu Disetor" (mark residu remitted, upload proof).
 - *Actions:* confirm → `record_delivery` (receipt minted, tx) → "Selesaikan Pembayaran" → `settle` (three-way split, tx) → `mark_residu_remitted`. *Data:* chain + estimator.
 
 **Screen E — Agreement Detail**
 - *Components:* lifecycle timeline (Created→SupplyDispatched→Active→Delivered→Settled), debt vs paid, residu status, all receipts (tx links), settlement + split records, flag/force-majeure notes, explorer link.
 
 **Screen F — Inventory & Supply Request Desk** *(F2.1, F10)*
-- *Components:* **Agrinas Inbound Cargo Monitor** (dispatched shipments, status `SupplyDispatched`); **Verify & Accept Inbound Supply** button (enabled on arrival → `accept_supply` → `Active`); input stock in/out tied to agreements; harvest received vs forwarded to the **gudang Agrinas** warehouse. On-chain accept + off-chain stock table (labeled).
+- *Components:* **Supplier Inbound Cargo Monitor** (dispatched shipments, status `SupplyDispatched`); **Verify & Accept Inbound Supply** button (enabled on arrival → `accept_supply` → `Active`); input stock in/out tied to agreements; harvest received vs forwarded to the **warehouse operator's gudang**. On-chain accept + off-chain stock table (labeled).
 
 **Screen N — Logistik Panen** *(F2.1/F10, new)*
-- *Purpose:* KMP's side of forwarding accepted harvest onward to Agrinas — the counterpart to Screen M3.
-- *Components:* draft a shipment (commodity + batch of deliveries to include, per-farmer lines auto-populated from recorded deliveries); **Kirim** action (Draft → `Dikirim`, declares `total_volume_g`); shipment history (searchable, status Dikirim/Diterima/Selisih, discrepancy notes visible once Agrinas responds).
+- *Purpose:* KMP's side of forwarding accepted harvest onward to the warehouse operator — the counterpart to Screen M3.
+- *Components:* draft a shipment (commodity + batch of deliveries to include, per-farmer lines auto-populated from recorded deliveries); **Kirim** action (Draft → `Dikirim`, declares `total_volume_g`); shipment history (searchable, status Dikirim/Diterima/Selisih, discrepancy notes visible once the warehouse operator responds).
 - *Actions:* create + send shipment (off-chain, no chain tx yet — see `SMART-CONTRACT.md` §8b for the planned v3.1 on-chain gate). *Data:* `harvest_shipment` + `harvest_shipment_line`.
 
-### 8.2 Oversight Dashboard — RBAC (Agrinas operator | Government regulator) + AI
+**Screen O — Ajukan Dana Offtake** *(F4.2, new)*
+- *Purpose:* KMP requests working-capital talangan against verifiable on-chain proof.
+- *Components:* select backing agreements → **auto-assembled proof packet** (agreement ids + receipts → `backing_hash`, projected settlement computed) → amount requested + financier picker → **Ajukan** action; request history (searchable, status Requested/Approved/Disbursed/Reconciled/Rejected, coverage ratio, tx links for disburse + reconcile).
+- *Actions:* submit `request_funding` (Freighter, KMP signs) → track status; `reconcile_funding` after backing agreements settle. *Data:* `funding_request` + `funding_request_line` + settlement read-models.
 
-**Screen M — Agrinas operator suite** *(F8, Agrinas)* — split into three focused pages (2026-07-07: one page per concern, matching the KMP dashboard house style):
+### 8.2 Oversight Dashboard — RBAC (Supplier + Financier | Government regulator) + AI
+
+**Screen M — Supplier suite** *(F8, Supplier)* — focused pages (one page per concern, matching the KMP dashboard house style):
 
 **Screen M1 — Katalog Saprotan (CRUD)**
-- *Purpose:* Agrinas fully owns the master input-price list, not just an editable price field.
-- *Components:* **Katalog table** (code, name, category, region, `base_price_agrinas`, `stock_status` Tersedia/Menipis/Habis, `unit_label`) with add/edit/delete; dropdown-constrained fields (category, region, stock_status) rather than free text.
-- *Actions:* create/edit/delete catalog item (off-chain, no chain tx — the *snapshot* into an agreement is what locks on-chain, per `base_price_agrinas` in §7.2). *Data:* `saprotan_catalog`.
+- *Purpose:* the supplier fully owns the master input-price list, not just an editable price field.
+- *Components:* **Katalog table** (code, name, category, region, `base_price`, `het_price`, `price_tier`, `stock_status` Tersedia/Menipis/Habis, `unit_label`) with add/edit/delete; dropdown-constrained fields (category, region, price_tier, stock_status) rather than free text.
+- *Actions:* create/edit/delete catalog item (off-chain, no chain tx — the *snapshot* into an agreement is what locks on-chain, per `base_price` in §7.2). *Data:* `saprotan_catalog`.
 
 **Screen M2 — Logistik Saprotan (Dispatch Desk)**
 - *Purpose:* mobilize supply chain from the aggregated KMP order queue.
 - *Components:* **KMP Bulk Request Terminal** (aggregated `Created` agreements by region); **Dispatch Cargo Trigger** (authorize logistics → `dispatch_supply` → `SupplyDispatched`); **dispatch history** table (past dispatches, searchable).
-- *Actions:* dispatch (Freighter, Agrinas signs). *Data:* `mv_bulk_request_queue`.
+- *Actions:* dispatch (Freighter, supplier signs). *Data:* `mv_bulk_request_queue`.
 
-**Screen M3 — Penerimaan Hasil Panen (Receiving Desk)** *(new)*
-- *Purpose:* the other half of the logistics loop — confirm harvest lots KMP forwards to the gudang Agrinas (§7.2c / `SMART-CONTRACT.md` §8b; off-chain in MVP).
+**Screen M3 — Penerimaan Hasil Panen (Warehouse Receiving Desk)** *(new, infra)*
+- *Purpose:* the other half of the logistics loop — the **warehouse operator** confirms harvest lots KMP forwards to its gudang (§7.2c / `SMART-CONTRACT.md` §8b; off-chain in MVP). Infra view — not part of the settlement RBAC.
 - *Components:* inbound shipment queue (status `Dikirim`, KMP-declared `total_volume_g`, per-farmer lot lines with grade + weighted-average moisture); **double-gate action** — `Tandai Diterima` (confirm, volumes match) or `Tandai Selisih` (flag discrepancy, mandatory note); shipment history (searchable, all statuses).
 - *Actions:* confirm or flag receipt (off-chain; the tx-hash pattern does not apply here yet). *Data:* `harvest_shipment` + `harvest_shipment_line`.
 
-**Screen I — Cash Reconciliation & Residu Verification Desk** *(F4.1, Agrinas)* — *modified*
-- *Purpose:* track + confirm residu principal remitted from each KMP to Agrinas.
-- *Components:* **Inter-Institutional Ledger Table** (per-KMP: residu collected, principal owed, remitted, cleared; bank-proof link); **Dual-Gate Verification** — `Approve Remittance` (→ `confirm_remittance`, Cleared) / `Issue Dispute Flag` (→ `flag_remittance_dispute`, freezes coop reputation); coop reputation badges.
-- *Actions:* approve/dispute (Freighter, Agrinas signs). *Data:* `mv_residu_ledger` + coop reputation cache.
+**Screen I — Cash Reconciliation & Residu Verification Desk** *(F4.1, Supplier)* — *modified*
+- *Purpose:* track + confirm residu principal remitted from each KMP to the supplier.
+- *Components:* **Inter-Institutional Ledger Table** (per-KMP: residu collected, principal owed, remitted, cleared, **input payable / Utang #1 outstanding**; bank-proof link); **Dual-Gate Verification** — `Approve Remittance` (→ `confirm_remittance`, Cleared) / `Issue Dispute Flag` (→ `flag_remittance_dispute`, freezes coop reputation); coop reputation badges.
+- *Actions:* approve/dispute (Freighter, supplier signs). *Data:* `mv_residu_ledger` + `supplier_payable` + coop reputation cache.
+
+**Screen P — Offtake Financing Approval Desk** *(F4.2, Financier, new)*
+- *Purpose:* the financier deploys working capital safely against verifiable on-chain proof.
+- *Components:* **funding queue** (Requested requests: proof packet / `backing_hash`, projected settlement, **coverage ratio**, **risk badge** from coop reputation); **Approve/Reject** dual action + **Disburse** (dIDR); **portfolio** of outstanding advances (disbursed, reconciled, remaining); reconciliation status per request.
+- *Actions:* `approve_funding` / `reject_funding` / `disburse_funding` (Freighter, financier signs). *Data:* `mv_funding_queue` + `funding_request` + coop reputation cache.
 
 **Screen G — Regional Agricultural Oversight** *(F8, Government, read-only)* — *modified*
 - *Purpose:* macro food-security transparency for Dinas/Bupati without touching supply-chain ops.
-- *Components:* **Macro Payout & Production Row** (total food volume produced kg, productivity per kecamatan, avg regional farmer reputation, panen-success vs gagal-panen ratio); **coop leaderboard** (per-KMP rates, red floats up); **commodity distribution** chart; **Graded Flag & Intervention Queue** (force-majeure claims needing manual gov verification for subsidy/aid).
-- *Data:* `mv_macro_production`, `mv_coop_leaderboard`, `mv_flag_queue`. Read-only.
+- *Components:* **Macro Payout & Production Row** (total food volume produced kg, productivity per kecamatan, avg regional farmer reputation, panen-success vs gagal-panen ratio); **coop leaderboard** (per-KMP rates, red floats up); **commodity distribution** chart; **subsidy-tier distribution** (subsidized-vs-commercial split — a subsidy-leakage signal); **Graded Flag & Intervention Queue** (force-majeure claims needing manual gov verification for subsidy/aid).
+- *Data:* `mv_macro_production`, `mv_coop_leaderboard`, `mv_flag_queue`, `mv_subsidy_distribution`. Read-only.
 
 **Screen H — AI Assistant (chatbot)** *(F8)* — *updated, now multi-session*
-- *Components:* chat over read-models, **scoped to the caller's role** (Agrinas: residu/dispatch/commercial; Government: macro/production/flags). **Multi-session:** new chat, rename, delete, pin — a conversation list like any modern assistant, not a single ephemeral thread. **File import**: attach `.xlsx`/`.csv` (e.g. a coop's own harvest log) or images (e.g. a photo of a delivery slip) for the assistant to read via **Groq `llama-4-scout` vision**. **Financial-analysis capability**: beyond lookup ("siapa panen minggu depan"), the assistant can reason over imported/read-model numbers (e.g. "bandingkan residu KMP A vs B bulan ini"). Demo prompts: *"KMP mana paling banyak utang belum terbayar?"* · *"Berapa residu pokok Agrinas yang belum disetor?"* · *"Siapa panen minggu depan?"* · *"Kenapa KMP Sukamaju settlement rate rendah?"*
+- *Components:* chat over read-models, **scoped to the caller's role** (Supplier: residu/dispatch/commercial; Financier: funding queue/exposure/portfolio; Government: macro/production/flags/subsidy). **Multi-session:** new chat, rename, delete, pin — a conversation list like any modern assistant, not a single ephemeral thread. **File import**: attach `.xlsx`/`.csv` (e.g. a coop's own harvest log) or images (e.g. a photo of a delivery slip) for the assistant to read via **Groq `llama-4-scout` vision**. **Financial-analysis capability**: beyond lookup ("siapa panen minggu depan"), the assistant can reason over imported/read-model numbers (e.g. "bandingkan residu KMP A vs B bulan ini"). Demo prompts: *"KMP mana paling banyak utang belum terbayar?"* · *"Berapa residu pokok supplier yang belum disetor?"* · *"Berapa exposure talangan koperasi ini?"* (financier) · *"Siapa panen minggu depan?"* · *"Kenapa KMP Sukamaju settlement rate rendah?"*
 - *Behavior:* read-only, grounded, every figure links to source; **Groq `llama-3.3-70b`** for chat + **`llama-4-scout`** for vision/file import; first to cut.
 
 ### 8.3 Farmer View (Petani) — mobile-first, dignity-first
@@ -375,7 +404,9 @@ Every screen is built from one shared system so the product feels coherent and s
 | **Path A** | Deployable now | **rupiah off-chain** (BRI/BRILink) | tamper-proof **record** (backend verifies payment → calls `settle`) |
 | **Path B** | Future (gated) | licensed IDR stablecoin | actual on-chain transfer |
 
-**The three-way split (on-site cashflow, PMK 15/2026):** KMP is the **pre-funded** paying agent. One `settle()` allocates the gross HPP payout three ways — **net to farmer** (money that moves), **Agrinas principal residu** (owed back, remitted off-chain then confirmed on-chain), **KMP margin + handling** (KMP keeps). Only the farmer net moves as dIDR in the demo; residu + cuts are on-chain accruals mirroring rupiah that stays in KMP's cash box. Residu remittance is reconciled via `confirm_remittance` (Agrinas) — the same Path-A "verify off-chain, anchor on-chain" pattern.
+**The three-way split (on-site cashflow, PMK 15/2026):** KMP is the **pre-funded** paying agent. One `settle()` allocates the gross HPP payout three ways — **net to farmer** (money that moves), **supplier principal residu** (owed back, remitted off-chain then confirmed on-chain), **KMP margin + handling** (KMP keeps). Only the farmer net moves as dIDR in the demo; residu + cuts are on-chain accruals mirroring rupiah that stays in KMP's cash box. Residu remittance is reconciled via `confirm_remittance` (supplier) — the same Path-A "verify off-chain, anchor on-chain" pattern.
+
+**Offtake financing is a parallel money flow (not part of the split).** Separately from settlement, a **Financier** can advance working-capital talangan (financier→coop, a real dIDR movement in the demo) against an on-chain proof packet, reconciled by the input-principal collected as the backing agreements settle. It does **not** alter the three-way split — it front-loads the coop's cash so it can pay farmers *before* the downstream sale clears. `disburse_funding` is a second visible on-chain money movement; `reconcile_funding` nets the advance against the same `Settled` events (no second source of truth).
 
 **Pitch language: "tamper-proof settlement record" + "on-chain split allocation," NOT "autonomous settlement."** Same contract + events across all paths — only the `settle()` trigger changes. Honest, buildable, and degrades gracefully. *(Full detail → [`technical/ARCHITECTURE.md`](./technical/ARCHITECTURE.md) §5, worked numbers → [`SMART-CONTRACT.md`](./technical/SMART-CONTRACT.md) §5.)*
 
@@ -388,7 +419,7 @@ Every screen is built from one shared system so the product feels coherent and s
 ```
 annona/
 ├── apps/
-│   ├── web/          # Next.js 15 — KMP / oversight (RBAC Agrinas+Gov) / farmer (role-routed)
+│   ├── web/          # Next.js 15 — KMP / oversight (RBAC Supplier+Financier+Gov) / farmer (role-routed)
 │   └── api/          # Hono backend + event indexer + settlement orchestrator + AI
 ├── packages/
 │   ├── sdk/          # @annona/sdk — typed read client (composability surface)
@@ -417,10 +448,11 @@ L1 SETTLEMENT ─► L2 REPUTATION ─► L3 RECEIVABLE ─► L4 LIQUIDITY ─�
 ```
 
 ### Layer 1 — Settlement  ◄ HACKATHON MVP
-- **Thesis:** every input→harvest→payment recorded, tamper-proof, auto-netted.
-- **Features:** F1–F10 (registry, agreement, double-confirmation dispatch/accept, delivery+receipt, three-way split settlement, residu reconciliation, partial settlement, graded flags, force-majeure, KMP + Oversight (Agrinas+Government) dashboards, farmer view, lite inventory).
+- **Thesis:** every input→harvest→payment recorded, tamper-proof, auto-netted — plus proof-gated working-capital financing.
+- **Features:** F1–F10 + F4.2 (registry with subsidy badge, agreement with subsidy tier, double-confirmation dispatch/accept, delivery+receipt, three-way split settlement, residu reconciliation, **offtake financing**, partial settlement, graded flags, force-majeure, KMP + Oversight (Supplier+Financier+Government) dashboards, farmer view, lite inventory).
 - **Interfaces:** all three dashboards.
-- **Stellar:** Freighter, SAC/dIDR, Soroban RPC. *(Output: on-chain transaction history exists.)*
+- **Stellar:** Freighter, SAC/dIDR, Soroban RPC. *(Output: on-chain settlement + financing transaction history exists.)*
+- **Multi-supplier / multi-financier ready:** suppliers and financiers are per-record `Address`es (not singletons) — supporting several is a seed + UI question, zero contract change. A scaling strength (see `SMART-CONTRACT.md` §1a).
 
 ### Layer 2 — Reputation  ◄ seed in MVP, matures post
 - **Thesis:** delivery + settlement history → farmer financial identity.
@@ -467,7 +499,9 @@ L1 SETTLEMENT ─► L2 REPUTATION ─► L3 RECEIVABLE ─► L4 LIQUIDITY ─�
 
 Full detail + endpoints + the honest gaps → [`technical/DATA-SOURCES.md`](./technical/DATA-SOURCES.md).
 
-- **Settlement anchor = HPP** (decree-set, public, stable): gabah **Rp6,500/kg** (Inpres 4/2026), jagung **Rp5,500/kg**. The contract's settlement price.
+- **Settlement anchor = HPP** (output floor, decree-set, public, stable): gabah **Rp6,500/kg** (Inpres 4/2026), jagung **Rp5,500/kg**. The contract's settlement price.
+- **Subsidy input tier = HET** (input ceiling, distinct from HPP): Urea **Rp2.250/kg**, NPK **Rp2.300/kg** (Kepmentan 1117/2025). Sets `base_price` for e-RDKK-verified farmers on subsidized items. **HET = input-side ceiling; HPP = output-side floor — never conflate them.**
+- **Subsidy eligibility gate = e-RDKK / i-Pubers** (NIK/KTP verified at kiosk; Kartu Tani superseded as verification, still valid as payment; ≤2 ha; 9 priority commodities). Annona **records** the outcome (`subsidy_status`), never re-implements eligibility. Subsidy differential is paid by the state **directly to the supplier**, so the coop still owes the *tebus* price (input payable / Utang #1).
 - **Reference prices:** Bapanas Panel Harga + PIHPS (kabupaten granularity, public portals, no clean API) — display only.
 - **Yield estimate:** BPS (province/kabupaten) + KATAM (7,042 kecamatan, *planning* data). Transparent formula, not ML.
 - **The gap (say it):** kecamatan-level *actual yield* is NOT open data. → settle on HPP, estimate on kabupaten. **Annona's own data becomes the first kecamatan yield dataset** (Layer 3 data product).
@@ -497,8 +531,8 @@ Full detail + endpoints + the honest gaps → [`technical/DATA-SOURCES.md`](./te
 
 1. **(30s) Problem** — "KDMP must be the farmer's offtaker, but the input→harvest→payment loop lives in spreadsheets. That's where money leaks and banks lose trust. Since April 2026 PMK 15 made the *state* eat default risk — so running it cleanly got *weaker*. A record nobody can fake is now worth more than ever."
 2. **(30s) Insight** — "Banks lend *'selama ada underlying transaksinya.'* Annona *is* that transaction — on-chain, auto-netting, skim-proof. Named after the Roman grain-supply system that did this 2,000 years ago."
-3. **(2m) Live demo (testnet, 3 wallets)** — register farmer → draft agreement from Agrinas catalog (base Rp2M + 10% markup = Rp2.2M debt) → **AgreementCreated** (show tx) → **Agrinas dispatches** → KMP **accepts supply** (Active, show both tx) → record 2,600 kg grade-A → **Harvest Receipt minted** → **settle**: three-way split — farmer gets **Rp13.855M** dIDR, **Rp2M residu locked for Agrinas**, **Rp0.2M KMP margin** (show tx + cash-split card) → **farmer + coop reputation tick up** → KMP marks residu remitted → **Agrinas confirms** (Cleared, show tx). Under-deliver another → **graded flag** on Government oversight → ask **AI** "kenapa underperform / berapa residu belum disetor?" → grounded Bahasa answer.
-4. **(60s) Why Stellar + composable** — auto-netting trust primitive; HPP-anchored; generic contract any coop reuses; reputation/receipts readable via SDK; Reflector-ready oracle. "Not an app. A settlement *rail*."
+3. **(2m) Live demo (testnet, 4 wallets: supplier / KMP / financier / farmer)** — register farmer (show **e-RDKK badge = Terverifikasi**) → draft agreement from the supplier catalog; the subsidized item prices at **HET** (base Rp2M + 10% markup = Rp2.2M debt) → **AgreementCreated** (show tx) → **KMP requests Rp X talangan from the Financier against this on-chain proof → Financier approves → disburse** (show dIDR tx — a *second* on-chain money movement) → **supplier dispatches** → KMP **accepts supply** (Active, show both tx) → record 2,600 kg grade-A → **Harvest Receipt minted** → **settle**: three-way split — farmer gets **Rp13.855M** dIDR, **Rp2M residu locked for the supplier**, **Rp0.2M KMP margin** (show tx + cash-split card) → **farmer + coop reputation tick up** → KMP marks residu remitted → **supplier confirms** (Cleared, show tx) → **talangan reconciled** against the input-principal collected (Reconciled). Under-deliver another → **graded flag** on Government oversight → ask **AI** "kenapa underperform / berapa residu belum disetor / berapa exposure talangan koperasi ini?" → grounded Bahasa answer.
+4. **(60s) Why Stellar + composable** — auto-netting trust primitive; multi-party financing between distrusting parties; HPP-anchored; generic contract any coop reuses; reputation/receipts readable via SDK; Reflector-ready oracle. "Not an app. A settlement *rail*."
 5. **(30s) Vision + ask** — Settlement → Reputation → Receivable → Liquidity → RWA. "80,000 cooperatives, Rp-trillion scale, no IDR RWA protocol on Stellar yet. We're the rail."
 
 ---
@@ -524,6 +558,8 @@ Full detail + endpoints + the honest gaps → [`technical/DATA-SOURCES.md`](./te
 | Estimate reads as hand-wavy AI | Med | Transparent formula + BPS source; never "ML prediction." |
 | Kecamatan oracle promised but absent | Med | HPP national + kabupaten reference; oracle = interface only. |
 | AI hallucinates numbers | Med | Grounded in indexer data; figures link to source; cuttable. |
+| "Kemenkop already has SIMKOPDES" | Med | Annona is the operational/settlement/**proof** layer *beneath* the reporting hub — it *feeds* SIMKOPDES, doesn't duplicate it. SIMKOPDES reports; Annona runs and proves the underlying offtake transactions such a hub wants as input (cross-ref the overlap analysis in `DATA-SOURCES.md` §7). |
+| Subsidy tier mis-set (HET applied to ineligible farmer) | Med | e-RDKK badge gates the tier in F2; `subsidy_tier` recorded on-chain is auditable against the off-chain badge; Annona records, never computes eligibility. |
 
 ### 16.2 Parking lot
 | Idea | Verdict | Why |
@@ -552,6 +588,8 @@ Full detail + endpoints + the honest gaps → [`technical/DATA-SOURCES.md`](./te
 
 **Prices/data:** HPP gabah **Rp6,500/kg** (Inpres 4/2026), jagung **Rp5,500/kg**; PIHPS/Bapanas = kabupaten granularity; BPS province-clean, no kecamatan production; KATAM = 7,042 kecamatan planning data. **Kecamatan actual yield = not open data.**
 
+**Subsidy + financing (v4.0, re-verified 2026):** **HET** (subsidized input ceiling, Kepmentan 1117/2025) Urea **Rp2.250/kg**, NPK **Rp2.300/kg** (cut ~20% from Oct 2025) — distinct from HPP (output floor). **e-RDKK / i-Pubers** is the subsidy gate: NIK/KTP verified at kiosk, **Kartu Tani superseded** as verification (still valid as payment), ~14,1 juta NIK validated, ≤2 ha, 9 priority commodities (padi, jagung, kedelai, cabai, bawang merah, bawang putih, tebu, kopi, kakao). The subsidy differential is paid by the state **directly to the input supplier**, so the coop still owes the *tebus* price (input payable / Utang #1). **LPDB-Koperasi** (Kemenkop revolving-fund body; **2026 declared priority = KDMP**; tarif ~3–7%/yr; plafon up to Rp500 miliar) is the realistic **Financier** for the offtake-financing loop. The **warehouse builder/operator** (PMK 15/2026, ~Rp3B/unit, assets → Pemda/Pemdes, operates units ~2 yrs) is **not a financier or commodity buyer** — infra only, which is why it is off the settlement/residu path. **SIMKOPDES** (Kemenkop reporting/monitoring hub) reports; Annona feeds it (see `DATA-SOURCES.md` §7).
+
 **OJK/RWA:** POJK 27/2024 + 23/2025 in force; RWA POJK targeted Q3 2026 (drafting); Rupiah stablecoin in sandbox; crypto-as-payment illegal; sandbox graduates GIDR/Nano/GORO — **no ag/IDR RWA yet**.
 
 **Stellar:** APAC Hackathon (submit 15 Jul, Demo 18 Jul, Finale 24 Jul, $60k); SCF (154 awards/$14.4M in 2025, Stellar must be load-bearing, open-source, MVP→Testnet→Mainnet); precedents **TyFi** (won "Best Use of Stellar") + **AgTrail** (SCF #38); $3.35B RWA on Stellar; USDC $4.2B remittance, MGUSD/MoneyGram 475k cash-out points; **no IDR stablecoin on Stellar = gap**. Soroban: SEP-41/SAC, SEP-56 vaults, mandatory events, `require_auth`, TTL extension.
@@ -560,15 +598,19 @@ Full detail + endpoints + the honest gaps → [`technical/DATA-SOURCES.md`](./te
 
 ## 18. Open Decisions
 
-1. **Letter of Intent** — ≥1 real coop / Agrinas / Dinas Koperasi contact before finale. Highest-leverage non-code task. *(PM.)*
+1. **Letter of Intent** — ≥1 real coop / supplier / financier (e.g. LPDB) / Dinas Koperasi contact before finale. Highest-leverage non-code task. *(PM.)*
 2. **Demo commodity** — **gabah** hero (cleanest HPP); jagung second to prove generic contract. ✅
 3. **Custody for `settle`** — pre-funded contract (escrow-lite), KMP on-site cash agent, for cleanest demo. ✅
-4. **AI scope** — confirm Groq (llama-3.3-70b + llama-4-scout vision); lock 3–4 demo queries; **role-scoped (Agrinas vs Government)**; agree it's first to cut.
+4. **AI scope** — confirm Groq (llama-3.3-70b + llama-4-scout vision); lock 3–4 demo queries; **role-scoped (Supplier / Financier vs Government)**; agree it's first to cut.
 5. **dIDR decimals** — 2 (rupiah-cents) vs 0 (whole rupiah). Recommend 2.
 6. **Brand + repo** — confirm **Annona**, register `annona.finance`, init public monorepo before Day 1.
 7. **Cut order (locked)** — see §7.11. Sacred: contract (double-confirmation + three-way split + residu) + happy-path settlement + KMP + Oversight dashboards.
 8. **Default price params** — base/markup/handling defaults for demo: base per-catalog, `saprotan_markup` 10%, `hpp_handling_fee` 5%. Confirm or adjust. *(Drives the hero payout number Rp13.855M.)*
-9. **Third demo wallet (Agrinas)** — MVP builds a real Agrinas signing wallet for dispatch/confirm. Confirm pre-seeded in `scripts/seed.ts`.
+9. **Demo wallets (v4.0: four)** — MVP builds real signing wallets for **supplier** (dispatch/confirm), **KMP**, **financier** (approve/disburse), and **farmer-receiver**. Confirm all four pre-seeded in `scripts/seed.ts`; the financier wallet must hold dIDR to disburse.
+10. **On-chain role label for the supplier (Open Decision A) — DECIDED: `supplier`.** The v3.0 `agrinas` address is renamed `supplier` (the input principal: dispatch + residu counterparty); the warehouse operator is a distinct non-transacting infra party. See `SMART-CONTRACT.md` §1a/§A.
+11. **`reconcile_funding` — auto vs separate (Open Decision B) — RECOMMEND: separate explicit call in MVP** (mirrors `mark_residu_remitted` being distinct from `settle`); auto-hook inside `settle()` is a v4.1 nicety.
+12. **Oversight shell grouping — DECIDED: supplier + financier share a "Mitra" shell; Government separate.** Revisit if a real supplier and financier are different institutions needing hard isolation.
+13. **Subsidy tier defaults** — demo seeds a mix of Terverifikasi / Belum / Non-Subsidi farmers so both HET and commercial pricing appear; subsidized items priced at HET (Urea Rp2.250, NPK Rp2.300). Confirm the seed mix.
 
 ---
 

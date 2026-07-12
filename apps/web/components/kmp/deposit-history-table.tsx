@@ -87,7 +87,6 @@ export function DepositHistoryTable() {
         <DateRangePicker value={dateRange} onChange={setDateRange} />
       </div>
 
-<<<<<<< HEAD
       {loading && <p className="text-sm text-muted-foreground">Memuat riwayat setoran...</p>}
       {error && (
         <Alert tone="warning" title="Gagal memuat riwayat setoran">
@@ -156,64 +155,6 @@ export function DepositHistoryTable() {
           </TableFrame>
         </ScrollArea>
       )}
-=======
-      {/* Table inside ScrollArea */}
-      <ScrollArea maxHeight={420} fade>
-        <TableFrame>
-          <Table>
-            <THead>
-              <Th>Tanggal</Th>
-              <Th>Petani</Th>
-              <Th>Perjanjian</Th>
-              <Th>Setoran ke</Th>
-              <Th>Volume (kg)</Th>
-              <Th>Grade</Th>
-              <Th>Kadar Air (%)</Th>
-              <Th>Status Bayar</Th>
-              <Th>Tx</Th>
-            </THead>
-            <TBody>
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-sm text-gray-500 font-medium">
-                    Tidak ada data setoran ditemukan.
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((row) => (
-                  <Tr key={row.delivery.id}>
-                    <Td className="tabular-nums">{row.delivery.deliveredAt}</Td>
-                    <Td className="font-bold text-gray-900">{row.farmer.name}</Td>
-                    <Td>
-                      <Link
-                        href={`/kmp/perjanjian/${row.agreement.id}`}
-                        className="text-emerald-700 font-bold hover:text-emerald-950 hover:underline"
-                      >
-                        #{String(row.agreement.onchainId)}
-                      </Link>
-                    </Td>
-                    <Td>Ke-{row.delivery.seq}</Td>
-                    <Td className="tabular-nums font-semibold text-gray-900">
-                      {row.delivery.volumeKg.toLocaleString("id-ID")}
-                    </Td>
-                    <Td className="font-semibold">{row.delivery.grade}</Td>
-                    <Td className="tabular-nums">
-                      {(row.delivery.moistureBps / 100).toFixed(1)}
-                    </Td>
-                    <Td>
-                      <PaidBadge paid={row.paid} />
-                    </Td>
-                    <Td>
-                      <TxHashLink hash={row.delivery.receiptTxHash} />
-                    </Td>
-                  </Tr>
-                ))
-              )}
-            </TBody>
-          </Table>
-        </TableFrame>
-      </ScrollArea>
->>>>>>> e56fca8 (refactor: overhaul UrbanGreen component structure and update KMP interface styling)
     </div>
   );
 }
