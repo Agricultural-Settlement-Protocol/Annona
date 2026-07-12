@@ -154,8 +154,11 @@ async function seedBaseRows(): Promise<Map<string, string>> {
   }
 
   // Farmers (PII off-chain only). ktpRaw is a demo placeholder — never anchored.
+  // e-RDKK badge is external reference data (recorded, never computed). Seed a
+  // deterministic spread so the subsidy-distribution surface has real variety.
+  const SUBSIDY_SPREAD = ["Terverifikasi", "Belum", "NonSubsidi"] as const;
   await db.insert(schema.farmer).values(
-    MOCK_FARMERS.map((f) => ({
+    MOCK_FARMERS.map((f, i) => ({
       coopId,
       name: f.name,
       ktpRaw: `DEMO-KTP-${f.id}`,
@@ -165,6 +168,7 @@ async function seedBaseRows(): Promise<Map<string, string>> {
       defaultCommodityCode: f.defaultCommodityCode,
       kecamatan: f.kecamatan,
       kabupaten: MOCK_COOP.kabupaten,
+      subsidyStatus: SUBSIDY_SPREAD[i % SUBSIDY_SPREAD.length],
     })),
   );
 
@@ -195,6 +199,8 @@ async function replayAgreement(a: (typeof MOCK_AGREEMENTS)[number]): Promise<voi
         moistureBps: a.moistureBps,
         hppVersion: a.hppVersion,
       },
+      // v4.0 demo spread: every 3rd agreement priced at HET (subsidized).
+      subsidyTier: Number(oid) % 3 === 0 ? "Subsidized" : "Commercial",
       basePriceSupplier: a.basePriceSupplier,
       saprotanMarkupBps: a.saprotanMarkupBps,
       inputDebt: a.inputDebt,
@@ -391,12 +397,14 @@ const R = (whole: number): bigint => BigInt(whole) * 10_000_000n;
  * Disbursed / Reconciled), each backed by real agreements (the proof packet).
  * Returns the financier id so the app_user link can point at it.
  */
+const FINANCIER_WALLET = "GFINANCIERLPDBKOPERASIDEMOTESTNETWALLETPLACEHOLDER00001";
+
 async function seedFinancing(): Promise<string> {
   const finRows = await db
     .insert(schema.financier)
     .values({
       name: "LPDB Koperasi",
-      walletAddress: "GFINANCIERLPDBKOPERASIDEMOTESTNETWALLETPLACEHOLDER00001",
+      walletAddress: FINANCIER_WALLET,
       poolBalance: R(500_000_000),
     })
     .returning({ id: schema.financier.id });
@@ -410,7 +418,11 @@ async function seedFinancing(): Promise<string> {
     .from(schema.agreement)
     .limit(6);
 
-  // (status, requested, approved, disbursed, reconciled, projected, coverageBps, risk, backingCount)
+  // Event-driven (anti-drift): the SAME applyEvent reducer that the live indexer
+  // uses writes each funding_request header + derives coverage/risk. Only the
+  // OFF-CHAIN backing lines (like saprotan_catalog, not carried by any event) are
+  // inserted directly, keyed to the header by on-chain id.
+  // (targetStatus, requested, approved, disbursed, reconciled, projected, backingLines)
   const plan: [
     (typeof schema.fundingStatus.enumValues)[number],
     number,
@@ -419,36 +431,73 @@ async function seedFinancing(): Promise<string> {
     number,
     number,
     number,
-    string,
-    number,
   ][] = [
-    ["Requested", 30_000_000, 0, 0, 0, 52_000_000, 5769, "Rendah", 2],
-    ["Approved", 40_000_000, 35_000_000, 0, 0, 61_000_000, 6557, "Sedang", 2],
-    ["Disbursed", 25_000_000, 25_000_000, 25_000_000, 0, 44_000_000, 5682, "Rendah", 1],
-    ["Reconciled", 20_000_000, 20_000_000, 20_000_000, 20_000_000, 41_000_000, 4878, "Rendah", 1],
+    ["Requested", 30_000_000, 0, 0, 0, 52_000_000, 2],
+    ["Approved", 40_000_000, 35_000_000, 0, 0, 61_000_000, 2],
+    ["Disbursed", 25_000_000, 25_000_000, 25_000_000, 0, 44_000_000, 1],
+    ["Reconciled", 20_000_000, 20_000_000, 20_000_000, 20_000_000, 41_000_000, 1],
+    ["Rejected", 55_000_000, 0, 0, 0, 58_000_000, 1], // 94% coverage → Tinggi → declined
   ];
 
   let agrCursor = 0;
   let onchain = 1;
-  for (const [status, req, appr, disb, rec, proj, covBps, risk, lineCount] of plan) {
-    const frRows = await db
-      .insert(schema.fundingRequest)
-      .values({
-        onchainId: BigInt(onchain++),
-        coopId,
-        financierId,
-        backingHash: `demo${onchain.toString().padStart(60, "0")}`,
+  let ts = secondsOf("2026-07-01T00:00:00Z");
+  const t = () => (ts += 60);
+  for (const [status, req, appr, disb, rec, proj, lineCount] of plan) {
+    const oid = BigInt(onchain++);
+    await emit(
+      envelope("FundingRequested", `funding-req:${oid}`, t(), {
+        id: oid,
+        coop: MOCK_COOP.walletAddress,
+        financier: FINANCIER_WALLET,
         projectedSettlement: R(proj),
         amountRequested: R(req),
-        amountApproved: R(appr),
-        amountDisbursed: R(disb),
-        amountReconciled: R(rec),
-        coverageRatioBps: covBps,
-        riskBadge: risk,
-        status,
-      })
-      .returning({ id: schema.fundingRequest.id });
-    const frId = frRows[0]?.id;
+        backingHash: `demo${oid.toString().padStart(60, "0")}`,
+      }),
+    );
+    if (status === "Rejected")
+      await emit(
+        envelope("FundingRejected", `funding-rej:${oid}`, t(), {
+          id: oid,
+          financier: FINANCIER_WALLET,
+          reason: "COVERAGE_TOO_HIGH",
+        }),
+      );
+    if (status === "Approved" || status === "Disbursed" || status === "Reconciled")
+      await emit(
+        envelope("FundingApproved", `funding-appr:${oid}`, t(), {
+          id: oid,
+          financier: FINANCIER_WALLET,
+          amountApproved: R(appr),
+        }),
+      );
+    if (status === "Disbursed" || status === "Reconciled")
+      await emit(
+        envelope("FundingDisbursed", `funding-disb:${oid}`, t(), {
+          id: oid,
+          financier: FINANCIER_WALLET,
+          coop: MOCK_COOP.walletAddress,
+          amountDisbursed: R(disb),
+        }),
+      );
+    if (status === "Reconciled")
+      await emit(
+        envelope("FundingReconciled", `funding-rec:${oid}`, t(), {
+          id: oid,
+          coop: MOCK_COOP.walletAddress,
+          amountReconciled: R(rec),
+          remaining: R(disb - rec),
+        }),
+      );
+
+    // Off-chain backing detail (the proof packet), matched to the reducer-written
+    // header by on-chain id.
+    const frId = (
+      await db
+        .select({ id: schema.fundingRequest.id })
+        .from(schema.fundingRequest)
+        .where(sql`${schema.fundingRequest.onchainId} = ${oid}`)
+    )[0]?.id;
     if (!frId) continue;
     for (let i = 0; i < lineCount; i++) {
       const a = agrs[agrCursor % agrs.length];
@@ -461,7 +510,7 @@ async function seedFinancing(): Promise<string> {
       });
     }
   }
-  console.log(`[seed] seeded 1 financier + ${plan.length} funding requests`);
+  console.log(`[seed] seeded 1 financier + ${plan.length} funding requests (event-driven)`);
   return financierId;
 }
 

@@ -8,9 +8,11 @@ import { farmersRoute } from "./routes/farmers.js";
 import { financierRoute } from "./routes/financier.js";
 import { healthRoute } from "./routes/health.js";
 import { coopRoute, overviewRoute } from "./routes/overview.js";
+import { payableRoute } from "./routes/payable.js";
 import { referenceRoute } from "./routes/reference.js";
 import { residuRoute } from "./routes/residu.js";
 import { settlementsRoute } from "./routes/settlements.js";
+import { subsidyRoute } from "./routes/subsidy.js";
 
 /**
  * Annona API (abstraction layer).
@@ -36,6 +38,8 @@ app.route("/coop", coopRoute);
 app.route("/settlements", settlementsRoute);
 app.route("/residu", residuRoute);
 app.route("/financier", financierRoute);
+app.route("/payable", payableRoute);
+app.route("/subsidy", subsidyRoute);
 
 app.get("/", (c) => c.json({ name: "annona-api", status: "ok" }));
 

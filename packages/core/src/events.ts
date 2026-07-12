@@ -18,7 +18,18 @@ export type AnnonaEventType =
   | "RemittanceDisputed"
   | "RemittanceResolved"
   | "ReputationUpdated"
-  | "CoopReputationUpdated";
+  | "CoopReputationUpdated"
+  // v4.0 — offtake financing lifecycle (SMART-CONTRACT.md §B / §7).
+  | "FundingRequested"
+  | "FundingApproved"
+  | "FundingRejected"
+  | "FundingDisbursed"
+  | "FundingReconciled";
+
+/** Which price tier the agreement's snapshotted base_price came from. Mirrors
+ *  the on-chain `SubsidyTier` — Subsidized items are priced at HET (e-RDKK),
+ *  Commercial otherwise. Settlement math is identical either way. */
+export type SubsidyTier = "Subsidized" | "Commercial";
 
 export interface EventEnvelope<T> {
   type: AnnonaEventType;
@@ -35,6 +46,8 @@ export interface AgreementCreatedData {
   coop: string;
   supplier: string;
   commodity: Commodity;
+  /** v4.0: which price tier the snapshotted base_price came from (chain mirror). */
+  subsidyTier: SubsidyTier;
   basePriceSupplier: bigint;
   saprotanMarkupBps: number;
   inputDebt: bigint;
@@ -130,4 +143,48 @@ export interface CoopReputationUpdatedData {
   totalResiduCleared: bigint;
   disputes: number;
   frozen: boolean;
+}
+
+/* ── Offtake financing (§B). Parallel to the agreement state machine. ── */
+
+/** KMP submits a proof-backed advance request. `id`/`coop` are topics on-chain;
+ *  carried in data here so the reducer can resolve both parties. */
+export interface FundingRequestedData {
+  id: bigint;
+  coop: string;
+  financier: string;
+  /** sum(kg_expected_or_delivered * hpp) across the backing agreements */
+  projectedSettlement: bigint;
+  amountRequested: bigint;
+  /** hex sha-256 of the off-chain Bukti Offtake packet (agreement ids + receipts) */
+  backingHash: string;
+}
+
+export interface FundingApprovedData {
+  id: bigint;
+  financier: string;
+  amountApproved: bigint; // <= amountRequested
+}
+
+export interface FundingRejectedData {
+  id: bigint;
+  financier: string;
+  reason: string;
+}
+
+export interface FundingDisbursedData {
+  id: bigint;
+  financier: string;
+  coop: string;
+  amountDisbursed: bigint;
+}
+
+/** Input-principal collected at settlement repaid part/all of the advance.
+ *  `amountReconciled` is CUMULATIVE (the on-chain running total); `remaining`
+ *  is `amountDisbursed - amountReconciled`. */
+export interface FundingReconciledData {
+  id: bigint;
+  coop: string;
+  amountReconciled: bigint;
+  remaining: bigint;
 }

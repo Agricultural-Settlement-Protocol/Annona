@@ -306,11 +306,17 @@ Goal: read-model covers every v4.0 surface. Use `/annona-indexer` + `/annona-see
   **§5 split still exact** (regression guard).
 
 **Checklist**
-- [ ] Reducer handles funding + subsidy + payable events
-- [ ] New read routes live
-- [ ] `agrinas` → `supplier` in existing queries
-- [ ] Seed extended to 4 wallets + funding demo
-- [ ] Reducer tests + live curl slice green, split exact
+- [x] Reducer handles funding + subsidy + payable events (5 Funding* events → funding_request
+  upsert by onchain id + derived coverage/risk; `subsidy_tier` on AgreementCreated;
+  supplier_payable accrue on SupplyDispatched, pay down on RemittanceCleared)
+- [x] New read routes live (`/payable`, `/subsidy/distribution`; funding + `/financier`
+  queue/portfolio/detail already shipped in the financier PR)
+- [x] `agrinas` → `supplier` in existing queries (done in Phase 4b)
+- [x] Seed extended to 4 wallets + funding demo (financier wallet + event-driven funding
+  lifecycle incl. a Rejected row; subsidy-tier + e-RDKK spreads)
+- [~] Reducer tests + live curl slice green, split exact — pure reducer tests GREEN
+  (deriveCoverage + payableStatusFor, 5/5); **live curl slice PENDING** (no local Postgres:
+  docker WSL-integration off + no local pg server this session)
 
 **Blocks:** Phase 6, Phase 7.
 

@@ -24,6 +24,11 @@ import type {
   DeliveryRecordedData,
   EventEnvelope,
   ForceMajeureData,
+  FundingApprovedData,
+  FundingDisbursedData,
+  FundingReconciledData,
+  FundingRejectedData,
+  FundingRequestedData,
   RemittanceClearedData,
   RemittanceDisputedData,
   RemittanceResolvedData,
@@ -53,7 +58,12 @@ type AnyEnvelope =
   | (EventEnvelope<RemittanceDisputedData> & { type: "RemittanceDisputed" })
   | (EventEnvelope<RemittanceResolvedData> & { type: "RemittanceResolved" })
   | (EventEnvelope<ReputationUpdatedData> & { type: "ReputationUpdated" })
-  | (EventEnvelope<CoopReputationUpdatedData> & { type: "CoopReputationUpdated" });
+  | (EventEnvelope<CoopReputationUpdatedData> & { type: "CoopReputationUpdated" })
+  | (EventEnvelope<FundingRequestedData> & { type: "FundingRequested" })
+  | (EventEnvelope<FundingApprovedData> & { type: "FundingApproved" })
+  | (EventEnvelope<FundingRejectedData> & { type: "FundingRejected" })
+  | (EventEnvelope<FundingDisbursedData> & { type: "FundingDisbursed" })
+  | (EventEnvelope<FundingReconciledData> & { type: "FundingReconciled" });
 
 /** A DB handle OR a transaction handle — handlers run inside applyEvent's tx. */
 type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
@@ -89,6 +99,30 @@ export function settledRowFromEvent(
   };
 }
 
+/** Coverage ratio = requested / projected_settlement, in bps. NOTE: inverted vs
+ *  the conventional sense — LOWER = safer (per SMART-CONTRACT §B). Risk bands:
+ *  ≤50% Rendah, ≤75% Sedang, else Tinggi. Pure; unit-tested. */
+export function deriveCoverage(
+  amountRequested: bigint,
+  projectedSettlement: bigint,
+): { coverageRatioBps: number | null; riskBadge: string } {
+  if (projectedSettlement <= 0n) return { coverageRatioBps: null, riskBadge: "Tinggi" };
+  const bps = Number((amountRequested * 10_000n) / projectedSettlement);
+  const riskBadge = bps <= 5_000 ? "Rendah" : bps <= 7_500 ? "Sedang" : "Tinggi";
+  return { coverageRatioBps: bps, riskBadge };
+}
+
+/** Off-chain input-payable ("Utang #1") status from accrued vs settled-so-far.
+ *  Pure; unit-tested. */
+export function payableStatusFor(
+  accrued: bigint,
+  settled: bigint,
+): "Outstanding" | "Partial" | "Cleared" {
+  if (settled <= 0n) return "Outstanding";
+  if (settled >= accrued) return "Cleared";
+  return "Partial";
+}
+
 /* ────────────────────────── address → uuid resolution ────────────────────────── */
 
 async function coopIdByAddr(tx: Tx, addr: string): Promise<string> {
@@ -121,6 +155,16 @@ async function supplierIdByAddr(tx: Tx, addr: string): Promise<string> {
   return row.id;
 }
 
+async function financierIdByAddr(tx: Tx, addr: string): Promise<string> {
+  const rows = await tx
+    .select({ id: schema.financier.id })
+    .from(schema.financier)
+    .where(eq(schema.financier.walletAddress, addr));
+  const row = rows[0];
+  if (!row) throw new Error(`indexer: no financier for wallet ${addr}`);
+  return row.id;
+}
+
 /** Resolve an on-chain agreement id to its read-model row (uuid + party ids). */
 async function agreementByOnchain(tx: Tx, onchainId: bigint) {
   const rows = await tx
@@ -130,6 +174,7 @@ async function agreementByOnchain(tx: Tx, onchainId: bigint) {
       supplierId: schema.agreement.supplierId,
       status: schema.agreement.status,
       expectedVolG: schema.agreement.expectedVolG,
+      basePriceSupplier: schema.agreement.basePriceSupplier,
     })
     .from(schema.agreement)
     .where(eq(schema.agreement.onchainId, onchainId));
@@ -188,6 +233,7 @@ async function handle(tx: Tx, env: AnyEnvelope): Promise<void> {
           // struct); DeliveryRecorded overwrites grade with the ACTUAL later.
           grade: d.commodity.grade,
           moistureBps: d.commodity.moistureBps,
+          subsidyTier: d.subsidyTier,
           basePriceSupplier: d.basePriceSupplier,
           saprotanMarkupBps: d.saprotanMarkupBps,
           inputDebt: d.inputDebt,
@@ -207,9 +253,21 @@ async function handle(tx: Tx, env: AnyEnvelope): Promise<void> {
       return;
     }
 
-    case "SupplyDispatched":
+    case "SupplyDispatched": {
       await setStatus(tx, env.data.id, "SupplyDispatched");
+      // Utang #1 accrues: the coop now owes the supplier the tebus (principal)
+      // price of the dispatched stock. Off-chain ledger, paid down by on-chain
+      // residu remittances (RemittanceCleared). Idempotent on onchain id.
+      const agr = await agreementByOnchain(tx, env.data.id);
+      await accruePayable(tx, {
+        agreementOnchainId: env.data.id,
+        coopId: agr.coopId,
+        supplierId: agr.supplierId,
+        principal: agr.basePriceSupplier,
+        at,
+      });
       return;
+    }
 
     case "SupplyAccepted":
       await setStatus(tx, env.data.id, "Active");
@@ -291,6 +349,12 @@ async function handle(tx: Tx, env: AnyEnvelope): Promise<void> {
 
     case "RemittanceCleared":
       await setResiduStatus(tx, env.data.id, "Cleared", { clearedAt: at });
+      // The verified residu principal pays down Utang #1.
+      await reducePayable(tx, {
+        agreementOnchainId: env.data.id,
+        principalDelta: env.data.principal,
+        at,
+      });
       return;
 
     case "RemittanceDisputed":
@@ -359,6 +423,63 @@ async function handle(tx: Tx, env: AnyEnvelope): Promise<void> {
       return;
     }
 
+    case "FundingRequested": {
+      const d = env.data;
+      const [coopId, financierId] = await Promise.all([
+        coopIdByAddr(tx, d.coop),
+        financierIdByAddr(tx, d.financier),
+      ]);
+      const cov = deriveCoverage(d.amountRequested, d.projectedSettlement);
+      await tx
+        .insert(schema.fundingRequest)
+        .values({
+          onchainId: d.id,
+          coopId,
+          financierId,
+          backingHash: d.backingHash,
+          projectedSettlement: d.projectedSettlement,
+          amountRequested: d.amountRequested,
+          coverageRatioBps: cov.coverageRatioBps,
+          riskBadge: cov.riskBadge,
+          status: "Requested",
+          createdAt: at,
+        })
+        .onConflictDoNothing({ target: schema.fundingRequest.onchainId });
+      return;
+    }
+
+    case "FundingApproved":
+      await tx
+        .update(schema.fundingRequest)
+        .set({ amountApproved: env.data.amountApproved, status: "Approved" })
+        .where(eq(schema.fundingRequest.onchainId, env.data.id));
+      return;
+
+    case "FundingRejected":
+      await tx
+        .update(schema.fundingRequest)
+        .set({ status: "Rejected" })
+        .where(eq(schema.fundingRequest.onchainId, env.data.id));
+      return;
+
+    case "FundingDisbursed":
+      await tx
+        .update(schema.fundingRequest)
+        .set({ amountDisbursed: env.data.amountDisbursed, status: "Disbursed" })
+        .where(eq(schema.fundingRequest.onchainId, env.data.id));
+      return;
+
+    case "FundingReconciled":
+      // amountReconciled is CUMULATIVE on-chain; Reconciled only once fully repaid.
+      await tx
+        .update(schema.fundingRequest)
+        .set({
+          amountReconciled: env.data.amountReconciled,
+          status: env.data.remaining <= 0n ? "Reconciled" : "Disbursed",
+        })
+        .where(eq(schema.fundingRequest.onchainId, env.data.id));
+      return;
+
     default: {
       // Exhaustiveness: unhandled events (HarvestReceiptMinted, Flagged) are
       // logged in event_log above but have no read-model side effect — the
@@ -415,6 +536,58 @@ async function accrueResidu(
       status: "Pending",
     });
   }
+}
+
+/** Accrue Utang #1 on dispatch. Idempotent: one payable row per agreement
+ *  on-chain id (a replayed SupplyDispatched is a no-op). */
+async function accruePayable(
+  tx: Tx,
+  p: {
+    agreementOnchainId: bigint;
+    coopId: string;
+    supplierId: string;
+    principal: bigint;
+    at: Date;
+  },
+): Promise<void> {
+  const existing = await tx
+    .select({ id: schema.supplierPayable.id })
+    .from(schema.supplierPayable)
+    .where(eq(schema.supplierPayable.agreementOnchainId, p.agreementOnchainId));
+  if (existing[0]) return; // already accrued for this dispatch
+  await tx.insert(schema.supplierPayable).values({
+    coopId: p.coopId,
+    supplierId: p.supplierId,
+    agreementOnchainId: p.agreementOnchainId,
+    principalAccrued: p.principal,
+    principalSettled: 0n,
+    status: "Outstanding",
+    accruedAt: p.at,
+  });
+}
+
+/** Pay down Utang #1 by a verified residu principal. Status derives from
+ *  settled-vs-accrued; `clearedAt` set once fully cleared. */
+async function reducePayable(
+  tx: Tx,
+  p: { agreementOnchainId: bigint; principalDelta: bigint; at: Date },
+): Promise<void> {
+  const rows = await tx
+    .select({
+      id: schema.supplierPayable.id,
+      accrued: schema.supplierPayable.principalAccrued,
+      settled: schema.supplierPayable.principalSettled,
+    })
+    .from(schema.supplierPayable)
+    .where(eq(schema.supplierPayable.agreementOnchainId, p.agreementOnchainId));
+  const row = rows[0];
+  if (!row) return; // no payable accrued (dispatch not yet folded)
+  const settled = row.settled + p.principalDelta;
+  const status = payableStatusFor(row.accrued, settled);
+  await tx
+    .update(schema.supplierPayable)
+    .set({ principalSettled: settled, status, clearedAt: status === "Cleared" ? p.at : null })
+    .where(eq(schema.supplierPayable.id, row.id));
 }
 
 async function bumpCoopAgreements(tx: Tx, coopId: string): Promise<void> {

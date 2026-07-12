@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { SettledData } from "@annona/core";
 import { computeSplitSettlement } from "@annona/core";
-import { settledRowFromEvent } from "./handlers.js";
+import { deriveCoverage, payableStatusFor, settledRowFromEvent } from "./handlers.js";
 
 test("§5 worked example: 2600kg gabah splits farmer/handling/margin/principal", () => {
   // create_active params + a single 2600kg delivery (contract test mirror).
@@ -85,4 +85,30 @@ test("staged split totals reconstruct the single-settle result (no rounding loss
   assert.equal(s1.debtPaid + s2.debtPaid, 2_200_000n);
   assert.equal(s1.principalToSupplier + s2.principalToSupplier, 2_000_000n);
   assert.equal(s1.netToFarmer + s2.netToFarmer, 13_855_000n);
+});
+
+/* ── v4.0 offtake financing + input-payable derivations (pure) ── */
+
+test("deriveCoverage: inverted ratio (lower = safer) + risk bands", () => {
+  // 30M requested against 52M projected settlement → 57.69% → Sedang.
+  const a = deriveCoverage(30_000_000n, 52_000_000n);
+  assert.equal(a.coverageRatioBps, 5769);
+  assert.equal(a.riskBadge, "Sedang");
+
+  // 20M / 41M = 48.78% → Rendah (well-covered advance).
+  const b = deriveCoverage(20_000_000n, 41_000_000n);
+  assert.equal(b.coverageRatioBps, 4878);
+  assert.equal(b.riskBadge, "Rendah");
+
+  // Over-asking (90%+) → Tinggi; zero projection → Tinggi + null ratio.
+  assert.equal(deriveCoverage(48_000_000n, 52_000_000n).riskBadge, "Tinggi");
+  assert.deepEqual(deriveCoverage(10n, 0n), { coverageRatioBps: null, riskBadge: "Tinggi" });
+});
+
+test("payableStatusFor: Outstanding → Partial → Cleared on the accrued principal", () => {
+  assert.equal(payableStatusFor(2_000_000n, 0n), "Outstanding");
+  assert.equal(payableStatusFor(2_000_000n, 1_200_000n), "Partial");
+  assert.equal(payableStatusFor(2_000_000n, 2_000_000n), "Cleared");
+  // Over-remittance never regresses below Cleared.
+  assert.equal(payableStatusFor(2_000_000n, 2_500_000n), "Cleared");
 });
