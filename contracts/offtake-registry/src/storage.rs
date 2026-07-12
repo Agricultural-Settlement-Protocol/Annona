@@ -9,7 +9,9 @@
 use soroban_sdk::{Address, Env, Vec};
 
 use crate::errors::ContractError;
-use crate::types::{Agreement, CoopReputation, DataKey, HarvestReceipt, Reputation};
+use crate::types::{
+    Agreement, CoopReputation, DataKey, FundingRequest, HarvestReceipt, Reputation,
+};
 
 // ~5s/ledger. Extend to ~30 days when TTL drops under ~1 day. Ample for the
 // hackathon (testnet resets quarterly anyway); tune EXTEND_TO up for prod.
@@ -57,6 +59,40 @@ pub fn get_next_id(env: &Env) -> u64 {
 
 pub fn set_next_id(env: &Env, id: u64) {
     env.storage().instance().set(&DataKey::NextId, &id);
+}
+
+// ── Funding-request id counter ──
+pub fn get_next_funding_id(env: &Env) -> u64 {
+    env.storage()
+        .instance()
+        .get(&DataKey::NextFundingId)
+        .unwrap_or(0u64)
+}
+
+pub fn set_next_funding_id(env: &Env, id: u64) {
+    env.storage().instance().set(&DataKey::NextFundingId, &id);
+}
+
+// ── FundingRequest ──
+pub fn set_funding(env: &Env, funding: &FundingRequest) {
+    let key = DataKey::Funding(funding.id);
+    env.storage().persistent().set(&key, funding);
+    env.storage()
+        .persistent()
+        .extend_ttl(&key, TTL_THRESHOLD, TTL_EXTEND_TO);
+}
+
+pub fn get_funding(env: &Env, id: u64) -> Result<FundingRequest, ContractError> {
+    let key = DataKey::Funding(id);
+    let funding = env
+        .storage()
+        .persistent()
+        .get(&key)
+        .ok_or(ContractError::FundingNotFound)?;
+    env.storage()
+        .persistent()
+        .extend_ttl(&key, TTL_THRESHOLD, TTL_EXTEND_TO);
+    Ok(funding)
 }
 
 // ── Agreement ──

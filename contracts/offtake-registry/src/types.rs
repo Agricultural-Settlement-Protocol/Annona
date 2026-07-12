@@ -1,4 +1,4 @@
-//! On-chain types for the offtake-registry (v3.0, multi-party model, PMK 15/2026).
+//! On-chain types for the offtake-registry (v4.0, multi-party model, PMK 15/2026).
 //!
 //! These mirror the canonical TypeScript types in `packages/core` (Golden rule 5:
 //! shared types live in `packages/core`; contract + dashboards must not drift).
@@ -18,13 +18,13 @@
 use soroban_sdk::{contracttype, Address, BytesN, Env, Symbol};
 
 /// Agreement lifecycle. Mirrors `packages/core/src/status.ts` `Status`.
-/// Double-confirmation: `Created` -> (Agrinas) `SupplyDispatched` -> (KMP) `Active`.
+/// Double-confirmation: `Created` -> (Supplier) `SupplyDispatched` -> (KMP) `Active`.
 #[derive(Clone, Debug, PartialEq)]
 #[contracttype]
 pub enum Status {
     /// KMP drafts agreement (collective Surat Pesanan); debt DRAFT, not active
     Created,
-    /// Agrinas validated + released logistics; price frozen, goods in transit
+    /// Supplier validated + released logistics; price frozen, goods in transit
     SupplyDispatched,
     /// KMP confirmed physical receipt; input_debt now an ACTIVE liability
     Active,
@@ -52,20 +52,51 @@ pub enum FlagReason {
     Suspected,
 }
 
-/// Residu reconciliation lifecycle (Agrinas principal held in KMP cash).
+/// Residu reconciliation lifecycle (Supplier principal held in KMP cash).
 /// Mirrors `packages/core/src/status.ts` `ResiduStatus`. Never on-chain money
 /// movement — only the anchored record of an off-chain bank remittance.
 #[derive(Clone, Debug, PartialEq)]
 #[contracttype]
 pub enum ResiduStatus {
-    /// principal withheld in KMP cash, not yet remitted to Agrinas
+    /// principal withheld in KMP cash, not yet remitted to Supplier
     Pending,
-    /// KMP claims bank transfer done + proof uploaded off-chain; awaiting Agrinas
+    /// KMP claims bank transfer done + proof uploaded off-chain; awaiting Supplier
     Remitted,
-    /// Agrinas verified real bank mutation -> dispute-free
+    /// Supplier verified real bank mutation -> dispute-free
     Cleared,
-    /// Agrinas found a mismatch -> coop reputation frozen until resolved
+    /// Supplier found a mismatch -> coop reputation frozen until resolved
     Disputed,
+}
+
+/// Subsidy tier (e-RDKK / HET gate). RECORDED, never computed (Golden rule 4-adjacent):
+/// the contract anchors which price tier the snapshotted `base_price` came from; it
+/// does NOT verify e-RDKK eligibility (that outcome is external Kementan data). Mirrors
+/// `packages/core/src/status.ts` `SubsidyTier`.
+#[derive(Clone, Debug, PartialEq)]
+#[contracttype]
+pub enum SubsidyTier {
+    /// farmer is e-RDKK verified; subsidized items priced at HET
+    Subsidized,
+    /// not verified / non-subsidized item; commercial base price
+    Commercial,
+}
+
+/// Offtake-financing lifecycle (§B). Independent of the agreement state machine;
+/// a `FundingRequest` references its backing agreements only off-chain (`backing_hash`).
+/// Mirrors `packages/core/src/status.ts` `FundingStatus`.
+#[derive(Clone, Debug, PartialEq)]
+#[contracttype]
+pub enum FundingStatus {
+    /// KMP submitted a proof-backed request; awaiting financier
+    Requested,
+    /// financier approved `amount_approved` (<= `amount_requested`)
+    Approved,
+    /// financier declined (reason off-chain)
+    Rejected,
+    /// funds moved financier -> KMP (real dIDR transfer in the demo)
+    Disbursed,
+    /// input-principal collected at settlement has repaid the advance
+    Reconciled,
 }
 
 /// Commodity metadata (grade / moisture / which HPP decree was used).
@@ -90,16 +121,18 @@ pub struct Agreement {
     pub farmer: Address,
     /// KMP — pre-funded cash agent
     pub coop: Address,
-    /// operator — dispatch + residu authority
-    pub agrinas: Address,
+    /// input principal — dispatch + residu authority
+    pub supplier: Address,
     pub commodity: Commodity,
+    /// which price tier the snapshotted `base_price` came from (recorded, not verified)
+    pub subsidy_tier: SubsidyTier,
 
     // ── price components (the four locked variables) ──
-    /// Agrinas catalog cost = PRINCIPAL (read-only to KMP)
-    pub base_price_agrinas: i128,
+    /// Supplier catalog cost = PRINCIPAL (read-only to KMP)
+    pub base_price: i128,
     /// KMP margin per contract, e.g. 1000 = 10%
     pub saprotan_markup_bps: u32,
-    /// DERIVED = base_price_agrinas * (10000 + saprotan_markup_bps) / 10000
+    /// DERIVED = base_price * (10000 + saprotan_markup_bps) / 10000
     pub input_debt: i128,
     /// KMP handling cut on gross HPP at settle, e.g. 500 = 5%
     pub hpp_handling_fee_bps: u32,
@@ -131,7 +164,7 @@ pub struct Agreement {
     pub coop_handling_accrued: i128,
     /// KMP markup margin realized (KMP keeps)
     pub coop_margin_accrued: i128,
-    /// Agrinas principal withheld in KMP cash (owed back)
+    /// Supplier principal withheld in KMP cash (owed back)
     pub residu_principal: i128,
     pub residu_status: ResiduStatus,
 }
@@ -163,7 +196,7 @@ pub struct Reputation {
 }
 
 /// Append-only reputation counters per KMP — the anti-moral-hazard signal
-/// Agrinas + Government + banks read: does this coop reliably remit Agrinas's
+/// Supplier + Government + banks read: does this coop reliably remit Supplier's
 /// principal residu? `frozen` is an INDICATOR for human review after a dispute,
 /// never an automatic accusation.
 #[derive(Clone, Debug, PartialEq)]
@@ -174,15 +207,44 @@ pub struct CoopReputation {
     pub settlements: u32,
     /// total principal that passed through KMP cash
     pub total_residu_principal: i128,
-    /// principal Agrinas confirmed remitted
+    /// principal Supplier confirmed remitted
     pub total_residu_cleared: i128,
     pub disputes: u32,
-    /// true after a dispute until admin/Agrinas resolves
+    /// true after a dispute until admin/Supplier resolves
     pub frozen: bool,
 }
 
+/// Offtake-financing request (§B). Working-capital *talangan* the Financier
+/// advances to a KMP against an off-chain proof packet (backing agreement ids +
+/// receipts hashed into `backing_hash`). The advance is reconciled against the
+/// input-principal collected as the backing agreements settle. This IS genuine
+/// multi-party money movement (financier → coop dIDR), so it earns its on-chain
+/// place; the proof packet detail stays off-chain behind the hash.
+#[derive(Clone, Debug, PartialEq)]
+#[contracttype]
+pub struct FundingRequest {
+    pub id: u64,
+    /// KMP requesting the talangan
+    pub coop: Address,
+    /// financier advancing the working capital
+    pub financier: Address,
+    /// hash of the off-chain Bukti Offtake packet (agreement ids + receipts)
+    pub backing_hash: BytesN<32>,
+    /// sum(kg_expected_or_delivered × hpp) across backing agreements (coverage denom)
+    pub projected_settlement: i128,
+    pub amount_requested: i128,
+    /// 0 until Approved; always <= amount_requested
+    pub amount_approved: i128,
+    /// moved financier -> coop at disbursement (real dIDR)
+    pub amount_disbursed: i128,
+    /// input-principal netted back as backing agreements settle; caps at disbursed
+    pub amount_reconciled: i128,
+    pub status: FundingStatus,
+}
+
 /// Persistent-storage key space. Typed enum only (no ad-hoc symbols → no
-/// collisions). Admin/Token/NextId are instance storage; the rest persistent.
+/// collisions). Admin/Token/NextId/NextFundingId are instance storage; the rest
+/// persistent.
 #[derive(Clone)]
 #[contracttype]
 pub enum DataKey {
@@ -193,6 +255,10 @@ pub enum DataKey {
     Receipts(u64),
     Reputation(Address),
     CoopReputation(Address),
+    /// u64 funding-request counter
+    NextFundingId,
+    /// FundingRequest by id
+    Funding(u64),
 }
 
 /// Oracle interface — DEFINED but NOT wired into `settle` in the MVP. Lets a

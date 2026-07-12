@@ -1,16 +1,16 @@
-//! Contract events — the composability surface (v3.0, PMK 15/2026). The indexer
+//! Contract events — the composability surface (v4.0, PMK 15/2026). The indexer
 //! (`apps/api/src/indexer`) builds every dashboard read-model from these, and
 //! any third party can subscribe. Emission is mandatory.
 //!
 //! Each event uses the `#[contractevent]` macro: `topics = ["name"]` sets the
 //! topic[0] symbol the indexer filters on (matching spec section 7 exactly),
 //! `#[topic]` fields become the additional indexed topics (id / farmer / coop /
-//! agrinas), and the remaining fields are emitted as a named-field Map that
+//! supplier), and the remaining fields are emitted as a named-field Map that
 //! mirrors `packages/core/src/events.ts` (camelCase there, snake_case here).
 
 use soroban_sdk::{contractevent, Address, BytesN, Symbol};
 
-use crate::types::{Commodity, FlagReason};
+use crate::types::{Commodity, FlagReason, SubsidyTier};
 
 /// topics: ["agreement_created", id, farmer, coop]
 #[contractevent(topics = ["agreement_created"])]
@@ -21,9 +21,10 @@ pub struct AgreementCreated {
     pub farmer: Address,
     #[topic]
     pub coop: Address,
-    pub agrinas: Address,
+    pub supplier: Address,
+    pub subsidy_tier: SubsidyTier,
     pub commodity: Commodity,
-    pub base_price_agrinas: i128,
+    pub base_price: i128,
     pub saprotan_markup_bps: u32,
     pub input_debt: i128,
     pub hpp_handling_fee_bps: u32,
@@ -32,13 +33,13 @@ pub struct AgreementCreated {
     pub tolerance_bps: u32,
 }
 
-/// topics: ["dispatched", id, agrinas]. GATE 1 — Agrinas released logistics.
+/// topics: ["dispatched", id, supplier]. GATE 1 — Supplier released logistics.
 #[contractevent(topics = ["dispatched"])]
 pub struct SupplyDispatched {
     #[topic]
     pub id: u64,
     #[topic]
-    pub agrinas: Address,
+    pub supplier: Address,
     pub coop: Address,
 }
 
@@ -86,7 +87,7 @@ pub struct Settled {
     pub gross: i128,
     pub handling_cut: i128,
     pub debt_netted: i128,
-    pub principal_to_agrinas: i128,
+    pub principal_to_supplier: i128,
     pub coop_margin: i128,
     pub net_paid: i128,
     pub settled_vol_g: i128,
@@ -119,7 +120,7 @@ pub struct ResiduRemitted {
     pub ref_hash: BytesN<32>,
 }
 
-/// topics: ["remittance_cleared", id, coop]. Agrinas verified the bank mutation.
+/// topics: ["remittance_cleared", id, coop]. Supplier verified the bank mutation.
 #[contractevent(topics = ["remittance_cleared"])]
 pub struct RemittanceCleared {
     #[topic]
@@ -127,10 +128,10 @@ pub struct RemittanceCleared {
     #[topic]
     pub coop: Address,
     pub principal: i128,
-    pub agrinas: Address,
+    pub supplier: Address,
 }
 
-/// topics: ["remittance_disputed", id, coop]. Agrinas found a mismatch.
+/// topics: ["remittance_disputed", id, coop]. Supplier found a mismatch.
 #[contractevent(topics = ["remittance_disputed"])]
 pub struct RemittanceDisputed {
     #[topic]
@@ -141,7 +142,7 @@ pub struct RemittanceDisputed {
 }
 
 /// topics: ["remittance_resolved", id, coop]. Admin cleared a dispute; the
-/// agreement's residu returns to Remitted (awaiting Agrinas re-verification).
+/// agreement's residu returns to Remitted (awaiting Supplier re-verification).
 /// Agreement-scoped so the indexer can un-strand the residu read-model row —
 /// `CoopReputationUpdated` alone carries no agreement id.
 #[contractevent(topics = ["remittance_resolved"])]
@@ -174,4 +175,61 @@ pub struct CoopReputationUpdated {
     pub total_residu_cleared: i128,
     pub disputes: u32,
     pub frozen: bool,
+}
+
+// ── Offtake-financing events (§B) ──
+
+/// topics: ["funding_requested", id, coop]. KMP requests working-capital talangan.
+#[contractevent(topics = ["funding_requested"])]
+pub struct FundingRequested {
+    #[topic]
+    pub id: u64,
+    #[topic]
+    pub coop: Address,
+    pub financier: Address,
+    pub projected_settlement: i128,
+    pub amount_requested: i128,
+    pub backing_hash: BytesN<32>,
+}
+
+/// topics: ["funding_approved", id, financier]. Financier approved an amount.
+#[contractevent(topics = ["funding_approved"])]
+pub struct FundingApproved {
+    #[topic]
+    pub id: u64,
+    #[topic]
+    pub financier: Address,
+    pub amount_approved: i128,
+}
+
+/// topics: ["funding_rejected", id, financier]. Financier declined (reason off-chain).
+#[contractevent(topics = ["funding_rejected"])]
+pub struct FundingRejected {
+    #[topic]
+    pub id: u64,
+    #[topic]
+    pub financier: Address,
+    pub reason: Symbol,
+}
+
+/// topics: ["funding_disbursed", id, financier]. Real dIDR moved financier -> coop.
+#[contractevent(topics = ["funding_disbursed"])]
+pub struct FundingDisbursed {
+    #[topic]
+    pub id: u64,
+    #[topic]
+    pub financier: Address,
+    pub amount_disbursed: i128,
+    pub coop: Address,
+}
+
+/// topics: ["funding_reconciled", id, coop]. Input-principal netted against the advance.
+#[contractevent(topics = ["funding_reconciled"])]
+pub struct FundingReconciled {
+    #[topic]
+    pub id: u64,
+    #[topic]
+    pub coop: Address,
+    pub amount_reconciled: i128,
+    pub remaining: i128,
 }

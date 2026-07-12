@@ -103,6 +103,13 @@
                   ]
                 },
                 {
+                  "vec": [
+                    {
+                      "symbol": "Commercial"
+                    }
+                  ]
+                },
+                {
                   "i128": "2000000"
                 },
                 {
@@ -275,6 +282,13 @@
                       "val": {
                         "u32": 1400
                       }
+                    }
+                  ]
+                },
+                {
+                  "vec": [
+                    {
+                      "symbol": "Commercial"
                     }
                   ]
                 },
@@ -696,15 +710,7 @@
                 "map": [
                   {
                     "key": {
-                      "symbol": "agrinas"
-                    },
-                    "val": {
-                      "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M"
-                    }
-                  },
-                  {
-                    "key": {
-                      "symbol": "base_price_agrinas"
+                      "symbol": "base_price"
                     },
                     "val": {
                       "i128": "2000000"
@@ -917,6 +923,26 @@
                   },
                   {
                     "key": {
+                      "symbol": "subsidy_tier"
+                    },
+                    "val": {
+                      "vec": [
+                        {
+                          "symbol": "Commercial"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "key": {
+                      "symbol": "supplier"
+                    },
+                    "val": {
+                      "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M"
+                    }
+                  },
+                  {
+                    "key": {
                       "symbol": "tolerance_bps"
                     },
                     "val": {
@@ -953,15 +979,7 @@
                 "map": [
                   {
                     "key": {
-                      "symbol": "agrinas"
-                    },
-                    "val": {
-                      "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M"
-                    }
-                  },
-                  {
-                    "key": {
-                      "symbol": "base_price_agrinas"
+                      "symbol": "base_price"
                     },
                     "val": {
                       "i128": "2000000"
@@ -1170,6 +1188,26 @@
                           "symbol": "Settled"
                         }
                       ]
+                    }
+                  },
+                  {
+                    "key": {
+                      "symbol": "subsidy_tier"
+                    },
+                    "val": {
+                      "vec": [
+                        {
+                          "symbol": "Commercial"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "key": {
+                      "symbol": "supplier"
+                    },
+                    "val": {
+                      "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M"
                     }
                   },
                   {
