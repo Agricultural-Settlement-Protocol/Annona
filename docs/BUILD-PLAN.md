@@ -22,7 +22,7 @@
 - [ ] Phase 1 — Contract: supplier rename + subsidy tier
 - [ ] Phase 2 — Contract: Offtake Financing lifecycle
 - [ ] Phase 3 — `packages/core` sync
-- [ ] Phase 4 — Schema + migration `0004`
+- [~] Phase 4 — Schema + migration `0004` (**4a additive DONE** ✅ · 4b rename scheduled)
 - [ ] Phase 5 — Indexer + seed + API
 - [ ] Phase 6 — Web read cutover
 - [ ] Phase 7 — Web write path
@@ -134,12 +134,15 @@ Goal: identical working baseline for all three devs + a CI pipeline that guards 
 - CI runs green on a throwaway PR; a deliberately broken type red-lights it.
 
 **Checklist**
-- [ ] `pnpm install` clean, web build green
-- [ ] Database reachable (`/health` = `db:ok`)
-- [ ] Migrations `0000–0003` applied to the working DB, no duplicate versions
-- [ ] `.env` / `.env.local` filled, contract id left unset
-- [ ] Four open decisions recorded here
-- [ ] CI skeleton green on a test PR
+- [x] `pnpm install` clean, web build green *(fixed missing `@stellar/freighter-api` in store)*
+- [x] Database reachable (`/health` = `db:ok`) *(root cause: stale `aws-0` pooler host → moved to `aws-1`)*
+- [x] Migrations applied to the working DB, no duplicate versions *(`migration list --linked`: local == remote for all 3)*
+- [x] DB seeded (10 farmers, 12 agreements) — dashboards now serve real data
+- [x] Supabase CLI fixed (`supabase-go` shipped to `~/.local/share/supabase`, on PATH)
+- [x] `.env` / `.env.local` filled, contract id left unset
+- [x] Four open decisions recorded here
+- [x] CI improved (web2 job + web3 cargo job); web 8/8 + api 3/3 green locally
+- [ ] CI green on a real PR (push a throwaway PR to confirm the Actions run)
 
 **Blocks:** everything.
 
@@ -232,30 +235,55 @@ Use `/annona-types`.
 
 ## Phase 4 — Schema + migration `0004` [Lane B]
 
-Goal: `ERD.md` v4.0 mirrors + off-chain-only tables. Use `annona-api` + `supabase` skill.
+> **Split rationale.** `agrinas` has **581 references** (web 441 / api 75 / scripts 41 / core 24).
+> Renaming `agrinas` → `supplier` is a breaking cross-lane refactor — doing it inside a Lane-B schema
+> migration leaves the app broken until every consumer is updated. Phase 4 is split:
+> **4a = additive, non-breaking (ships alone)**; **4b = the coordinated rename**.
 
-**Tasks**
-- `apps/api/src/db/schema.ts`: rename table `agrinas` → `supplier` (+ FK `agreement.supplier_id`,
-  `agreement_input`); add `financier`, `warehouse_operator`, `funding_request`, `funding_request_line`,
-  `supplier_payable`; add `farmer.subsidy_status`, `saprotan_catalog.price_tier`/`het_price`/`erdkk_gated`
-  (+ `base_price_agrinas` → `base_price_supplier`), `agreement.subsidy_tier` + `financier_id`;
-  extend `app_user.role` → `kmp/supplier/financier/pemerintah` + `supplier_id`/`financier_id`;
-  add views `mv_funding_queue`, `mv_funding_portfolio`, `mv_supplier_payable`, `mv_subsidy_distribution`.
-- `db:generate` → `0004_*.sql`; copy to `supabase/migrations/` with a fresh unique timestamp
-  (check `migration list` for collisions first).
+### Phase 4a — additive v4.0 schema (non-breaking) ✅ DONE
 
-**Test Gate**
-- Applies clean on a throwaway DB **and** Supabase staging; `supabase db diff` clean; rollback tested.
-- Existing seed still replays after the rename (no dangling `agrinas_*`).
+Goal: add every NEW v4.0 entity/column/enum WITHOUT touching the working `agrinas` surface.
+
+**Tasks (done)**
+- `schema.ts` additive only: enums `subsidy_tier`/`subsidy_status`/`funding_status`/`payable_status`;
+  `app_role` += `supplier`,`financier`; tables `financier`, `warehouse_operator`, `funding_request`,
+  `funding_request_line`, `supplier_payable`; columns `farmer.subsidy_status`,
+  `saprotan_catalog.price_tier`/`het_price`/`erdkk_gated`, `agreement.subsidy_tier`/`financier_id`,
+  `app_user.supplier_id`/`financier_id`. *(`supplier_id` FKs `agrinas` for now — repointed in 4b.)*
+- `db:generate` → `0004_loose_big_bertha.sql`; mirrored to `supabase/migrations/20260712120000_*.sql`; pushed.
+
+**Test Gate** — purely additive (no DROP/DELETE/TRUNCATE); applied clean to Supabase; 5 new tables live;
+`app_role` = kmp/agrinas/pemerintah/supplier/financier; existing app unaffected (coop + 4 active + 10 farmers
+still 200); `check-types` green.
 
 **Checklist**
-- [ ] Rename + new tables + new columns in `schema.ts`
-- [ ] Read-model views added
-- [ ] `role` enum + FKs extended
-- [ ] `0004` generated + mirrored with unique timestamp
-- [ ] Applies clean local + staging, `db diff` clean, rollback tested
+- [x] Additive enums + `app_role` extended (`supplier`, `financier`)
+- [x] 5 new tables live on Supabase
+- [x] Subsidy + funding columns added
+- [x] `0004` generated + mirrored + pushed (verified live)
+- [x] Existing app still reads 200, `check-types` green
 
-**Blocks:** Phase 5.
+### Phase 4b — the `agrinas` → `supplier` rename (coordinated, cross-lane)
+
+Goal: retire the `agrinas` name for the input-principal role across ALL lanes in one PR
+(schema + core + api + seed + indexer + web), so nothing is half-renamed.
+
+**Tasks**
+- Schema: table `agrinas` → `supplier`, `*.agrinas_id` → `supplier_id`, repoint `supplier_payable`/
+  `app_user`.`supplier_id` to the new `supplier` table, `base_price_agrinas` → `base_price_supplier`;
+  add views `mv_funding_queue`/`mv_funding_portfolio`/`mv_supplier_payable`/`mv_subsidy_distribution`.
+- Core/API/seed/indexer/web: update all 581 refs; oversight route `/oversight/agrinas` → `/supplier`.
+
+**Test Gate** — grep `agrinas` clean except intentional PT-Agrinas history; app 200 end-to-end;
+`db diff` clean; seed replays; every renamed route walked.
+
+**Checklist**
+- [ ] Schema rename migration (`0005`) generated + pushed
+- [ ] Core + API + seed + indexer refs updated
+- [ ] Web routes + labels renamed
+- [ ] grep clean, full app smoke green
+
+**Blocks:** Phase 5 depends on 4a (done). 4b can land alongside Phase 6.
 
 ---
 
@@ -299,8 +327,10 @@ Goal: every new/renamed read surface renders live. Use `/annona-screen` + `annon
 - "Mitra" shell: rename `app/oversight/agrinas/` → `/supplier/` (Screens M1/M2/I); add **Screen P —
   Financier Approval Desk** (queue, coverage ratio, risk badge, approve/reject/disburse, portfolio);
   Government (Screen G) + subsidy-tier distribution.
-- Extend auth role routing (`supplier`, `financier`). Retarget AI scope `"agrinas"` → `"supplier"`,
-  add `"financier"` (Groq route already works — extend, don't rebuild).
+- Extend auth role routing (`supplier`, `financier`). **AI chatbot stays Government-only for now:**
+  keep the `pemerintah` AI scope; **remove/defer** the old `agrinas` AI page — the Supplier and
+  Financier Mitra views do NOT get a chatbot in this cut (owner decision). The Groq route already
+  works; do not add `supplier`/`financier` scopes yet.
 - **House rules (non-negotiable):** full-width, `ScrollArea`, `SearchSelect`, one-page-per-concern,
   **NO em dashes**, rupiah formatting, tx-hash + explorer link on every on-chain action.
 
@@ -311,7 +341,7 @@ Goal: every new/renamed read surface renders live. Use `/annona-screen` + `annon
 **Checklist**
 - [ ] KMP subsidy badge + price tier + payable panel + Screen O
 - [ ] Mitra shell: supplier rename + Screen P + Government subsidy distribution
-- [ ] Role routing + AI scopes extended
+- [ ] Role routing extended; AI kept Government-only (agrinas AI page removed, no supplier/financier chatbot)
 - [ ] Every route walked in dev server, no runtime warnings
 - [ ] Lint + build green, no em dashes
 

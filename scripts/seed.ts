@@ -366,6 +366,49 @@ async function replayReputation(): Promise<void> {
   );
 }
 
+/**
+ * Link the seeded Supabase Auth users to their dashboard role in `app_user`.
+ *
+ * WHY this must run every seed: `truncate()` clears `coop`/`agrinas` with
+ * CASCADE, and `app_user.coop_id`/`agrinas_id` are FKs — so truncating cascades
+ * into `app_user` and wipes the role links. Without this step, every login
+ * succeeds at Supabase Auth but `resolveRole()` finds no row and the UI shows
+ * "Akun ini belum memiliki peran. Hubungi administrator."
+ *
+ * It joins `auth.users` by email, so it only links accounts that actually exist
+ * in Supabase Auth (missing emails insert 0 rows — safe). Add supplier/financier
+ * rows here once their auth users + the `app_role` enum values exist (v4.0).
+ */
+async function seedAppUsers(): Promise<void> {
+  const coopRows = (await db.execute(sql`select id from coop limit 1`)) as unknown as {
+    id: string;
+  }[];
+  const agrRows = (await db.execute(sql`select id from agrinas limit 1`)) as unknown as {
+    id: string;
+  }[];
+  const coopId = coopRows[0]?.id ?? null;
+  const agrinasId = agrRows[0]?.id ?? null;
+
+  const accounts = [
+    { email: "kmp@annona.id", role: "kmp", name: "Pengurus KMP Sukamaju", coop: coopId, agr: null },
+    { email: "agrinas@annona.id", role: "agrinas", name: "Operator Agrinas", coop: null, agr: agrinasId },
+    { email: "pemerintah@annona.id", role: "pemerintah", name: "Petugas Pengawas Kementan", coop: null, agr: null },
+  ] as const;
+
+  for (const a of accounts) {
+    await db.execute(sql`
+      insert into app_user (id, email, role, display_name, coop_id, agrinas_id)
+      select u.id, ${a.email}, ${a.role}::app_role, ${a.name}, ${a.coop}::uuid, ${a.agr}::uuid
+      from auth.users u
+      where u.email = ${a.email}
+      on conflict (id) do update set
+        role = excluded.role, display_name = excluded.display_name,
+        coop_id = excluded.coop_id, agrinas_id = excluded.agrinas_id
+    `);
+  }
+  console.log(`[seed] linked demo app_user roles (only emails present in auth.users)`);
+}
+
 async function main(): Promise<void> {
   console.log("[seed] truncating read-models...");
   await truncate();
@@ -375,6 +418,7 @@ async function main(): Promise<void> {
   console.log(`[seed] replaying ${MOCK_AGREEMENTS.length} agreements as events...`);
   for (const a of MOCK_AGREEMENTS) await replayAgreement(a);
   await replayReputation();
+  await seedAppUsers();
   console.log("[seed] done. read-models populated from the mock-data fixture.");
   process.exit(0);
 }

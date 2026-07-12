@@ -52,7 +52,15 @@ export const residuStatus = pgEnum("residu_status", ["Pending", "Remitted", "Cle
 
 export const stockStatus = pgEnum("stock_status", ["Tersedia", "Menipis", "Habis"]);
 
-export const appRole = pgEnum("app_role", ["kmp", "agrinas", "pemerintah"]);
+// v4.0: "agrinas" retained for back-compat until the coordinated rename to
+// "supplier" (BUILD-PLAN Phase 4b). "supplier"/"financier" are the new Mitra roles.
+export const appRole = pgEnum("app_role", [
+  "kmp",
+  "agrinas",
+  "pemerintah",
+  "supplier",
+  "financier",
+]);
 
 export const shipmentStatus = pgEnum("shipment_status", [
   "Draft",
@@ -60,6 +68,31 @@ export const shipmentStatus = pgEnum("shipment_status", [
   "Diterima",
   "Selisih",
 ]);
+
+/* ── v4.0 additive enums (subsidy tier + offtake financing) ── */
+
+/** Which price tier the agreement's snapshotted base_price came from.
+ *  Mirrors the on-chain `SubsidyTier` (SMART-CONTRACT.md §C). */
+export const subsidyTier = pgEnum("subsidy_tier", ["Subsidized", "Commercial"]);
+
+/** Farmer e-RDKK eligibility badge (recorded, never computed). */
+export const subsidyStatus = pgEnum("subsidy_status", [
+  "Terverifikasi",
+  "Belum",
+  "NonSubsidi",
+]);
+
+/** Offtake-financing lifecycle. Mirrors on-chain `FundingStatus`. */
+export const fundingStatus = pgEnum("funding_status", [
+  "Requested",
+  "Approved",
+  "Rejected",
+  "Disbursed",
+  "Reconciled",
+]);
+
+/** Off-chain input-payable ("Utang #1") running status. */
+export const payableStatus = pgEnum("payable_status", ["Outstanding", "Partial", "Cleared"]);
 
 /* ────────────────────────── parties ────────────────────────── */
 
@@ -70,6 +103,29 @@ export const agrinas = pgTable("agrinas", {
   name: text("name").notNull(),
   /** Stellar G-address (operator signing wallet) */
   walletAddress: text("wallet_address").notNull().unique(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Financier (Pemodal) — working-capital talangan provider (e.g. LPDB Koperasi).
+ *  v4.0 NEW party. Reviews an offtake proof packet + disburses dIDR; reconciled
+ *  at settlement. Financier-agnostic: an address + FK, one funder in the demo. */
+export const financier = pgTable("financier", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  /** Stellar G-address (financier signing wallet) */
+  walletAddress: text("wallet_address").notNull().unique(),
+  /** simulated/pre-funded talangan pool (display only) */
+  poolBalance: bigint("pool_balance", { mode: "bigint" }).notNull().default(sql`0`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Warehouse Operator (infra) — builds/operates gerai + gudang (PMK 15/2026).
+ *  NON-transacting: no wallet, signs nothing on-chain; the off-chain physical
+ *  receiver of forwarded harvest. Corrects the old "gudang Agrinas" conflation. */
+export const warehouseOperator = pgTable("warehouse_operator", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  kabupaten: text("kabupaten"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -120,6 +176,9 @@ export const farmer = pgTable(
     kabupaten: text("kabupaten").notNull(),
     /** optional plot polygon — PII, off-chain only */
     geo: jsonb("geo"),
+    /** e-RDKK/i-Pubers eligibility badge (from Kementan; recorded, never computed).
+     *  Gates the price tier offered at agreement creation (F1 → F2). */
+    subsidyStatus: subsidyStatus("subsidy_status").notNull().default("NonSubsidi"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("farmer_coop_id_idx").on(t.coopId), index("farmer_ktp_hash_idx").on(t.ktpHash)],
@@ -154,6 +213,12 @@ export const saprotanCatalog = pgTable(
     /** PRINCIPAL — Agrinas-set, smallest unit */
     basePriceAgrinas: bigint("base_price_agrinas", { mode: "bigint" }).notNull(),
     subsidiFlag: boolean("subsidi_flag").notNull().default(false),
+    /** v4.0: price tier label — "subsidi" (HET ceiling) / "non_subsidi" (commercial). */
+    priceTier: text("price_tier").notNull().default("non_subsidi"),
+    /** subsidized ceiling price (HET) when price_tier=subsidi, smallest unit. */
+    hetPrice: bigint("het_price", { mode: "bigint" }),
+    /** true if selecting this item requires farmer subsidy_status = Terverifikasi. */
+    erdkkGated: boolean("erdkk_gated").notNull().default(false),
     source: text("source"),
     /** availability signal for KMP requests; no numeric inventory ledger in MVP */
     stockStatus: stockStatus("stock_status").notNull().default("Tersedia"),
@@ -256,6 +321,11 @@ export const agreement = pgTable(
      *  Minggu Ini"). NOT carried by any on-chain event — written by the KMP
      *  create flow / seed, never the indexer. Nullable for legacy rows. */
     expectedHarvestDate: date("expected_harvest_date"),
+
+    /** v4.0: which price tier the snapshotted base_price came from (mirror of chain). */
+    subsidyTier: subsidyTier("subsidy_tier").notNull().default("Commercial"),
+    /** v4.0: set when a funding request backs this agreement (nullable). */
+    financierId: uuid("financier_id").references(() => financier.id),
 
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -454,6 +524,11 @@ export const appUser = pgTable("app_user", {
   displayName: text("display_name").notNull(),
   coopId: uuid("coop_id").references(() => coop.id),
   agrinasId: uuid("agrinas_id").references(() => agrinas.id),
+  /** v4.0: set for role=supplier (input principal). FKs agrinas until the
+   *  Phase 4b rename to a `supplier` table. */
+  supplierId: uuid("supplier_id").references(() => agrinas.id),
+  /** v4.0: set for role=financier. */
+  financierId: uuid("financier_id").references(() => financier.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -522,3 +597,88 @@ export const indexerCursor = pgTable("indexer_cursor", {
   lastLedger: integer("last_ledger").notNull().default(0),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/* ────────────────────────── v4.0 offtake financing (chain-mirror) ────────────────────────── */
+
+/** Offtake-financing request header (mirrors on-chain `FundingRequest`).
+ *  coverage_ratio + risk_badge are DERIVED (display). Rebuildable from the 5
+ *  Funding* events. See ERD.md §C + SMART-CONTRACT.md §B. */
+export const fundingRequest = pgTable(
+  "funding_request",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** join key to FUNDING_REQUEST_ONCHAIN.id */
+    onchainId: bigint("onchain_id", { mode: "bigint" }).unique(),
+    coopId: uuid("coop_id")
+      .notNull()
+      .references(() => coop.id),
+    financierId: uuid("financier_id")
+      .notNull()
+      .references(() => financier.id),
+    /** hex sha-256 of the off-chain Bukti Offtake packet (agreement ids + receipts) */
+    backingHash: text("backing_hash"),
+    projectedSettlement: bigint("projected_settlement", { mode: "bigint" }).notNull().default(sql`0`),
+    amountRequested: bigint("amount_requested", { mode: "bigint" }).notNull().default(sql`0`),
+    amountApproved: bigint("amount_approved", { mode: "bigint" }).notNull().default(sql`0`),
+    amountDisbursed: bigint("amount_disbursed", { mode: "bigint" }).notNull().default(sql`0`),
+    amountReconciled: bigint("amount_reconciled", { mode: "bigint" }).notNull().default(sql`0`),
+    /** derived = requested / projected_settlement (note: inverted, lower = safer) */
+    coverageRatioBps: integer("coverage_ratio_bps"),
+    riskBadge: text("risk_badge"),
+    status: fundingStatus("status").notNull().default("Requested"),
+    proofUrl: text("proof_url"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("funding_request_coop_idx").on(t.coopId),
+    index("funding_request_financier_idx").on(t.financierId),
+    index("funding_request_status_idx").on(t.status),
+  ],
+);
+
+/** Off-chain backing detail whose hash is `backing_hash` on-chain (mirrors the
+ *  agreement_input ↔ on-chain-snapshot relationship). */
+export const fundingRequestLine = pgTable(
+  "funding_request_line",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    fundingRequestId: uuid("funding_request_id")
+      .notNull()
+      .references(() => fundingRequest.id, { onDelete: "cascade" }),
+    agreementId: uuid("agreement_id")
+      .notNull()
+      .references(() => agreement.id),
+    /** kg_expected_or_delivered * hpp for this backing agreement, smallest unit */
+    backingValue: bigint("backing_value", { mode: "bigint" }).notNull().default(sql`0`),
+  },
+  (t) => [index("funding_request_line_request_idx").on(t.fundingRequestId)],
+);
+
+/** Input payable ("Utang #1") — OFF-CHAIN trade payable the coop owes the
+ *  supplier for stock drawn (tebus price). Accrues on SupplyDispatched, paid
+ *  down by on-chain residu remittances (RemittanceCleared). Not multi-party
+ *  money movement at accrual → off-chain, same test as saprotan_catalog.
+ *  supplier_id FKs `agrinas` until the Phase 4b rename to a `supplier` table. */
+export const supplierPayable = pgTable(
+  "supplier_payable",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    coopId: uuid("coop_id")
+      .notNull()
+      .references(() => coop.id),
+    supplierId: uuid("supplier_id")
+      .notNull()
+      .references(() => agrinas.id),
+    /** the dispatch (agreement) that accrued this payable */
+    agreementOnchainId: bigint("agreement_onchain_id", { mode: "bigint" }),
+    principalAccrued: bigint("principal_accrued", { mode: "bigint" }).notNull().default(sql`0`),
+    principalSettled: bigint("principal_settled", { mode: "bigint" }).notNull().default(sql`0`),
+    status: payableStatus("status").notNull().default("Outstanding"),
+    accruedAt: timestamp("accrued_at", { withTimezone: true }).notNull().defaultNow(),
+    clearedAt: timestamp("cleared_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("supplier_payable_coop_idx").on(t.coopId),
+    index("supplier_payable_supplier_idx").on(t.supplierId),
+  ],
+);
