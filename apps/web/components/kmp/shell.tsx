@@ -5,13 +5,14 @@ import { fetchCoop } from "@/lib/api";
 import { useApi } from "@/lib/use-api";
 import { shortAddr } from "@/lib/mock-data";
 import { signOutToAuth } from "@/lib/supabase";
-import { Logo, LogoMark } from "@annona/ui";
+import { Logo } from "@annona/ui";
 import { cn } from "@annona/ui";
 import type { LucideIcon } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Banknote,
   ClipboardList,
+  Coins,
   FileText,
   Landmark,
   LayoutDashboard,
@@ -61,7 +62,8 @@ const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
       },
       { href: "/kmp/setor", label: "Setor Panen", icon: PackageCheck },
       { href: "/kmp/pembayaran", label: "Pembayaran", icon: Banknote },
-      { href: "/kmp/residu", label: "Residu Agrinas", icon: Landmark },
+      { href: "/kmp/residu", label: "Residu Supplier", icon: Landmark },
+      { href: "/kmp/permintaan-dana", label: "Permintaan Dana", icon: Coins },
     ],
   },
   {
@@ -78,7 +80,9 @@ const STORAGE_KEY = "annona.kmp.sidebar.collapsed";
 
 function isActive(pathname: string, item: NavItem) {
   if (item.exact) return pathname === item.href;
-  return pathname.startsWith(item.href);
+  // Match on segment boundary so /kmp/permintaan does not also light up for
+  // /kmp/permintaan-dana (plain startsWith would match the shared prefix).
+  return pathname === item.href || pathname.startsWith(`${item.href}/`);
 }
 
 function NavLink({
@@ -148,17 +152,15 @@ function SidebarContent({
           collapsed ? "justify-center px-2" : "gap-2 px-5",
         )}
       >
-        <Link href="/" onClick={onNavigate} aria-label="Annona">
-          {collapsed ? (
-            <LogoMark className="h-7 w-7" />
-          ) : (
-            <Logo className="h-7 w-auto" />
-          )}
-        </Link>
         {collapsed ? null : (
-          <span className="rounded-full bg-[#e7fafc] border border-[#c3f2f6]/50 px-2 py-0.5 text-[9px] font-mono font-bold tracking-wide text-[#0c6a78] uppercase">
-            KMP
-          </span>
+          <>
+            <Link href="/" onClick={onNavigate} aria-label="Annona" className="shrink-0">
+              <Logo size={20} className="shrink-0" />
+            </Link>
+            <span className="min-w-0 shrink truncate rounded-full bg-[#e7fafc] border border-[#c3f2f6]/50 px-2 py-0.5 text-[9px] font-mono font-bold tracking-wide text-[#0c6a78] uppercase">
+              KMP
+            </span>
+          </>
         )}
         {onToggle ? (
           <button
@@ -197,7 +199,10 @@ function SidebarContent({
       {/* Navigation menu */}
       <nav
         className={cn(
-          "flex-1 space-y-4 overflow-y-auto",
+          "flex-1 space-y-4 overflow-y-auto [scrollbar-width:thin]",
+          "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent",
+          "[&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300/60",
+          "hover:[&::-webkit-scrollbar-thumb]:bg-gray-400/70",
           collapsed ? "px-2" : "px-3",
         )}
         aria-label="Menu utama"
@@ -249,20 +254,21 @@ function SidebarContent({
             </button>
           </div>
         ) : (
-          <div className="bg-[#ebf5e9]/90 border border-soft-green/30 rounded-2xl p-4 shadow-sm text-xs space-y-3 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-20 h-20 bg-white/20 rounded-full blur-xl pointer-events-none" />
-            <div className="flex items-center gap-3 relative z-10">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-850 border border-emerald-200">
+          <div className="space-y-2.5">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-800 border border-emerald-200">
                 HU
               </div>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-foreground">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-foreground leading-tight">
                   H. Usman
                 </p>
-                <p className="text-xs text-muted-foreground">Pengurus KMP</p>
+                <p className="text-[11px] text-muted-foreground leading-tight">
+                  Pengurus KMP
+                </p>
               </div>
-              <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-[#e7fafc] px-2 py-0.5 text-[9px] font-mono font-bold text-[#0c6a78] border border-[#c3f2f6]/50">
-                <Wifi size={10} className="animate-pulse" />
+              <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-[#e7fafc] px-1.5 py-0.5 text-[8px] font-mono font-bold text-[#0c6a78] border border-[#c3f2f6]/50">
+                <Wifi size={9} className="animate-pulse" />
                 Testnet
               </span>
             </div>
@@ -270,7 +276,7 @@ function SidebarContent({
             <button
               type="button"
               onClick={() => void signOutToAuth()}
-              className="mt-3 flex min-h-[40px] w-full items-center justify-center gap-2 rounded-xl bg-primary-dark text-white px-3 py-2 text-xs font-semibold hover:bg-opacity-90 transition-all active:scale-95 shadow-sm"
+              className="flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-gray-200 px-3 text-xs font-semibold text-gray-600 transition-colors hover:bg-red-50 hover:text-red-700 hover:border-red-100"
             >
               <LogOut size={14} />
               Keluar

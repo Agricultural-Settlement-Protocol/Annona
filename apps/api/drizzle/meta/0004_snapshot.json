@@ -1,0 +1,2887 @@
+{
+  "id": "3a0d90af-db8e-42dc-a564-7978c735b87d",
+  "prevId": "6b18c1f5-2e01-4073-a8a2-a55c604ecc6d",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.agreement": {
+      "name": "agreement",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "onchain_id": {
+          "name": "onchain_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "coop_id": {
+          "name": "coop_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "farmer_id": {
+          "name": "farmer_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "agrinas_id": {
+          "name": "agrinas_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "commodity_code": {
+          "name": "commodity_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "grade": {
+          "name": "grade",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "moisture_bps": {
+          "name": "moisture_bps",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "base_price_agrinas": {
+          "name": "base_price_agrinas",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "saprotan_markup_bps": {
+          "name": "saprotan_markup_bps",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "input_debt": {
+          "name": "input_debt",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hpp_handling_fee_bps": {
+          "name": "hpp_handling_fee_bps",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expected_vol_g": {
+          "name": "expected_vol_g",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hpp_per_kg": {
+          "name": "hpp_per_kg",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hpp_version": {
+          "name": "hpp_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tolerance_bps": {
+          "name": "tolerance_bps",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "agreement_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Created'"
+        },
+        "flag": {
+          "name": "flag",
+          "type": "flag_reason",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'None'"
+        },
+        "residu_status": {
+          "name": "residu_status",
+          "type": "residu_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Pending'"
+        },
+        "expected_harvest_date": {
+          "name": "expected_harvest_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subsidy_tier": {
+          "name": "subsidy_tier",
+          "type": "subsidy_tier",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Commercial'"
+        },
+        "financier_id": {
+          "name": "financier_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "agreement_coop_id_idx": {
+          "name": "agreement_coop_id_idx",
+          "columns": [
+            {
+              "expression": "coop_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "agreement_farmer_id_idx": {
+          "name": "agreement_farmer_id_idx",
+          "columns": [
+            {
+              "expression": "farmer_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "agreement_agrinas_id_idx": {
+          "name": "agreement_agrinas_id_idx",
+          "columns": [
+            {
+              "expression": "agrinas_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "agreement_status_idx": {
+          "name": "agreement_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "agreement_coop_id_coop_id_fk": {
+          "name": "agreement_coop_id_coop_id_fk",
+          "tableFrom": "agreement",
+          "tableTo": "coop",
+          "columnsFrom": [
+            "coop_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "agreement_farmer_id_farmer_id_fk": {
+          "name": "agreement_farmer_id_farmer_id_fk",
+          "tableFrom": "agreement",
+          "tableTo": "farmer",
+          "columnsFrom": [
+            "farmer_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "agreement_agrinas_id_agrinas_id_fk": {
+          "name": "agreement_agrinas_id_agrinas_id_fk",
+          "tableFrom": "agreement",
+          "tableTo": "agrinas",
+          "columnsFrom": [
+            "agrinas_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "agreement_commodity_code_commodity_code_fk": {
+          "name": "agreement_commodity_code_commodity_code_fk",
+          "tableFrom": "agreement",
+          "tableTo": "commodity",
+          "columnsFrom": [
+            "commodity_code"
+          ],
+          "columnsTo": [
+            "code"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "agreement_financier_id_financier_id_fk": {
+          "name": "agreement_financier_id_financier_id_fk",
+          "tableFrom": "agreement",
+          "tableTo": "financier",
+          "columnsFrom": [
+            "financier_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "agreement_onchain_id_unique": {
+          "name": "agreement_onchain_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "onchain_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.agreement_input": {
+      "name": "agreement_input",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "agreement_id": {
+          "name": "agreement_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "catalog_id": {
+          "name": "catalog_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "qty": {
+          "name": "qty",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "base_price_agrinas": {
+          "name": "base_price_agrinas",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "line_total_principal": {
+          "name": "line_total_principal",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "agreement_input_agreement_id_idx": {
+          "name": "agreement_input_agreement_id_idx",
+          "columns": [
+            {
+              "expression": "agreement_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "agreement_input_agreement_id_agreement_id_fk": {
+          "name": "agreement_input_agreement_id_agreement_id_fk",
+          "tableFrom": "agreement_input",
+          "tableTo": "agreement",
+          "columnsFrom": [
+            "agreement_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "agreement_input_catalog_id_saprotan_catalog_id_fk": {
+          "name": "agreement_input_catalog_id_saprotan_catalog_id_fk",
+          "tableFrom": "agreement_input",
+          "tableTo": "saprotan_catalog",
+          "columnsFrom": [
+            "catalog_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.agrinas": {
+      "name": "agrinas",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "wallet_address": {
+          "name": "wallet_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "agrinas_wallet_address_unique": {
+          "name": "agrinas_wallet_address_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "wallet_address"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.app_user": {
+      "name": "app_user",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "app_role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "coop_id": {
+          "name": "coop_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "agrinas_id": {
+          "name": "agrinas_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "supplier_id": {
+          "name": "supplier_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "financier_id": {
+          "name": "financier_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "app_user_coop_id_coop_id_fk": {
+          "name": "app_user_coop_id_coop_id_fk",
+          "tableFrom": "app_user",
+          "tableTo": "coop",
+          "columnsFrom": [
+            "coop_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "app_user_agrinas_id_agrinas_id_fk": {
+          "name": "app_user_agrinas_id_agrinas_id_fk",
+          "tableFrom": "app_user",
+          "tableTo": "agrinas",
+          "columnsFrom": [
+            "agrinas_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "app_user_supplier_id_agrinas_id_fk": {
+          "name": "app_user_supplier_id_agrinas_id_fk",
+          "tableFrom": "app_user",
+          "tableTo": "agrinas",
+          "columnsFrom": [
+            "supplier_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "app_user_financier_id_financier_id_fk": {
+          "name": "app_user_financier_id_financier_id_fk",
+          "tableFrom": "app_user",
+          "tableTo": "financier",
+          "columnsFrom": [
+            "financier_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "app_user_email_unique": {
+          "name": "app_user_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.commodity": {
+      "name": "commodity",
+      "schema": "",
+      "columns": {
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "unit": {
+          "name": "unit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'kg'"
+        },
+        "hpp_version": {
+          "name": "hpp_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.coop": {
+      "name": "coop",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "agrinas_id": {
+          "name": "agrinas_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kecamatan": {
+          "name": "kecamatan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kabupaten": {
+          "name": "kabupaten",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provinsi": {
+          "name": "provinsi",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "wallet_address": {
+          "name": "wallet_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prefunded_cash_balance": {
+          "name": "prefunded_cash_balance",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "0"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "coop_agrinas_id_idx": {
+          "name": "coop_agrinas_id_idx",
+          "columns": [
+            {
+              "expression": "agrinas_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "coop_agrinas_id_agrinas_id_fk": {
+          "name": "coop_agrinas_id_agrinas_id_fk",
+          "tableFrom": "coop",
+          "tableTo": "agrinas",
+          "columnsFrom": [
+            "agrinas_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "coop_wallet_address_unique": {
+          "name": "coop_wallet_address_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "wallet_address"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.coop_reputation_cache": {
+      "name": "coop_reputation_cache",
+      "schema": "",
+      "columns": {
+        "coop_id": {
+          "name": "coop_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "agreements": {
+          "name": "agreements",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "settlements": {
+          "name": "settlements",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "total_residu_principal": {
+          "name": "total_residu_principal",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "0"
+        },
+        "total_residu_cleared": {
+          "name": "total_residu_cleared",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "0"
+        },
+        "disputes": {
+          "name": "disputes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "frozen": {
+          "name": "frozen",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "score": {
+          "name": "score",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "synced_at": {
+          "name": "synced_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "coop_reputation_cache_coop_id_coop_id_fk": {
+          "name": "coop_reputation_cache_coop_id_coop_id_fk",
+          "tableFrom": "coop_reputation_cache",
+          "tableTo": "coop",
+          "columnsFrom": [
+            "coop_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.delivery": {
+      "name": "delivery",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "agreement_id": {
+          "name": "agreement_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "seq": {
+          "name": "seq",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "volume_g": {
+          "name": "volume_g",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "grade": {
+          "name": "grade",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "moisture_bps": {
+          "name": "moisture_bps",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "receipt_onchain_ref": {
+          "name": "receipt_onchain_ref",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "delivered_at": {
+          "name": "delivered_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "flag": {
+          "name": "flag",
+          "type": "flag_reason",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'None'"
+        }
+      },
+      "indexes": {
+        "delivery_agreement_seq_idx": {
+          "name": "delivery_agreement_seq_idx",
+          "columns": [
+            {
+              "expression": "agreement_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "seq",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "delivery_agreement_id_agreement_id_fk": {
+          "name": "delivery_agreement_id_agreement_id_fk",
+          "tableFrom": "delivery",
+          "tableTo": "agreement",
+          "columnsFrom": [
+            "agreement_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.event_log": {
+      "name": "event_log",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tx_hash": {
+          "name": "tx_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "event_index": {
+          "name": "event_index",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ledger": {
+          "name": "ledger",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ledger_timestamp": {
+          "name": "ledger_timestamp",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "data": {
+          "name": "data",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ingested_at": {
+          "name": "ingested_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "event_log_tx_hash_event_index_idx": {
+          "name": "event_log_tx_hash_event_index_idx",
+          "columns": [
+            {
+              "expression": "tx_hash",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "event_index",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "event_log_type_idx": {
+          "name": "event_log_type_idx",
+          "columns": [
+            {
+              "expression": "type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "event_log_ledger_idx": {
+          "name": "event_log_ledger_idx",
+          "columns": [
+            {
+              "expression": "ledger",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.farmer": {
+      "name": "farmer",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "coop_id": {
+          "name": "coop_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ktp_raw": {
+          "name": "ktp_raw",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ktp_hash": {
+          "name": "ktp_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "wallet_address": {
+          "name": "wallet_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "plot_area_ha": {
+          "name": "plot_area_ha",
+          "type": "numeric(8, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "default_commodity_code": {
+          "name": "default_commodity_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kecamatan": {
+          "name": "kecamatan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kabupaten": {
+          "name": "kabupaten",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "geo": {
+          "name": "geo",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subsidy_status": {
+          "name": "subsidy_status",
+          "type": "subsidy_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'NonSubsidi'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "farmer_coop_id_idx": {
+          "name": "farmer_coop_id_idx",
+          "columns": [
+            {
+              "expression": "coop_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "farmer_ktp_hash_idx": {
+          "name": "farmer_ktp_hash_idx",
+          "columns": [
+            {
+              "expression": "ktp_hash",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "farmer_coop_id_coop_id_fk": {
+          "name": "farmer_coop_id_coop_id_fk",
+          "tableFrom": "farmer",
+          "tableTo": "coop",
+          "columnsFrom": [
+            "coop_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "farmer_default_commodity_code_commodity_code_fk": {
+          "name": "farmer_default_commodity_code_commodity_code_fk",
+          "tableFrom": "farmer",
+          "tableTo": "commodity",
+          "columnsFrom": [
+            "default_commodity_code"
+          ],
+          "columnsTo": [
+            "code"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "farmer_wallet_address_unique": {
+          "name": "farmer_wallet_address_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "wallet_address"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.financier": {
+      "name": "financier",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "wallet_address": {
+          "name": "wallet_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pool_balance": {
+          "name": "pool_balance",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "0"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "financier_wallet_address_unique": {
+          "name": "financier_wallet_address_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "wallet_address"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.funding_request": {
+      "name": "funding_request",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "onchain_id": {
+          "name": "onchain_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "coop_id": {
+          "name": "coop_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "financier_id": {
+          "name": "financier_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "backing_hash": {
+          "name": "backing_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "projected_settlement": {
+          "name": "projected_settlement",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "0"
+        },
+        "amount_requested": {
+          "name": "amount_requested",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "0"
+        },
+        "amount_approved": {
+          "name": "amount_approved",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "0"
+        },
+        "amount_disbursed": {
+          "name": "amount_disbursed",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "0"
+        },
+        "amount_reconciled": {
+          "name": "amount_reconciled",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "0"
+        },
+        "coverage_ratio_bps": {
+          "name": "coverage_ratio_bps",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "risk_badge": {
+          "name": "risk_badge",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "funding_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Requested'"
+        },
+        "proof_url": {
+          "name": "proof_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "funding_request_coop_idx": {
+          "name": "funding_request_coop_idx",
+          "columns": [
+            {
+              "expression": "coop_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "funding_request_financier_idx": {
+          "name": "funding_request_financier_idx",
+          "columns": [
+            {
+              "expression": "financier_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "funding_request_status_idx": {
+          "name": "funding_request_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "funding_request_coop_id_coop_id_fk": {
+          "name": "funding_request_coop_id_coop_id_fk",
+          "tableFrom": "funding_request",
+          "tableTo": "coop",
+          "columnsFrom": [
+            "coop_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "funding_request_financier_id_financier_id_fk": {
+          "name": "funding_request_financier_id_financier_id_fk",
+          "tableFrom": "funding_request",
+          "tableTo": "financier",
+          "columnsFrom": [
+            "financier_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "funding_request_onchain_id_unique": {
+          "name": "funding_request_onchain_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "onchain_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.funding_request_line": {
+      "name": "funding_request_line",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "funding_request_id": {
+          "name": "funding_request_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "agreement_id": {
+          "name": "agreement_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "backing_value": {
+          "name": "backing_value",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "0"
+        }
+      },
+      "indexes": {
+        "funding_request_line_request_idx": {
+          "name": "funding_request_line_request_idx",
+          "columns": [
+            {
+              "expression": "funding_request_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "funding_request_line_funding_request_id_funding_request_id_fk": {
+          "name": "funding_request_line_funding_request_id_funding_request_id_fk",
+          "tableFrom": "funding_request_line",
+          "tableTo": "funding_request",
+          "columnsFrom": [
+            "funding_request_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "funding_request_line_agreement_id_agreement_id_fk": {
+          "name": "funding_request_line_agreement_id_agreement_id_fk",
+          "tableFrom": "funding_request_line",
+          "tableTo": "agreement",
+          "columnsFrom": [
+            "agreement_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.harvest_shipment": {
+      "name": "harvest_shipment",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "coop_id": {
+          "name": "coop_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "agrinas_id": {
+          "name": "agrinas_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "commodity_code": {
+          "name": "commodity_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "shipment_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Draft'"
+        },
+        "total_volume_g": {
+          "name": "total_volume_g",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "0"
+        },
+        "received_volume_g": {
+          "name": "received_volume_g",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "discrepancy_note": {
+          "name": "discrepancy_note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sent_at": {
+          "name": "sent_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "received_at": {
+          "name": "received_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "harvest_shipment_coop_idx": {
+          "name": "harvest_shipment_coop_idx",
+          "columns": [
+            {
+              "expression": "coop_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "harvest_shipment_agrinas_idx": {
+          "name": "harvest_shipment_agrinas_idx",
+          "columns": [
+            {
+              "expression": "agrinas_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "harvest_shipment_status_idx": {
+          "name": "harvest_shipment_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "harvest_shipment_coop_id_coop_id_fk": {
+          "name": "harvest_shipment_coop_id_coop_id_fk",
+          "tableFrom": "harvest_shipment",
+          "tableTo": "coop",
+          "columnsFrom": [
+            "coop_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "harvest_shipment_agrinas_id_agrinas_id_fk": {
+          "name": "harvest_shipment_agrinas_id_agrinas_id_fk",
+          "tableFrom": "harvest_shipment",
+          "tableTo": "agrinas",
+          "columnsFrom": [
+            "agrinas_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "harvest_shipment_commodity_code_commodity_code_fk": {
+          "name": "harvest_shipment_commodity_code_commodity_code_fk",
+          "tableFrom": "harvest_shipment",
+          "tableTo": "commodity",
+          "columnsFrom": [
+            "commodity_code"
+          ],
+          "columnsTo": [
+            "code"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.harvest_shipment_line": {
+      "name": "harvest_shipment_line",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "shipment_id": {
+          "name": "shipment_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "delivery_id": {
+          "name": "delivery_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "agreement_id": {
+          "name": "agreement_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "farmer_id": {
+          "name": "farmer_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "volume_g": {
+          "name": "volume_g",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "grade": {
+          "name": "grade",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "moisture_bps": {
+          "name": "moisture_bps",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "harvest_shipment_line_shipment_idx": {
+          "name": "harvest_shipment_line_shipment_idx",
+          "columns": [
+            {
+              "expression": "shipment_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "harvest_shipment_line_shipment_id_harvest_shipment_id_fk": {
+          "name": "harvest_shipment_line_shipment_id_harvest_shipment_id_fk",
+          "tableFrom": "harvest_shipment_line",
+          "tableTo": "harvest_shipment",
+          "columnsFrom": [
+            "shipment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "harvest_shipment_line_delivery_id_delivery_id_fk": {
+          "name": "harvest_shipment_line_delivery_id_delivery_id_fk",
+          "tableFrom": "harvest_shipment_line",
+          "tableTo": "delivery",
+          "columnsFrom": [
+            "delivery_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "harvest_shipment_line_agreement_id_agreement_id_fk": {
+          "name": "harvest_shipment_line_agreement_id_agreement_id_fk",
+          "tableFrom": "harvest_shipment_line",
+          "tableTo": "agreement",
+          "columnsFrom": [
+            "agreement_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "harvest_shipment_line_farmer_id_farmer_id_fk": {
+          "name": "harvest_shipment_line_farmer_id_farmer_id_fk",
+          "tableFrom": "harvest_shipment_line",
+          "tableTo": "farmer",
+          "columnsFrom": [
+            "farmer_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.indexer_cursor": {
+      "name": "indexer_cursor",
+      "schema": "",
+      "columns": {
+        "contract_id": {
+          "name": "contract_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "last_ledger": {
+          "name": "last_ledger",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.price_ref": {
+      "name": "price_ref",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "commodity_code": {
+          "name": "commodity_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hpp": {
+          "name": "hpp",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hpp_source": {
+          "name": "hpp_source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "market_price_kabupaten": {
+          "name": "market_price_kabupaten",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pihps_source": {
+          "name": "pihps_source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "as_of": {
+          "name": "as_of",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "price_ref_commodity_code_idx": {
+          "name": "price_ref_commodity_code_idx",
+          "columns": [
+            {
+              "expression": "commodity_code",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "price_ref_commodity_code_commodity_code_fk": {
+          "name": "price_ref_commodity_code_commodity_code_fk",
+          "tableFrom": "price_ref",
+          "tableTo": "commodity",
+          "columnsFrom": [
+            "commodity_code"
+          ],
+          "columnsTo": [
+            "code"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.reputation_cache": {
+      "name": "reputation_cache",
+      "schema": "",
+      "columns": {
+        "farmer_id": {
+          "name": "farmer_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "deliveries": {
+          "name": "deliveries",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "on_time": {
+          "name": "on_time",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "total_settled_g": {
+          "name": "total_settled_g",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "0"
+        },
+        "flags": {
+          "name": "flags",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "force_majeure_events": {
+          "name": "force_majeure_events",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "score": {
+          "name": "score",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "synced_at": {
+          "name": "synced_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "reputation_cache_farmer_id_farmer_id_fk": {
+          "name": "reputation_cache_farmer_id_farmer_id_fk",
+          "tableFrom": "reputation_cache",
+          "tableTo": "farmer",
+          "columnsFrom": [
+            "farmer_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.residu_remittance": {
+      "name": "residu_remittance",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "coop_id": {
+          "name": "coop_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "agrinas_id": {
+          "name": "agrinas_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "agreement_onchain_id": {
+          "name": "agreement_onchain_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "principal_amount": {
+          "name": "principal_amount",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bank_ref": {
+          "name": "bank_ref",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "proof_url": {
+          "name": "proof_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "residu_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Pending'"
+        },
+        "dispute_reason": {
+          "name": "dispute_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "remittance_tx_hash": {
+          "name": "remittance_tx_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "remitted_at": {
+          "name": "remitted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cleared_at": {
+          "name": "cleared_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "residu_remittance_coop_id_idx": {
+          "name": "residu_remittance_coop_id_idx",
+          "columns": [
+            {
+              "expression": "coop_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "residu_remittance_agrinas_id_idx": {
+          "name": "residu_remittance_agrinas_id_idx",
+          "columns": [
+            {
+              "expression": "agrinas_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "residu_remittance_status_idx": {
+          "name": "residu_remittance_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "residu_remittance_agreement_onchain_id_idx": {
+          "name": "residu_remittance_agreement_onchain_id_idx",
+          "columns": [
+            {
+              "expression": "agreement_onchain_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "residu_remittance_coop_id_coop_id_fk": {
+          "name": "residu_remittance_coop_id_coop_id_fk",
+          "tableFrom": "residu_remittance",
+          "tableTo": "coop",
+          "columnsFrom": [
+            "coop_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "residu_remittance_agrinas_id_agrinas_id_fk": {
+          "name": "residu_remittance_agrinas_id_agrinas_id_fk",
+          "tableFrom": "residu_remittance",
+          "tableTo": "agrinas",
+          "columnsFrom": [
+            "agrinas_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.saprotan_catalog": {
+      "name": "saprotan_catalog",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "agrinas_id": {
+          "name": "agrinas_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category": {
+          "name": "category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "region": {
+          "name": "region",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "base_price_agrinas": {
+          "name": "base_price_agrinas",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "subsidi_flag": {
+          "name": "subsidi_flag",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "price_tier": {
+          "name": "price_tier",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'non_subsidi'"
+        },
+        "het_price": {
+          "name": "het_price",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "erdkk_gated": {
+          "name": "erdkk_gated",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stock_status": {
+          "name": "stock_status",
+          "type": "stock_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Tersedia'"
+        },
+        "unit_label": {
+          "name": "unit_label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'unit'"
+        },
+        "effective_from": {
+          "name": "effective_from",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "saprotan_catalog_code_region_idx": {
+          "name": "saprotan_catalog_code_region_idx",
+          "columns": [
+            {
+              "expression": "code",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "region",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "saprotan_catalog_agrinas_id_idx": {
+          "name": "saprotan_catalog_agrinas_id_idx",
+          "columns": [
+            {
+              "expression": "agrinas_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "saprotan_catalog_agrinas_id_agrinas_id_fk": {
+          "name": "saprotan_catalog_agrinas_id_agrinas_id_fk",
+          "tableFrom": "saprotan_catalog",
+          "tableTo": "agrinas",
+          "columnsFrom": [
+            "agrinas_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.settlement": {
+      "name": "settlement",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "agreement_id": {
+          "name": "agreement_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "delivery_id": {
+          "name": "delivery_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gross": {
+          "name": "gross",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "handling_cut": {
+          "name": "handling_cut",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "debt_netted": {
+          "name": "debt_netted",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "principal_to_agrinas": {
+          "name": "principal_to_agrinas",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "coop_margin": {
+          "name": "coop_margin",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "net_paid": {
+          "name": "net_paid",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "settled_vol_g": {
+          "name": "settled_vol_g",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rupiah_ref": {
+          "name": "rupiah_ref",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "settlement_tx_hash": {
+          "name": "settlement_tx_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "settled_at": {
+          "name": "settled_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "settlement_agreement_id_idx": {
+          "name": "settlement_agreement_id_idx",
+          "columns": [
+            {
+              "expression": "agreement_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "settlement_delivery_id_idx": {
+          "name": "settlement_delivery_id_idx",
+          "columns": [
+            {
+              "expression": "delivery_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "settlement_agreement_id_agreement_id_fk": {
+          "name": "settlement_agreement_id_agreement_id_fk",
+          "tableFrom": "settlement",
+          "tableTo": "agreement",
+          "columnsFrom": [
+            "agreement_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "settlement_delivery_id_delivery_id_fk": {
+          "name": "settlement_delivery_id_delivery_id_fk",
+          "tableFrom": "settlement",
+          "tableTo": "delivery",
+          "columnsFrom": [
+            "delivery_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.supplier_payable": {
+      "name": "supplier_payable",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "coop_id": {
+          "name": "coop_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "supplier_id": {
+          "name": "supplier_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "agreement_onchain_id": {
+          "name": "agreement_onchain_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "principal_accrued": {
+          "name": "principal_accrued",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "0"
+        },
+        "principal_settled": {
+          "name": "principal_settled",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "0"
+        },
+        "status": {
+          "name": "status",
+          "type": "payable_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Outstanding'"
+        },
+        "accrued_at": {
+          "name": "accrued_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "cleared_at": {
+          "name": "cleared_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "supplier_payable_coop_idx": {
+          "name": "supplier_payable_coop_idx",
+          "columns": [
+            {
+              "expression": "coop_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "supplier_payable_supplier_idx": {
+          "name": "supplier_payable_supplier_idx",
+          "columns": [
+            {
+              "expression": "supplier_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "supplier_payable_coop_id_coop_id_fk": {
+          "name": "supplier_payable_coop_id_coop_id_fk",
+          "tableFrom": "supplier_payable",
+          "tableTo": "coop",
+          "columnsFrom": [
+            "coop_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "supplier_payable_supplier_id_agrinas_id_fk": {
+          "name": "supplier_payable_supplier_id_agrinas_id_fk",
+          "tableFrom": "supplier_payable",
+          "tableTo": "agrinas",
+          "columnsFrom": [
+            "supplier_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.warehouse_operator": {
+      "name": "warehouse_operator",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kabupaten": {
+          "name": "kabupaten",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.yield_table": {
+      "name": "yield_table",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "commodity_code": {
+          "name": "commodity_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kabupaten": {
+          "name": "kabupaten",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "avg_yield_t_per_ha": {
+          "name": "avg_yield_t_per_ha",
+          "type": "numeric(6, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "year": {
+          "name": "year",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "yield_table_commodity_kabupaten_year_idx": {
+          "name": "yield_table_commodity_kabupaten_year_idx",
+          "columns": [
+            {
+              "expression": "commodity_code",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "kabupaten",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "year",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "yield_table_commodity_code_commodity_code_fk": {
+          "name": "yield_table_commodity_code_commodity_code_fk",
+          "tableFrom": "yield_table",
+          "tableTo": "commodity",
+          "columnsFrom": [
+            "commodity_code"
+          ],
+          "columnsTo": [
+            "code"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.agreement_status": {
+      "name": "agreement_status",
+      "schema": "public",
+      "values": [
+        "Created",
+        "SupplyDispatched",
+        "Active",
+        "PartiallyDelivered",
+        "Delivered",
+        "Settled",
+        "Flagged",
+        "ForceMajeure"
+      ]
+    },
+    "public.app_role": {
+      "name": "app_role",
+      "schema": "public",
+      "values": [
+        "kmp",
+        "agrinas",
+        "pemerintah",
+        "supplier",
+        "financier"
+      ]
+    },
+    "public.flag_reason": {
+      "name": "flag_reason",
+      "schema": "public",
+      "values": [
+        "None",
+        "Warning",
+        "PartialDelivery",
+        "Suspected"
+      ]
+    },
+    "public.funding_status": {
+      "name": "funding_status",
+      "schema": "public",
+      "values": [
+        "Requested",
+        "Approved",
+        "Rejected",
+        "Disbursed",
+        "Reconciled"
+      ]
+    },
+    "public.payable_status": {
+      "name": "payable_status",
+      "schema": "public",
+      "values": [
+        "Outstanding",
+        "Partial",
+        "Cleared"
+      ]
+    },
+    "public.residu_status": {
+      "name": "residu_status",
+      "schema": "public",
+      "values": [
+        "Pending",
+        "Remitted",
+        "Cleared",
+        "Disputed"
+      ]
+    },
+    "public.shipment_status": {
+      "name": "shipment_status",
+      "schema": "public",
+      "values": [
+        "Draft",
+        "Dikirim",
+        "Diterima",
+        "Selisih"
+      ]
+    },
+    "public.stock_status": {
+      "name": "stock_status",
+      "schema": "public",
+      "values": [
+        "Tersedia",
+        "Menipis",
+        "Habis"
+      ]
+    },
+    "public.subsidy_status": {
+      "name": "subsidy_status",
+      "schema": "public",
+      "values": [
+        "Terverifikasi",
+        "Belum",
+        "NonSubsidi"
+      ]
+    },
+    "public.subsidy_tier": {
+      "name": "subsidy_tier",
+      "schema": "public",
+      "values": [
+        "Subsidized",
+        "Commercial"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

@@ -111,7 +111,7 @@ export default function PembayaranPage() {
         hppPerKg: agreement.hppPerKg,
         remainingDebt: agreement.remainingDebt,
         hppHandlingFeeBps: agreement.hppHandlingFeeBps,
-        basePriceAgrinas: agreement.basePriceAgrinas,
+        basePriceSupplier: agreement.basePriceSupplier,
         inputDebt: agreement.inputDebt,
       })
     : null;
@@ -149,7 +149,7 @@ export default function PembayaranPage() {
     <div className="space-y-6">
       <PageHeader
         title="Pembayaran"
-        description="Selesaikan pembayaran panen dengan split tiga arah: petani terima tunai, residu pokok Agrinas dikunci di kas, margin KMP tercatat."
+        description="Selesaikan pembayaran panen dengan split tiga arah: petani terima tunai, residu pokok Supplier dikunci di kas, margin KMP tercatat."
         actions={
           <Button
             variant="outline"
@@ -244,7 +244,7 @@ export default function PembayaranPage() {
               gross={split.grossSmallest}
               handlingCut={split.handlingCut}
               netToFarmer={split.netToFarmer}
-              residuPrincipal={split.principalToAgrinas}
+              residuPrincipal={split.principalToSupplier}
               coopMargin={split.coopMargin}
             />
 
@@ -338,7 +338,7 @@ export default function PembayaranPage() {
             gross={split.grossSmallest}
             handlingCut={split.handlingCut}
             netToFarmer={split.netToFarmer}
-            residuPrincipal={split.principalToAgrinas}
+            residuPrincipal={split.principalToSupplier}
             coopMargin={split.coopMargin}
           />
 
@@ -357,14 +357,14 @@ export default function PembayaranPage() {
           </div>
 
           {/* Residu reminder */}
-          <Alert tone="warning" title="Residu pokok Agrinas terkunci di kas">
+          <Alert tone="warning" title="Residu pokok Supplier terkunci di kas">
             Sebesar{" "}
             <RupiahAmount
-              smallest={split.principalToAgrinas}
+              smallest={split.principalToSupplier}
               className="text-sm"
             />{" "}
-            adalah uang Agrinas yang tersimpan sementara di kas koperasi. Segera
-            remitkan ke rekening Agrinas.
+            adalah uang Supplier yang tersimpan sementara di kas koperasi. Segera
+            remitkan ke rekening Supplier.
           </Alert>
 
           <div className="flex flex-wrap gap-3">

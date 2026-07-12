@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Screen H (Agrinas): Asisten AI multi-sesi.
+ * Screen H (Supplier): Asisten AI multi-sesi.
  *
  * Grounding snapshot: serialised protocol metrics (no raw bigint through JSON).
  * Scope: residu, dispatch, commercial operations, coop health.
@@ -19,9 +19,9 @@ import { formatRupiah } from "@annona/core";
 import { Alert, Card, CardContent } from "@annona/ui";
 import { useMemo } from "react";
 
-/** Build grounding snapshot for Agrinas role.
+/** Build grounding snapshot for Supplier role.
  *  All bigints serialised as formatted strings. Never raw bigint to JSON. */
-function buildAgrinasSnapshot(): GroundingSnapshot {
+function buildSupplierSnapshot(): GroundingSnapshot {
   const metrics = protocolMetrics();
   const pendingRequests = buildDispatchRequests().filter(
     (r) => r.status === "Menunggu",
@@ -39,7 +39,7 @@ function buildAgrinasSnapshot(): GroundingSnapshot {
       kmp_dibekukan: metrics.frozenCoops,
       kmp_bermasalah: metrics.bermasalahCoops,
     },
-    residu_agrinas: {
+    residu_supplier: {
       total_belum_diterima: formatRupiah(metrics.residuPending),
       total_menunggu_verifikasi: formatRupiah(metrics.residuRemitted),
       total_terverifikasi: formatRupiah(metrics.residuCleared),
@@ -74,13 +74,13 @@ function buildAgrinasSnapshot(): GroundingSnapshot {
   };
 }
 
-export default function AgrinasAiPage() {
-  const snapshot = useMemo(() => buildAgrinasSnapshot(), []);
+export default function SupplierAiPage() {
+  const snapshot = useMemo(() => buildSupplierSnapshot(), []);
 
   return (
     <div className="flex h-[calc(100vh-6rem)] flex-col gap-4">
       <OversightPageHeader
-        title="Asisten AI Agrinas"
+        title="Asisten AI Supplier"
         description="Tanya tentang data residu, dispatch, dan kinerja koperasi. Percakapan disimpan di perangkat Anda. AI hanya membaca, tidak bisa mengubah data."
       />
 
@@ -94,7 +94,7 @@ export default function AgrinasAiPage() {
 
       <Card className="flex min-h-0 flex-1 overflow-hidden">
         <CardContent className="min-h-0 flex-1 p-0">
-          <AiChat viewRole="agrinas" groundingSnapshot={snapshot} />
+          <AiChat viewRole="supplier" groundingSnapshot={snapshot} />
         </CardContent>
       </Card>
     </div>

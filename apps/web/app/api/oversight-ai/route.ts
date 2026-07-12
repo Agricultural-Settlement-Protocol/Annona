@@ -1,11 +1,11 @@
 /**
  * POST /api/oversight-ai
  *
- * Groq-backed AI assistant for the Oversight dashboard (Agrinas + Pemerintah).
+ * Groq-backed AI assistant for the Oversight dashboard (Supplier + Pemerintah).
  *
  * Request body:
  *   {
- *     role: "agrinas" | "pemerintah",
+ *     role: "supplier" | "pemerintah",
  *     messages: { role: "user" | "assistant", content: string }[],
  *     groundingSnapshot: object,
  *     attachments?: (
@@ -32,7 +32,7 @@ const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
 const VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
 const SIZE_LIMIT_BYTES = 6 * 1024 * 1024; // 6 MB
 
-type OversightRole = "agrinas" | "pemerintah";
+type OversightRole = "supplier" | "pemerintah";
 
 interface TextMessage {
   role: "user" | "assistant";
@@ -69,11 +69,11 @@ function buildSystemPrompt(
   const snapshotText = JSON.stringify(groundingSnapshot, null, 2);
 
   const roleScope =
-    role === "agrinas"
-      ? `IDENTITAS ANDA: Analis keuangan-pertanian dan pengawasan operasional ahli untuk Agrinas di Annona Protocol.
+    role === "supplier"
+      ? `IDENTITAS ANDA: Analis keuangan-pertanian dan pengawasan operasional ahli untuk Supplier di Annona Protocol.
 
 LINGKUP ANDA (hanya ini yang boleh dianalisis):
-- Data residu pokok Agrinas (pending, remitted, cleared) per koperasi dan per petani.
+- Data residu pokok Supplier (pending, remitted, cleared) per koperasi dan per petani.
 - Status dispatch saprotan (pupuk, benih, pestisida, alsintan): antrean, persetujuan, nilai.
 - Kesehatan jaringan koperasi: settlement rate, kepatuhan residu, status reputasi/pembekuan.
 - Rekonsiliasi keuangan antar-lembaga dan sengketa terkait.
@@ -85,9 +85,9 @@ LINGKUP ANDA (hanya ini yang boleh dianalisis):
 - Data produksi komoditas regional (kg, yield, distribusi).
 - Leaderboard kinerja koperasi: settlement rate, repayment rate, rasio panen sukses vs gagal.
 - Antrean flag dan alasan flag untuk peninjauan manusia.
-- Kepatuhan protokol secara makro (tidak detail operasional Agrinas).
+- Kepatuhan protokol secara makro (tidak detail operasional Supplier).
 
-YANG TIDAK BOLEH DIBAHAS: detail harga pokok Agrinas, operasional dispatch internal, tindakan write apapun (Anda hanya membaca data, tidak dapat mengubah apapun).`;
+YANG TIDAK BOLEH DIBAHAS: detail harga pokok Supplier, operasional dispatch internal, tindakan write apapun (Anda hanya membaca data, tidak dapat mengubah apapun).`;
 
   return `${roleScope}
 
@@ -261,7 +261,7 @@ export async function POST(req: NextRequest) {
   // Validate required fields
   if (
     !role ||
-    !["agrinas", "pemerintah"].includes(role) ||
+    !["supplier", "pemerintah"].includes(role) ||
     !Array.isArray(messages) ||
     !groundingSnapshot
   ) {

@@ -29,6 +29,20 @@
       "when": 1783444502710,
       "tag": "0003_silky_hiroim",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1783848968293,
+      "tag": "0004_loose_big_bertha",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1783864054681,
+      "tag": "0005_supplier_rename",
+      "breakpoints": true
     }
   ]
 }

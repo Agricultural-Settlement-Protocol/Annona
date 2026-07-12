@@ -4,9 +4,9 @@ import { getDb, schema } from "../db/client.js";
 import { jsonSafe } from "../lib/read-model.js";
 
 /**
- * Residu reconciliation ledger — Screen: Residu Agrinas. The Agrinas principal
+ * Residu reconciliation ledger — Screen: Residu Supplier. The supplier principal
  * that passed through KMP cash and is owed back, with its remittance status
- * (Pending -> Remitted -> Cleared, or Disputed). Residu principal is Agrinas's
+ * (Pending -> Remitted -> Cleared, or Disputed). Residu principal is Supplier's
  * money, never KMP's (Golden Rule 6b). Joined with agreement + farmer for
  * display. Mirrors the mock residu ledger.
  */

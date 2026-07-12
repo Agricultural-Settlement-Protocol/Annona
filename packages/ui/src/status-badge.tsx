@@ -16,13 +16,13 @@ import { cn } from "./cn.js";
 /** Status pill: color + icon + Bahasa label. Maps 1:1 to @annona/core Status.
  *  Status is never color-only (a11y + low-literacy). No em dashes.
  *  v3.0 (PMK 15/2026): adds the double-confirmation gates between Created and
- *  delivery — SupplyDispatched (Agrinas released logistics) and Active (KMP
+ *  delivery — SupplyDispatched (Supplier released logistics) and Active (KMP
  *  confirmed physical receipt, debt now a live liability). */
 const META: Record<Status, { label: string; cls: string; Icon: ComponentType<{ size?: number }> }> =
   {
     Created: { label: "Dibuat", cls: "bg-ink-100 text-ink-700", Icon: CircleDot },
     SupplyDispatched: {
-      label: "Dikirim Agrinas",
+      label: "Dikirim Supplier",
       cls: "bg-indigo-100 text-indigo-700",
       Icon: Truck,
     },

@@ -3,26 +3,28 @@
 /**
  * /auth — single sign-in page for all three roles (MVP: Supabase email +
  * password, seeded demo accounts). Role is looked up in app_user and routes
- * to /kmp, /oversight/agrinas, or /oversight/pemerintah.
+ * to /kmp, /oversight/supplier, or /oversight/pemerintah.
  */
 
 import { DEMO_ACCOUNTS } from "@/lib/mock-data";
 import { ROLE_HOME, getSupabase, resolveRole } from "@/lib/supabase";
 import { Alert, Button, Input, Logo } from "@annona/ui";
-import { Building2, Landmark, LogIn, ShieldCheck, Wheat } from "lucide-react";
+import { Banknote, Building2, Landmark, LogIn, ShieldCheck, Wheat } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 const ROLE_ICON = {
   kmp: Wheat,
-  agrinas: Building2,
+  supplier: Building2,
   pemerintah: Landmark,
+  financier: Banknote,
 } as const;
 
 const DEMO_PASSWORDS: Record<string, string> = {
   "kmp@annona.id": "AnnonaKMP2026!",
-  "agrinas@annona.id": "AnnonaAgrinas2026!",
+  "pupukindonesia@annona.id": "AnnonaSupplier2026!",
   "pemerintah@annona.id": "AnnonaGov2026!",
+  "financier@annona.id": "AnnonaFinancier2026!",
 };
 
 export default function AuthPage() {
@@ -72,7 +74,7 @@ export default function AuthPage() {
           <div>
             <h1 className="text-xl font-bold text-foreground">Masuk ke Annona</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Satu pintu untuk KMP, Agrinas, dan Pemerintah. Peran Anda menentukan dasbor yang
+              Satu pintu untuk KMP, Supplier, dan Pemerintah. Peran Anda menentukan dasbor yang
               terbuka.
             </p>
           </div>

@@ -4,7 +4,7 @@
  *   - scripts/demo-driver.ts (real testnet txns, REAL generated addresses)
  *
  * These rows are NOT on-chain and NOT produced by any event — the indexer only
- * RESOLVES against them (address -> farmer/coop/agrinas uuid). So whichever path
+ * RESOLVES against them (address -> farmer/coop/supplier uuid). So whichever path
  * populates the read-models, the parties/reference/catalog must exist first with
  * wallet addresses that match the on-chain addresses used. Parameterizing the
  * wallets lets the seed use mock addresses and the driver use real ones from the
@@ -13,7 +13,7 @@
 import type { Db } from "../../apps/api/src/db/client.js";
 import { schema } from "../../apps/api/src/db/client.js";
 import {
-  MOCK_AGRINAS,
+  MOCK_SUPPLIER,
   MOCK_CATALOG,
   MOCK_COMMODITIES,
   MOCK_COOP,
@@ -23,14 +23,14 @@ import {
 } from "../../apps/web/lib/mock-data.js";
 
 export interface WalletResolvers {
-  agrinasWallet: string;
+  supplierWallet: string;
   coopWallet: string;
   /** mock farmer id (e.g. "frm-001") -> the wallet address to store on the row. */
   farmerWallet: (mockFarmerId: string) => string;
 }
 
 export interface BaseRowIds {
-  agrinasId: string;
+  supplierId: string;
   coopId: string;
   /** mock catalog id (e.g. "cat-urea") -> saprotan_catalog uuid. */
   catalogIdMap: Map<string, string>;
@@ -39,16 +39,16 @@ export interface BaseRowIds {
 /** Insert parties + reference + catalog + farmers with the given wallets. */
 export async function seedBaseRows(db: Db, r: WalletResolvers): Promise<BaseRowIds> {
   const agrRows = await db
-    .insert(schema.agrinas)
-    .values({ name: MOCK_AGRINAS.name, walletAddress: r.agrinasWallet })
-    .returning({ id: schema.agrinas.id });
-  const agrinasId = agrRows[0]?.id;
-  if (!agrinasId) throw new Error("base-rows: failed to insert agrinas");
+    .insert(schema.supplier)
+    .values({ name: MOCK_SUPPLIER.name, walletAddress: r.supplierWallet })
+    .returning({ id: schema.supplier.id });
+  const supplierId = agrRows[0]?.id;
+  if (!supplierId) throw new Error("base-rows: failed to insert supplier");
 
   const coRows = await db
     .insert(schema.coop)
     .values({
-      agrinasId,
+      supplierId,
       name: MOCK_COOP.name,
       kecamatan: MOCK_COOP.kecamatan,
       kabupaten: MOCK_COOP.kabupaten,
@@ -93,12 +93,12 @@ export async function seedBaseRows(db: Db, r: WalletResolvers): Promise<BaseRowI
     const rows = await db
       .insert(schema.saprotanCatalog)
       .values({
-        agrinasId,
+        supplierId,
         code: item.code,
         name: item.name,
         category: item.category,
         region: item.region,
-        basePriceAgrinas: item.basePriceAgrinas,
+        basePriceSupplier: item.basePriceSupplier,
         subsidiFlag: item.subsidiFlag,
         source: item.source,
       })
@@ -122,7 +122,7 @@ export async function seedBaseRows(db: Db, r: WalletResolvers): Promise<BaseRowI
     })),
   );
 
-  return { agrinasId, coopId, catalogIdMap };
+  return { supplierId, coopId, catalogIdMap };
 }
 
 /** Truncate every read-model + base table (idempotent re-runs / genesis rebuild). */
@@ -133,7 +133,7 @@ export async function truncateAll(db: Db, sql: (typeof import("drizzle-orm"))["s
       ${schema.residuRemittance}, ${schema.agreementInput}, ${schema.agreement},
       ${schema.reputationCache}, ${schema.coopReputationCache}, ${schema.indexerCursor},
       ${schema.farmer}, ${schema.saprotanCatalog}, ${schema.priceRef},
-      ${schema.yieldTable}, ${schema.commodity}, ${schema.coop}, ${schema.agrinas}
+      ${schema.yieldTable}, ${schema.commodity}, ${schema.coop}, ${schema.supplier}
     restart identity cascade
   `);
 }

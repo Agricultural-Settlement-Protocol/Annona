@@ -30,16 +30,16 @@ import {
 // Valid strkey addresses are hard to hand-write; mint them with the SDK.
 const coop = Keypair.random().publicKey();
 const farmer = Keypair.random().publicKey();
-const agrinas = Keypair.random().publicKey();
+const supplier = Keypair.random().publicKey();
 const KTP = "a".repeat(64); // 32-byte hex
 
 test("create_agreement: 11 args, correct order + types", () => {
   const inv = createAgreement({
     coop,
     farmer,
-    agrinas,
+    supplier,
     commodity: { code: "GABAH", grade: "B", moistureBps: 1400, hppVersion: 4 },
-    basePriceAgrinas: 2_000_000_0000000n,
+    basePriceSupplier: 2_000_000_0000000n,
     saprotanMarkupBps: 1000,
     hppHandlingFeeBps: 500,
     expectedVolG: 2_600_000n,
@@ -53,7 +53,7 @@ test("create_agreement: 11 args, correct order + types", () => {
   const [a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10] = inv.args.map((v) => scValToNative(v));
   assert.equal(a0, coop);
   assert.equal(a1, farmer);
-  assert.equal(a2, agrinas);
+  assert.equal(a2, supplier);
   assert.deepEqual(a3, { code: "GABAH", grade: "B", moisture_bps: 1400, hpp_version: 4 });
   assert.equal(a4, 2_000_000_0000000n);
   assert.equal(a5, 1000);
@@ -121,9 +121,9 @@ test("create_agreement builds a valid invokeHostFunction tx envelope", () => {
   const inv = createAgreement({
     coop,
     farmer,
-    agrinas,
+    supplier,
     commodity: { code: "GABAH", grade: "B", moistureBps: 1400, hppVersion: 4 },
-    basePriceAgrinas: 2_000_000_0000000n,
+    basePriceSupplier: 2_000_000_0000000n,
     saprotanMarkupBps: 1000,
     hppHandlingFeeBps: 500,
     expectedVolG: 2_600_000n,

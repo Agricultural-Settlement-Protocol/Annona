@@ -20,11 +20,11 @@ import {
 } from "@annona/core";
 import type { RepTier } from "@annona/ui";
 
-// ─── Parties (ERD: AGRINAS, COOP) ───────────────────────────────────────────
+// ─── Parties (ERD: SUPPLIER, COOP) ───────────────────────────────────────────
 
-export const MOCK_AGRINAS = {
+export const MOCK_SUPPLIER = {
   id: "agr-0001",
-  name: "PT Agrinas Pangan Nusantara",
+  name: "PT Pupuk Indonesia",
   walletAddress: "GAGRINAS7Y2K4XW3PJM5V6QN8RD9TB2CE4FH6JK8LM2NP4QR6ST8UV2W",
 } as const;
 
@@ -100,7 +100,7 @@ export const MOCK_YIELD_TABLE: MockYieldRow[] = [
   },
 ];
 
-// ─── Saprotan catalog (ERD: SAPROTAN_CATALOG, Agrinas-owned) ────────────────
+// ─── Saprotan catalog (ERD: SAPROTAN_CATALOG, Supplier-owned) ────────────────
 
 export type StockStatus = "Tersedia" | "Menipis" | "Habis";
 
@@ -110,8 +110,8 @@ export interface MockCatalogItem {
   name: string;
   category: "pupuk" | "benih" | "pestisida" | "alsintan";
   region: string;
-  /** PRINCIPAL per unit. Agrinas-set, read-only to KMP. */
-  basePriceAgrinas: bigint;
+  /** PRINCIPAL per unit. Supplier-set, read-only to KMP. */
+  basePriceSupplier: bigint;
   unitLabel: string;
   subsidiFlag: boolean;
   source: string;
@@ -126,7 +126,7 @@ export const MOCK_CATALOG: MockCatalogItem[] = [
     name: "Pupuk Urea 50kg",
     category: "pupuk",
     region: "Jawa Barat",
-    basePriceAgrinas: rupiah(560_000),
+    basePriceSupplier: rupiah(560_000),
     unitLabel: "karung 50kg",
     subsidiFlag: true,
     source: "Pupuk Indonesia",
@@ -138,7 +138,7 @@ export const MOCK_CATALOG: MockCatalogItem[] = [
     name: "NPK Phonska 50kg",
     category: "pupuk",
     region: "Jawa Barat",
-    basePriceAgrinas: rupiah(640_000),
+    basePriceSupplier: rupiah(640_000),
     unitLabel: "karung 50kg",
     subsidiFlag: true,
     source: "Pupuk Indonesia",
@@ -150,7 +150,7 @@ export const MOCK_CATALOG: MockCatalogItem[] = [
     name: "Benih Padi Inpari 32",
     category: "benih",
     region: "Jawa Barat",
-    basePriceAgrinas: rupiah(120_000),
+    basePriceSupplier: rupiah(120_000),
     unitLabel: "kantong 5kg",
     subsidiFlag: false,
     source: "Sang Hyang Seri",
@@ -162,7 +162,7 @@ export const MOCK_CATALOG: MockCatalogItem[] = [
     name: "Benih Jagung BISI-18",
     category: "benih",
     region: "Jawa Barat",
-    basePriceAgrinas: rupiah(155_000),
+    basePriceSupplier: rupiah(155_000),
     unitLabel: "kantong 5kg",
     subsidiFlag: false,
     source: "BISI International",
@@ -174,7 +174,7 @@ export const MOCK_CATALOG: MockCatalogItem[] = [
     name: "Insektisida Regent 400ml",
     category: "pestisida",
     region: "Jawa Barat",
-    basePriceAgrinas: rupiah(95_000),
+    basePriceSupplier: rupiah(95_000),
     unitLabel: "botol 400ml",
     subsidiFlag: false,
     source: "BASF",
@@ -385,7 +385,7 @@ export interface MockAgreementInput {
   catalogId: string;
   qty: number;
   /** principal snapshot per unit at create time */
-  basePriceAgrinas: bigint;
+  basePriceSupplier: bigint;
 }
 
 export interface MockAgreement {
@@ -396,7 +396,7 @@ export interface MockAgreement {
   grade: string;
   moistureBps: number;
   // four locked price variables
-  basePriceAgrinas: bigint; // principal total (sum of inputs)
+  basePriceSupplier: bigint; // principal total (sum of inputs)
   saprotanMarkupBps: number;
   inputDebt: bigint; // derived
   hppHandlingFeeBps: number;
@@ -463,14 +463,14 @@ function makeAgreement(a: {
       hppPerKg,
       remainingDebt: inputDebt,
       hppHandlingFeeBps: handlingBps,
-      basePriceAgrinas: a.basePrincipal,
+      basePriceSupplier: a.basePrincipal,
       inputDebt,
     });
     remainingDebt = inputDebt - split.debtPaid;
     paidToFarmer = split.netToFarmer;
     coopHandlingAccrued = split.handlingCut;
     coopMarginAccrued = split.coopMargin;
-    residuPrincipal = split.principalToAgrinas;
+    residuPrincipal = split.principalToSupplier;
   }
 
   return {
@@ -480,7 +480,7 @@ function makeAgreement(a: {
     commodityCode: a.commodityCode,
     grade: a.grade ?? "B",
     moistureBps: 1400,
-    basePriceAgrinas: a.basePrincipal,
+    basePriceSupplier: a.basePrincipal,
     saprotanMarkupBps: markupBps,
     inputDebt,
     hppHandlingFeeBps: handlingBps,
@@ -522,9 +522,9 @@ export const MOCK_AGREEMENTS: MockAgreement[] = [
     status: "Settled",
     residuStatus: "Pending",
     inputs: [
-      { catalogId: "cat-urea", qty: 2, basePriceAgrinas: rupiah(560_000) },
-      { catalogId: "cat-npk", qty: 1, basePriceAgrinas: rupiah(640_000) },
-      { catalogId: "cat-inpari", qty: 2, basePriceAgrinas: rupiah(120_000) },
+      { catalogId: "cat-urea", qty: 2, basePriceSupplier: rupiah(560_000) },
+      { catalogId: "cat-npk", qty: 1, basePriceSupplier: rupiah(640_000) },
+      { catalogId: "cat-inpari", qty: 2, basePriceSupplier: rupiah(120_000) },
     ],
     createdAt: "2026-03-02",
     expectedHarvestDate: "2026-06-25",
@@ -541,9 +541,9 @@ export const MOCK_AGREEMENTS: MockAgreement[] = [
     settledKg: 0,
     status: "Active",
     inputs: [
-      { catalogId: "cat-urea", qty: 1, basePriceAgrinas: rupiah(560_000) },
-      { catalogId: "cat-npk", qty: 1, basePriceAgrinas: rupiah(640_000) },
-      { catalogId: "cat-pest", qty: 1, basePriceAgrinas: rupiah(95_000) },
+      { catalogId: "cat-urea", qty: 1, basePriceSupplier: rupiah(560_000) },
+      { catalogId: "cat-npk", qty: 1, basePriceSupplier: rupiah(640_000) },
+      { catalogId: "cat-pest", qty: 1, basePriceSupplier: rupiah(95_000) },
     ],
     createdAt: "2026-03-15",
     expectedHarvestDate: "2026-07-06",
@@ -562,8 +562,8 @@ export const MOCK_AGREEMENTS: MockAgreement[] = [
     status: "Flagged",
     flag: "Suspected",
     inputs: [
-      { catalogId: "cat-urea", qty: 3, basePriceAgrinas: rupiah(560_000) },
-      { catalogId: "cat-npk", qty: 2, basePriceAgrinas: rupiah(640_000) },
+      { catalogId: "cat-urea", qty: 3, basePriceSupplier: rupiah(560_000) },
+      { catalogId: "cat-npk", qty: 2, basePriceSupplier: rupiah(640_000) },
     ],
     createdAt: "2026-03-10",
     expectedHarvestDate: "2026-07-04",
@@ -580,8 +580,8 @@ export const MOCK_AGREEMENTS: MockAgreement[] = [
     settledKg: 0,
     status: "SupplyDispatched",
     inputs: [
-      { catalogId: "cat-bisi", qty: 2, basePriceAgrinas: rupiah(155_000) },
-      { catalogId: "cat-urea", qty: 1, basePriceAgrinas: rupiah(560_000) },
+      { catalogId: "cat-bisi", qty: 2, basePriceSupplier: rupiah(155_000) },
+      { catalogId: "cat-urea", qty: 1, basePriceSupplier: rupiah(560_000) },
     ],
     createdAt: "2026-06-27",
     expectedHarvestDate: "2026-10-15",
@@ -597,15 +597,15 @@ export const MOCK_AGREEMENTS: MockAgreement[] = [
     settledKg: 0,
     status: "Delivered",
     inputs: [
-      { catalogId: "cat-urea", qty: 2, basePriceAgrinas: rupiah(560_000) },
-      { catalogId: "cat-npk", qty: 2, basePriceAgrinas: rupiah(640_000) },
-      { catalogId: "cat-pest", qty: 1, basePriceAgrinas: rupiah(95_000) },
+      { catalogId: "cat-urea", qty: 2, basePriceSupplier: rupiah(560_000) },
+      { catalogId: "cat-npk", qty: 2, basePriceSupplier: rupiah(640_000) },
+      { catalogId: "cat-pest", qty: 1, basePriceSupplier: rupiah(95_000) },
     ],
     createdAt: "2026-03-05",
     expectedHarvestDate: "2026-06-30",
     grade: "A",
   }),
-  // 6 — Dewi: CREATED, waiting for Agrinas dispatch (bulk request queue).
+  // 6 — Dewi: CREATED, waiting for Supplier dispatch (bulk request queue).
   makeAgreement({
     n: 6,
     farmerId: "frm-006",
@@ -616,13 +616,13 @@ export const MOCK_AGREEMENTS: MockAgreement[] = [
     settledKg: 0,
     status: "Created",
     inputs: [
-      { catalogId: "cat-urea", qty: 1, basePriceAgrinas: rupiah(560_000) },
-      { catalogId: "cat-inpari", qty: 2, basePriceAgrinas: rupiah(120_000) },
+      { catalogId: "cat-urea", qty: 1, basePriceSupplier: rupiah(560_000) },
+      { catalogId: "cat-inpari", qty: 2, basePriceSupplier: rupiah(120_000) },
     ],
     createdAt: "2026-07-01",
     expectedHarvestDate: "2026-10-20",
   }),
-  // 7 — Hendra: SETTLED (jagung), residu REMITTED awaiting Agrinas verify.
+  // 7 — Hendra: SETTLED (jagung), residu REMITTED awaiting Supplier verify.
   makeAgreement({
     n: 7,
     farmerId: "frm-007",
@@ -634,9 +634,9 @@ export const MOCK_AGREEMENTS: MockAgreement[] = [
     status: "Settled",
     residuStatus: "Remitted",
     inputs: [
-      { catalogId: "cat-bisi", qty: 3, basePriceAgrinas: rupiah(155_000) },
-      { catalogId: "cat-urea", qty: 1, basePriceAgrinas: rupiah(560_000) },
-      { catalogId: "cat-npk", qty: 1, basePriceAgrinas: rupiah(640_000) },
+      { catalogId: "cat-bisi", qty: 3, basePriceSupplier: rupiah(155_000) },
+      { catalogId: "cat-urea", qty: 1, basePriceSupplier: rupiah(560_000) },
+      { catalogId: "cat-npk", qty: 1, basePriceSupplier: rupiah(640_000) },
     ],
     createdAt: "2026-02-20",
     expectedHarvestDate: "2026-06-18",
@@ -655,8 +655,8 @@ export const MOCK_AGREEMENTS: MockAgreement[] = [
     status: "PartiallyDelivered",
     flag: "PartialDelivery",
     inputs: [
-      { catalogId: "cat-urea", qty: 2, basePriceAgrinas: rupiah(560_000) },
-      { catalogId: "cat-npk", qty: 1, basePriceAgrinas: rupiah(640_000) },
+      { catalogId: "cat-urea", qty: 2, basePriceSupplier: rupiah(560_000) },
+      { catalogId: "cat-npk", qty: 1, basePriceSupplier: rupiah(640_000) },
     ],
     createdAt: "2026-03-08",
     expectedHarvestDate: "2026-06-22",
@@ -674,10 +674,10 @@ export const MOCK_AGREEMENTS: MockAgreement[] = [
     status: "Settled",
     residuStatus: "Cleared",
     inputs: [
-      { catalogId: "cat-urea", qty: 4, basePriceAgrinas: rupiah(560_000) },
-      { catalogId: "cat-npk", qty: 2, basePriceAgrinas: rupiah(640_000) },
-      { catalogId: "cat-inpari", qty: 1, basePriceAgrinas: rupiah(120_000) },
-      { catalogId: "cat-pest", qty: 1, basePriceAgrinas: rupiah(95_000) },
+      { catalogId: "cat-urea", qty: 4, basePriceSupplier: rupiah(560_000) },
+      { catalogId: "cat-npk", qty: 2, basePriceSupplier: rupiah(640_000) },
+      { catalogId: "cat-inpari", qty: 1, basePriceSupplier: rupiah(120_000) },
+      { catalogId: "cat-pest", qty: 1, basePriceSupplier: rupiah(95_000) },
     ],
     createdAt: "2026-02-12",
     expectedHarvestDate: "2026-06-10",
@@ -694,8 +694,8 @@ export const MOCK_AGREEMENTS: MockAgreement[] = [
     settledKg: 0,
     status: "ForceMajeure",
     inputs: [
-      { catalogId: "cat-urea", qty: 1, basePriceAgrinas: rupiah(560_000) },
-      { catalogId: "cat-inpari", qty: 3, basePriceAgrinas: rupiah(120_000) },
+      { catalogId: "cat-urea", qty: 1, basePriceSupplier: rupiah(560_000) },
+      { catalogId: "cat-inpari", qty: 3, basePriceSupplier: rupiah(120_000) },
     ],
     createdAt: "2026-03-12",
     expectedHarvestDate: "2026-06-28",
@@ -711,9 +711,9 @@ export const MOCK_AGREEMENTS: MockAgreement[] = [
     settledKg: 0,
     status: "Created",
     inputs: [
-      { catalogId: "cat-urea", qty: 2, basePriceAgrinas: rupiah(560_000) },
-      { catalogId: "cat-npk", qty: 1, basePriceAgrinas: rupiah(640_000) },
-      { catalogId: "cat-inpari", qty: 1, basePriceAgrinas: rupiah(120_000) },
+      { catalogId: "cat-urea", qty: 2, basePriceSupplier: rupiah(560_000) },
+      { catalogId: "cat-npk", qty: 1, basePriceSupplier: rupiah(640_000) },
+      { catalogId: "cat-inpari", qty: 1, basePriceSupplier: rupiah(120_000) },
     ],
     createdAt: "2026-07-02",
     expectedHarvestDate: "2026-10-25",
@@ -729,9 +729,9 @@ export const MOCK_AGREEMENTS: MockAgreement[] = [
     settledKg: 0,
     status: "Created",
     inputs: [
-      { catalogId: "cat-urea", qty: 3, basePriceAgrinas: rupiah(560_000) },
-      { catalogId: "cat-npk", qty: 2, basePriceAgrinas: rupiah(640_000) },
-      { catalogId: "cat-pest", qty: 1, basePriceAgrinas: rupiah(95_000) },
+      { catalogId: "cat-urea", qty: 3, basePriceSupplier: rupiah(560_000) },
+      { catalogId: "cat-npk", qty: 2, basePriceSupplier: rupiah(640_000) },
+      { catalogId: "cat-pest", qty: 1, basePriceSupplier: rupiah(95_000) },
     ],
     createdAt: "2026-07-03",
     expectedHarvestDate: "2026-10-28",
@@ -840,7 +840,7 @@ export interface MockSettlement {
   gross: bigint;
   handlingCut: bigint;
   debtNetted: bigint;
-  principalToAgrinas: bigint;
+  principalToSupplier: bigint;
   coopMargin: bigint;
   netPaid: bigint;
   settledVolKg: number;
@@ -858,7 +858,7 @@ function settlementFor(agreementId: string, id: string, when: string, bankRef: s
     hppPerKg: a.hppPerKg,
     remainingDebt: a.inputDebt,
     hppHandlingFeeBps: a.hppHandlingFeeBps,
-    basePriceAgrinas: a.basePriceAgrinas,
+    basePriceSupplier: a.basePriceSupplier,
     inputDebt: a.inputDebt,
   });
   return {
@@ -867,7 +867,7 @@ function settlementFor(agreementId: string, id: string, when: string, bankRef: s
     gross: split.grossSmallest,
     handlingCut: split.handlingCut,
     debtNetted: split.debtPaid,
-    principalToAgrinas: split.principalToAgrinas,
+    principalToSupplier: split.principalToSupplier,
     coopMargin: split.coopMargin,
     netPaid: split.netToFarmer,
     settledVolKg: Number(a.settledVolG / 1000n),
@@ -955,7 +955,7 @@ export const MOCK_ACTIVITY: MockActivity[] = [
   {
     id: "act-1",
     text: "Perjanjian #6 dibuat untuk Dewi Lestari",
-    detail: "Menunggu pengiriman saprotan dari Agrinas",
+    detail: "Menunggu pengiriman saprotan dari Supplier",
     kind: "created",
     txHash: txHash("create6"),
     at: "2 jam lalu",
@@ -970,7 +970,7 @@ export const MOCK_ACTIVITY: MockActivity[] = [
   },
   {
     id: "act-3",
-    text: "Agrinas mengirim saprotan untuk Rina Wulandari",
+    text: "Supplier mengirim saprotan untuk Rina Wulandari",
     detail: "Perjanjian #4, menunggu konfirmasi penerimaan",
     kind: "dispatched",
     txHash: txHash("dispatch4"),
@@ -987,7 +987,7 @@ export const MOCK_ACTIVITY: MockActivity[] = [
   {
     id: "act-5",
     text: "Pembayaran Budi Santoso selesai, terima Rp13.855.000",
-    detail: "Split otomatis: petani, residu Agrinas, margin KMP",
+    detail: "Split otomatis: petani, residu Supplier, margin KMP",
     kind: "settled",
     txHash: txHash("settlestl-001"),
     at: "6 hari lalu",
@@ -1002,8 +1002,8 @@ export const MOCK_ACTIVITY: MockActivity[] = [
   },
   {
     id: "act-7",
-    text: "Residu pokok Hendra Gunawan disetor ke Agrinas",
-    detail: "Rp1.430.000, menunggu verifikasi Agrinas",
+    text: "Residu pokok Hendra Gunawan disetor ke Supplier",
+    detail: "Rp1.430.000, menunggu verifikasi Supplier",
     kind: "residu",
     txHash: txHash("residu7"),
     at: "1 minggu lalu",
@@ -1145,7 +1145,7 @@ export function cashNeededThisWeek() {
       hppPerKg: a.hppPerKg,
       remainingDebt: a.remainingDebt,
       hppHandlingFeeBps: a.hppHandlingFeeBps,
-      basePriceAgrinas: a.basePriceAgrinas,
+      basePriceSupplier: a.basePriceSupplier,
       inputDebt: a.inputDebt,
     });
     return sum + split.netToFarmer;
@@ -1175,7 +1175,7 @@ export type SupplyRequestStatus = "Draft" | "Terkirim" | "Dikirim" | "Diterima";
 export interface SupplyRequestRow {
   agreement: MockAgreement;
   farmer: MockFarmer;
-  /** Draft = Created not yet submitted to Agrinas; Terkirim = submitted, waiting
+  /** Draft = Created not yet submitted to Supplier; Terkirim = submitted, waiting
    *  dispatch; Dikirim = SupplyDispatched; Diterima = accepted (Active or later). */
   status: SupplyRequestStatus;
 }
@@ -1196,7 +1196,7 @@ export function supplyRequestRows(): SupplyRequestRow[] {
 }
 
 /** Aggregate saprotan quantities + principal across agreements (the bulk
- *  request Agrinas reads regionally). */
+ *  request Supplier reads regionally). */
 export function aggregateSaprotanNeeds(agreements: MockAgreement[]) {
   const byItem = new Map<string, { item: MockCatalogItem; qty: number; principal: bigint }>();
   for (const a of agreements) {
@@ -1205,7 +1205,7 @@ export function aggregateSaprotanNeeds(agreements: MockAgreement[]) {
       if (!item) continue;
       const cur = byItem.get(item.id) ?? { item, qty: 0, principal: 0n };
       cur.qty += line.qty;
-      cur.principal += BigInt(line.qty) * line.basePriceAgrinas;
+      cur.principal += BigInt(line.qty) * line.basePriceSupplier;
       byItem.set(item.id, cur);
     }
   }
@@ -1369,7 +1369,7 @@ export function deliveryHistoryRows(): DeliveryHistoryRow[] {
 }
 
 // ─── Harvest logistics: KMP -> gudang Agrinas (ERD: HARVEST_SHIPMENT) ───────
-// Off-chain for MVP. Double gate: KMP sets Dikirim, Agrinas confirms Diterima
+// Off-chain for MVP. Double gate: KMP sets Dikirim, Supplier confirms Diterima
 // (or Selisih with a discrepancy note). Lot lines keep per-farmer traceability;
 // UI shows weighted-average kadar air per grade-lot.
 
@@ -1390,12 +1390,12 @@ export interface MockShipment {
   /** human ref shown in UI, e.g. SHP-2026-001 */
   ref: string;
   coopName: string;
-  agrinasId: string;
-  agrinasName: string;
+  supplierId: string;
+  supplierName: string;
   commodityCode: string;
   status: ShipmentStatus;
   totalVolumeKg: number;
-  /** receiver-confirmed; null until Agrinas confirms */
+  /** receiver-confirmed; null until Supplier confirms */
   receivedVolumeKg: number | null;
   discrepancyNote: string | null;
   sentAt: string | null;
@@ -1409,8 +1409,8 @@ export const MOCK_SHIPMENTS: MockShipment[] = [
     id: "shp-001",
     ref: "SHP-2026-001",
     coopName: "KMP Sukamaju",
-    agrinasId: "agr-0001",
-    agrinasName: "Gudang Agrinas Cianjur",
+    supplierId: "agr-0001",
+    supplierName: "Gudang Agrinas Cianjur",
     commodityCode: "GABAH",
     status: "Diterima",
     totalVolumeKg: 8_400,
@@ -1435,8 +1435,8 @@ export const MOCK_SHIPMENTS: MockShipment[] = [
     id: "shp-002",
     ref: "SHP-2026-002",
     coopName: "KMP Sukamaju",
-    agrinasId: "agr-0001",
-    agrinasName: "Gudang Agrinas Cianjur",
+    supplierId: "agr-0001",
+    supplierName: "Gudang Agrinas Cianjur",
     commodityCode: "JAGUNG",
     status: "Diterima",
     totalVolumeKg: 4_580,
@@ -1461,8 +1461,8 @@ export const MOCK_SHIPMENTS: MockShipment[] = [
     id: "shp-003",
     ref: "SHP-2026-003",
     coopName: "KMP Sukamaju",
-    agrinasId: "agr-0001",
-    agrinasName: "Gudang Agrinas Cianjur",
+    supplierId: "agr-0001",
+    supplierName: "Gudang Agrinas Cianjur",
     commodityCode: "GABAH",
     status: "Dikirim",
     totalVolumeKg: 4_350,
@@ -1501,7 +1501,7 @@ export function weightedMoistureBps(lines: MockShipmentLine[]): number {
   return Math.round(lines.reduce((s, l) => s + l.moistureBps * l.volumeKg, 0) / totalKg);
 }
 
-/** Delivered volume sitting in KMP storage, not yet shipped to Agrinas.
+/** Delivered volume sitting in KMP storage, not yet shipped to Supplier.
  *  deliveries minus volumes already included in non-Draft shipments. */
 export function unshippedDeliveries(): MockDelivery[] {
   const shippedDeliveryIds = new Set(
@@ -1515,7 +1515,7 @@ export function unshippedDeliveries(): MockDelivery[] {
 // ─── KMP income aggregates (Pembayaran page top stat row) ───────────────────
 
 /** Revenue the KMP has actually earned (handling fee + saprotan markup margin).
- *  These are KMP's own money; never confuse with residuPrincipal (Agrinas's). */
+ *  These are KMP's own money; never confuse with residuPrincipal (Supplier's). */
 export function kmpIncomeStats() {
   const totalMarginSaprotan = MOCK_AGREEMENTS.reduce(
     (sum, a) => sum + a.coopMarginAccrued,
@@ -1537,7 +1537,7 @@ export function kmpIncomeStats() {
 
 export interface DemoAccount {
   email: string;
-  role: "kmp" | "agrinas" | "pemerintah";
+  role: "kmp" | "supplier" | "pemerintah" | "financier";
   displayName: string;
   homePath: string;
 }
@@ -1550,10 +1550,16 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
     homePath: "/kmp",
   },
   {
-    email: "agrinas@annona.id",
-    role: "agrinas",
-    displayName: "Operator Agrinas",
-    homePath: "/oversight/agrinas",
+    email: "financier@annona.id",
+    role: "financier",
+    displayName: "Pemodal (LPDB Koperasi)",
+    homePath: "/financier",
+  },
+  {
+    email: "pupukindonesia@annona.id",
+    role: "supplier",
+    displayName: "Operator Supplier",
+    homePath: "/oversight/supplier",
   },
   {
     email: "pemerintah@annona.id",

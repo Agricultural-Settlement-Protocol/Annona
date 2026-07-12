@@ -35,7 +35,7 @@ export interface ApiAgreement {
   commodityCode: string;
   grade: string;
   moistureBps: number;
-  basePriceAgrinas: bigint;
+  basePriceSupplier: bigint;
   saprotanMarkupBps: number;
   inputDebt: bigint;
   hppHandlingFeeBps: number;
@@ -64,7 +64,7 @@ export interface ApiAgreementInput {
   agreementId: string;
   catalogId: string;
   qty: number;
-  basePriceAgrinas: bigint;
+  basePriceSupplier: bigint;
   lineTotalPrincipal: bigint;
 }
 
@@ -138,7 +138,7 @@ export interface ApiSettlement {
   gross: bigint;
   handlingCut: bigint;
   debtNetted: bigint;
-  principalToAgrinas: bigint;
+  principalToSupplier: bigint;
   coopMargin: bigint;
   netPaid: bigint;
   settledVolG: bigint;
@@ -164,7 +164,7 @@ export interface ApiResidu {
 
 export interface ApiCoop {
   id: string;
-  agrinasId: string;
+  supplierId: string;
   name: string;
   kecamatan: string;
   kabupaten: string;
@@ -174,7 +174,7 @@ export interface ApiCoop {
   createdAt: string;
 }
 
-export interface ApiAgrinas {
+export interface ApiSupplier {
   id: string;
   name: string;
   walletAddress: string;
@@ -207,7 +207,7 @@ function parseAgreement(r: Raw<ApiAgreement>): ApiAgreement {
   return {
     ...r,
     onchainId: big(r.onchainId),
-    basePriceAgrinas: big(r.basePriceAgrinas),
+    basePriceSupplier: big(r.basePriceSupplier),
     inputDebt: big(r.inputDebt),
     hppPerKg: big(r.hppPerKg),
     expectedVolG: big(r.expectedVolG),
@@ -225,7 +225,7 @@ function parseInput(r: Raw<ApiAgreementInput>): ApiAgreementInput {
   return {
     ...r,
     qty: Number(r.qty),
-    basePriceAgrinas: big(r.basePriceAgrinas),
+    basePriceSupplier: big(r.basePriceSupplier),
     lineTotalPrincipal: big(r.lineTotalPrincipal),
   };
 }
@@ -241,7 +241,7 @@ function parseSettlement(r: Raw<ApiSettlement>): ApiSettlement {
     gross: big(r.gross),
     handlingCut: big(r.handlingCut),
     debtNetted: big(r.debtNetted),
-    principalToAgrinas: big(r.principalToAgrinas),
+    principalToSupplier: big(r.principalToSupplier),
     coopMargin: big(r.coopMargin),
     netPaid: big(r.netPaid),
     settledVolG: big(r.settledVolG),
@@ -300,11 +300,11 @@ export async function fetchResidu(): Promise<ApiResidu[]> {
   return items.map(parseResidu);
 }
 
-export async function fetchCoop(): Promise<{ coop: ApiCoop; agrinas: ApiAgrinas }> {
-  const r = await getJSON<{ coop: Raw<ApiCoop>; agrinas: ApiAgrinas }>("/coop");
+export async function fetchCoop(): Promise<{ coop: ApiCoop; supplier: ApiSupplier }> {
+  const r = await getJSON<{ coop: Raw<ApiCoop>; supplier: ApiSupplier }>("/coop");
   return {
     coop: { ...r.coop, prefundedCashBalance: big(r.coop.prefundedCashBalance) },
-    agrinas: r.agrinas,
+    supplier: r.supplier,
   };
 }
 
@@ -347,7 +347,7 @@ export interface ApiCatalogItem {
   code: string;
   name: string;
   category: string;
-  basePriceAgrinas: bigint;
+  basePriceSupplier: bigint;
   source: string;
 }
 
@@ -367,7 +367,7 @@ export async function fetchCatalog(): Promise<ApiCatalogItem[]> {
     code: r.code,
     name: r.name,
     category: r.category,
-    basePriceAgrinas: big(r.basePriceAgrinas),
+    basePriceSupplier: big(r.basePriceSupplier),
     source: r.source,
   }));
 }
@@ -408,4 +408,146 @@ export async function fetchHpp(): Promise<ApiPriceRef[]> {
 /** Build an id -> farmer lookup (fills the kecamatan/wallet the agreement list omits). */
 export function farmerMap(farmers: ApiFarmer[]): Map<string, ApiFarmer> {
   return new Map(farmers.map((f) => [f.id, f]));
+}
+
+// ─── Financier types ─────────────────────────────────────────────────────────
+
+export type FundingStatus = "Requested" | "Approved" | "Rejected" | "Disbursed" | "Reconciled";
+export type RiskBadge = "Rendah" | "Sedang" | "Tinggi";
+
+export interface ApiFundingRequestRow {
+  id: string;
+  onchainId: string;
+  coopId: string;
+  coopName: string;
+  financierId: string;
+  financierName: string;
+  backingHash: string;
+  projectedSettlement: bigint;
+  amountRequested: bigint;
+  amountApproved: bigint;
+  amountDisbursed: bigint;
+  amountReconciled: bigint;
+  coverageRatioBps: number;
+  riskBadge: RiskBadge;
+  status: FundingStatus;
+  proofUrl: string | null;
+  createdAt: string;
+}
+
+export interface ApiBackingLine {
+  id: string;
+  agreementId: string;
+  agreementOnchainId: bigint;
+  farmerName: string;
+  commodityCode: string;
+  status: string;
+  backingValue: bigint;
+}
+
+export interface ApiFinancierOverview {
+  financier: {
+    id: string;
+    name: string;
+    walletAddress: string;
+    poolBalance: bigint;
+    createdAt: string;
+  };
+  totals: {
+    requestCount: number;
+    pendingCount: number;
+    totalRequested: bigint;
+    totalDisbursed: bigint;
+    totalReconciled: bigint;
+    outstanding: bigint;
+  };
+}
+
+type RawFundingRow = {
+  [K in keyof ApiFundingRequestRow]: ApiFundingRequestRow[K] extends bigint ? string : ApiFundingRequestRow[K];
+};
+
+function parseFundingRow(r: RawFundingRow): ApiFundingRequestRow {
+  return {
+    ...r,
+    projectedSettlement: big(r.projectedSettlement),
+    amountRequested: big(r.amountRequested),
+    amountApproved: big(r.amountApproved),
+    amountDisbursed: big(r.amountDisbursed),
+    amountReconciled: big(r.amountReconciled),
+  };
+}
+
+function parseBackingLine(r: Record<string, unknown>): ApiBackingLine {
+  return {
+    id: String(r.id),
+    agreementId: String(r.agreementId),
+    agreementOnchainId: big(String(r.agreementOnchainId)),
+    farmerName: String(r.farmerName),
+    commodityCode: String(r.commodityCode),
+    status: String(r.status),
+    backingValue: big(String(r.backingValue)),
+  };
+}
+
+export async function fetchFinancierOverview(): Promise<ApiFinancierOverview> {
+  const r = await getJSON<{
+    financier: {
+      id: string;
+      name: string;
+      walletAddress: string;
+      poolBalance: string;
+      createdAt: string;
+    };
+    totals: {
+      requestCount: number;
+      pendingCount: number;
+      totalRequested: string;
+      totalDisbursed: string;
+      totalReconciled: string;
+      outstanding: string;
+    };
+  }>("/financier/overview");
+  return {
+    financier: {
+      ...r.financier,
+      poolBalance: big(r.financier.poolBalance),
+    },
+    totals: {
+      requestCount: r.totals.requestCount,
+      pendingCount: r.totals.pendingCount,
+      totalRequested: big(r.totals.totalRequested),
+      totalDisbursed: big(r.totals.totalDisbursed),
+      totalReconciled: big(r.totals.totalReconciled),
+      outstanding: big(r.totals.outstanding),
+    },
+  };
+}
+
+export async function fetchFinancierQueue(): Promise<ApiFundingRequestRow[]> {
+  const { items } = await getJSON<{ items: RawFundingRow[] }>("/financier/queue");
+  return items.map(parseFundingRow);
+}
+
+export async function fetchFinancierPortfolio(): Promise<ApiFundingRequestRow[]> {
+  const { items } = await getJSON<{ items: RawFundingRow[] }>("/financier/portfolio");
+  return items.map(parseFundingRow);
+}
+
+export async function fetchFinancierAll(): Promise<ApiFundingRequestRow[]> {
+  const { items } = await getJSON<{ items: RawFundingRow[] }>("/financier");
+  return items.map(parseFundingRow);
+}
+
+export async function fetchFinancierDetail(
+  id: string,
+): Promise<{ request: ApiFundingRequestRow; lines: ApiBackingLine[] }> {
+  const r = await getJSON<{
+    request: RawFundingRow;
+    lines: Record<string, unknown>[];
+  }>(`/financier/${id}`);
+  return {
+    request: parseFundingRow(r.request),
+    lines: r.lines.map(parseBackingLine),
+  };
 }

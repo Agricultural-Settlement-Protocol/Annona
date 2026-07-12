@@ -30,7 +30,7 @@ import { getDb, schema } from "../apps/api/src/db/client.js";
 import { applyEvent } from "../apps/api/src/indexer/handlers.js";
 import {
   MOCK_AGREEMENTS,
-  MOCK_AGRINAS,
+  MOCK_SUPPLIER,
   MOCK_CATALOG,
   MOCK_COMMODITIES,
   MOCK_COOP,
@@ -68,10 +68,13 @@ async function truncate(): Promise<void> {
   await db.execute(sql`
     truncate table
       ${schema.eventLog}, ${schema.settlement}, ${schema.delivery},
-      ${schema.residuRemittance}, ${schema.agreementInput}, ${schema.agreement},
+      ${schema.residuRemittance}, ${schema.agreementInput},
+      ${schema.fundingRequestLine}, ${schema.fundingRequest}, ${schema.supplierPayable},
+      ${schema.agreement},
       ${schema.reputationCache}, ${schema.coopReputationCache}, ${schema.indexerCursor},
       ${schema.farmer}, ${schema.saprotanCatalog}, ${schema.priceRef},
-      ${schema.yieldTable}, ${schema.commodity}, ${schema.coop}, ${schema.agrinas}
+      ${schema.yieldTable}, ${schema.commodity}, ${schema.coop},
+      ${schema.financier}, ${schema.warehouseOperator}, ${schema.supplier}
     restart identity cascade
   `);
 }
@@ -79,16 +82,16 @@ async function truncate(): Promise<void> {
 async function seedBaseRows(): Promise<Map<string, string>> {
   // Parties.
   const agrRows = await db
-    .insert(schema.agrinas)
-    .values({ name: MOCK_AGRINAS.name, walletAddress: MOCK_AGRINAS.walletAddress })
-    .returning({ id: schema.agrinas.id });
-  const agrinasId = agrRows[0]?.id;
-  if (!agrinasId) throw new Error("seed: failed to insert agrinas");
+    .insert(schema.supplier)
+    .values({ name: MOCK_SUPPLIER.name, walletAddress: MOCK_SUPPLIER.walletAddress })
+    .returning({ id: schema.supplier.id });
+  const supplierId = agrRows[0]?.id;
+  if (!supplierId) throw new Error("seed: failed to insert supplier");
 
   const coRows = await db
     .insert(schema.coop)
     .values({
-      agrinasId,
+      supplierId,
       name: MOCK_COOP.name,
       kecamatan: MOCK_COOP.kecamatan,
       kabupaten: MOCK_COOP.kabupaten,
@@ -135,14 +138,19 @@ async function seedBaseRows(): Promise<Map<string, string>> {
     const rows = await db
       .insert(schema.saprotanCatalog)
       .values({
-        agrinasId,
+        supplierId,
         code: item.code,
         name: item.name,
         category: item.category,
         region: item.region,
-        basePriceAgrinas: item.basePriceAgrinas,
+        basePriceSupplier: item.basePriceSupplier,
         subsidiFlag: item.subsidiFlag,
         source: item.source,
+        // v4.0 HET / e-RDKK tier: subsidized items are priced at HET and gated
+        // on e-RDKK verification (recorded, never computed — Golden Rule 4).
+        priceTier: item.subsidiFlag ? "subsidi" : "non_subsidi",
+        hetPrice: item.subsidiFlag ? item.basePriceSupplier : null,
+        erdkkGated: item.subsidiFlag ?? false,
       })
       .returning({ id: schema.saprotanCatalog.id });
     const id = rows[0]?.id;
@@ -151,8 +159,11 @@ async function seedBaseRows(): Promise<Map<string, string>> {
   }
 
   // Farmers (PII off-chain only). ktpRaw is a demo placeholder — never anchored.
+  // e-RDKK badge is external reference data (recorded, never computed). Seed a
+  // deterministic spread so the subsidy-distribution surface has real variety.
+  const SUBSIDY_SPREAD = ["Terverifikasi", "Belum", "NonSubsidi"] as const;
   await db.insert(schema.farmer).values(
-    MOCK_FARMERS.map((f) => ({
+    MOCK_FARMERS.map((f, i) => ({
       coopId,
       name: f.name,
       ktpRaw: `DEMO-KTP-${f.id}`,
@@ -162,6 +173,7 @@ async function seedBaseRows(): Promise<Map<string, string>> {
       defaultCommodityCode: f.defaultCommodityCode,
       kecamatan: f.kecamatan,
       kabupaten: MOCK_COOP.kabupaten,
+      subsidyStatus: SUBSIDY_SPREAD[i % SUBSIDY_SPREAD.length],
     })),
   );
 
@@ -185,14 +197,16 @@ async function replayAgreement(a: (typeof MOCK_AGREEMENTS)[number]): Promise<voi
       id: oid,
       farmer: farmerAddr(a.farmerId),
       coop: MOCK_COOP.walletAddress,
-      agrinas: MOCK_AGRINAS.walletAddress,
+      supplier: MOCK_SUPPLIER.walletAddress,
       commodity: {
         code: a.commodityCode,
         grade: a.grade,
         moistureBps: a.moistureBps,
         hppVersion: a.hppVersion,
       },
-      basePriceAgrinas: a.basePriceAgrinas,
+      // v4.0 demo spread: every 3rd agreement priced at HET (subsidized).
+      subsidyTier: Number(oid) % 3 === 0 ? "Subsidized" : "Commercial",
+      basePriceSupplier: a.basePriceSupplier,
       saprotanMarkupBps: a.saprotanMarkupBps,
       inputDebt: a.inputDebt,
       hppHandlingFeeBps: a.hppHandlingFeeBps,
@@ -211,7 +225,7 @@ async function replayAgreement(a: (typeof MOCK_AGREEMENTS)[number]): Promise<voi
     await emit(
       envelope("SupplyDispatched", `dispatched:${oid}`, bump(), {
         id: oid,
-        agrinas: MOCK_AGRINAS.walletAddress,
+        supplier: MOCK_SUPPLIER.walletAddress,
         coop: MOCK_COOP.walletAddress,
       }),
     );
@@ -256,7 +270,7 @@ async function replayAgreement(a: (typeof MOCK_AGREEMENTS)[number]): Promise<voi
       hppPerKg: a.hppPerKg,
       remainingDebt,
       hppHandlingFeeBps: a.hppHandlingFeeBps,
-      basePriceAgrinas: a.basePriceAgrinas,
+      basePriceSupplier: a.basePriceSupplier,
       inputDebt: a.inputDebt,
     });
     remainingDebt -= split.debtPaid;
@@ -267,7 +281,7 @@ async function replayAgreement(a: (typeof MOCK_AGREEMENTS)[number]): Promise<voi
         gross: split.grossSmallest,
         handlingCut: split.handlingCut,
         debtNetted: split.debtPaid,
-        principalToAgrinas: split.principalToAgrinas,
+        principalToSupplier: split.principalToSupplier,
         coopMargin: split.coopMargin,
         netPaid: split.netToFarmer,
         settledVolG: settledG,
@@ -296,7 +310,7 @@ async function replayAgreement(a: (typeof MOCK_AGREEMENTS)[number]): Promise<voi
           id: oid,
           coop: MOCK_COOP.walletAddress,
           principal: residu.principalAmount,
-          agrinas: MOCK_AGRINAS.walletAddress,
+          supplier: MOCK_SUPPLIER.walletAddress,
         }),
       );
     if (residu.status === "Disputed")
@@ -327,8 +341,8 @@ async function replayAgreement(a: (typeof MOCK_AGREEMENTS)[number]): Promise<voi
           agreementId: agreementUuid,
           catalogId: catalogIdMapGlobal.get(inp.catalogId) as string,
           qty: String(inp.qty),
-          basePriceAgrinas: inp.basePriceAgrinas,
-          lineTotalPrincipal: inp.basePriceAgrinas * BigInt(inp.qty),
+          basePriceSupplier: inp.basePriceSupplier,
+          lineTotalPrincipal: inp.basePriceSupplier * BigInt(inp.qty),
         })),
       );
     }
@@ -366,6 +380,177 @@ async function replayReputation(): Promise<void> {
   );
 }
 
+/**
+ * Link the seeded Supabase Auth users to their dashboard role in `app_user`.
+ *
+ * WHY this must run every seed: `truncate()` clears `coop`/`supplier` with
+ * CASCADE, and `app_user.coop_id`/`supplier_id` are FKs — so truncating cascades
+ * into `app_user` and wipes the role links. Without this step, every login
+ * succeeds at Supabase Auth but `resolveRole()` finds no row and the UI shows
+ * "Akun ini belum memiliki peran. Hubungi administrator."
+ *
+ * It joins `auth.users` by email, so it only links accounts that actually exist
+ * in Supabase Auth (missing emails insert 0 rows — safe). Add supplier/financier
+ * rows here once their auth users + the `app_role` enum values exist (v4.0).
+ */
+/** Rupiah whole -> smallest unit (dIDR is 7-decimal). */
+const R = (whole: number): bigint => BigInt(whole) * 10_000_000n;
+
+/**
+ * v4.0: seed the Offtake Financing demo — one Financier (LPDB Koperasi) + a
+ * spread of funding requests across the lifecycle (Requested / Approved /
+ * Disbursed / Reconciled), each backed by real agreements (the proof packet).
+ * Returns the financier id so the app_user link can point at it.
+ */
+const FINANCIER_WALLET = "GFINANCIERLPDBKOPERASIDEMOTESTNETWALLETPLACEHOLDER00001";
+
+async function seedFinancing(): Promise<string> {
+  const finRows = await db
+    .insert(schema.financier)
+    .values({
+      name: "LPDB Koperasi",
+      walletAddress: FINANCIER_WALLET,
+      poolBalance: R(500_000_000),
+    })
+    .returning({ id: schema.financier.id });
+  const financierId = finRows[0]?.id;
+  if (!financierId) throw new Error("seed: failed to insert financier");
+
+  const coopId = (await db.select({ id: schema.coop.id }).from(schema.coop).limit(1))[0]?.id;
+  if (!coopId) throw new Error("seed: no coop for financing");
+  const agrs = await db
+    .select({ id: schema.agreement.id, onchainId: schema.agreement.onchainId })
+    .from(schema.agreement)
+    .limit(6);
+
+  // Event-driven (anti-drift): the SAME applyEvent reducer that the live indexer
+  // uses writes each funding_request header + derives coverage/risk. Only the
+  // OFF-CHAIN backing lines (like saprotan_catalog, not carried by any event) are
+  // inserted directly, keyed to the header by on-chain id.
+  // (targetStatus, requested, approved, disbursed, reconciled, projected, backingLines)
+  const plan: [
+    (typeof schema.fundingStatus.enumValues)[number],
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+  ][] = [
+    ["Requested", 30_000_000, 0, 0, 0, 52_000_000, 2],
+    ["Approved", 40_000_000, 35_000_000, 0, 0, 61_000_000, 2],
+    ["Disbursed", 25_000_000, 25_000_000, 25_000_000, 0, 44_000_000, 1],
+    ["Reconciled", 20_000_000, 20_000_000, 20_000_000, 20_000_000, 41_000_000, 1],
+    ["Rejected", 55_000_000, 0, 0, 0, 58_000_000, 1], // 94% coverage → Tinggi → declined
+  ];
+
+  let agrCursor = 0;
+  let onchain = 1;
+  let ts = secondsOf("2026-07-01T00:00:00Z");
+  const t = () => (ts += 60);
+  for (const [status, req, appr, disb, rec, proj, lineCount] of plan) {
+    const oid = BigInt(onchain++);
+    await emit(
+      envelope("FundingRequested", `funding-req:${oid}`, t(), {
+        id: oid,
+        coop: MOCK_COOP.walletAddress,
+        financier: FINANCIER_WALLET,
+        projectedSettlement: R(proj),
+        amountRequested: R(req),
+        backingHash: `demo${oid.toString().padStart(60, "0")}`,
+      }),
+    );
+    if (status === "Rejected")
+      await emit(
+        envelope("FundingRejected", `funding-rej:${oid}`, t(), {
+          id: oid,
+          financier: FINANCIER_WALLET,
+          reason: "COVERAGE_TOO_HIGH",
+        }),
+      );
+    if (status === "Approved" || status === "Disbursed" || status === "Reconciled")
+      await emit(
+        envelope("FundingApproved", `funding-appr:${oid}`, t(), {
+          id: oid,
+          financier: FINANCIER_WALLET,
+          amountApproved: R(appr),
+        }),
+      );
+    if (status === "Disbursed" || status === "Reconciled")
+      await emit(
+        envelope("FundingDisbursed", `funding-disb:${oid}`, t(), {
+          id: oid,
+          financier: FINANCIER_WALLET,
+          coop: MOCK_COOP.walletAddress,
+          amountDisbursed: R(disb),
+        }),
+      );
+    if (status === "Reconciled")
+      await emit(
+        envelope("FundingReconciled", `funding-rec:${oid}`, t(), {
+          id: oid,
+          coop: MOCK_COOP.walletAddress,
+          amountReconciled: R(rec),
+          remaining: R(disb - rec),
+        }),
+      );
+
+    // Off-chain backing detail (the proof packet), matched to the reducer-written
+    // header by on-chain id.
+    const frId = (
+      await db
+        .select({ id: schema.fundingRequest.id })
+        .from(schema.fundingRequest)
+        .where(sql`${schema.fundingRequest.onchainId} = ${oid}`)
+    )[0]?.id;
+    if (!frId) continue;
+    for (let i = 0; i < lineCount; i++) {
+      const a = agrs[agrCursor % agrs.length];
+      agrCursor++;
+      if (!a) break;
+      await db.insert(schema.fundingRequestLine).values({
+        fundingRequestId: frId,
+        agreementId: a.id,
+        backingValue: R(Math.round(proj / lineCount)),
+      });
+    }
+  }
+  console.log(`[seed] seeded 1 financier + ${plan.length} funding requests (event-driven)`);
+  return financierId;
+}
+
+async function seedAppUsers(financierId: string | null): Promise<void> {
+  const coopRows = (await db.execute(sql`select id from coop limit 1`)) as unknown as {
+    id: string;
+  }[];
+  const agrRows = (await db.execute(sql`select id from supplier limit 1`)) as unknown as {
+    id: string;
+  }[];
+  const coopId = coopRows[0]?.id ?? null;
+  const supplierId = agrRows[0]?.id ?? null;
+
+  const accounts = [
+    { email: "kmp@annona.id", role: "kmp", name: "Pengurus KMP Sukamaju", coop: coopId, agr: null, fin: null },
+    { email: "agrinas@annona.id", role: "supplier", name: "Operator Supplier", coop: null, agr: supplierId, fin: null },
+    { email: "pemerintah@annona.id", role: "pemerintah", name: "Petugas Pengawas Kementan", coop: null, agr: null, fin: null },
+    { email: "financier@annona.id", role: "financier", name: "Pemodal (LPDB Koperasi)", coop: null, agr: null, fin: financierId },
+  ] as const;
+
+  for (const a of accounts) {
+    await db.execute(sql`
+      insert into app_user (id, email, role, display_name, coop_id, supplier_id, financier_id)
+      select u.id, ${a.email}, ${a.role}::app_role, ${a.name}, ${a.coop}::uuid, ${a.agr}::uuid, ${a.fin}::uuid
+      from auth.users u
+      where u.email = ${a.email}
+      on conflict (id) do update set
+        role = excluded.role, display_name = excluded.display_name,
+        coop_id = excluded.coop_id, supplier_id = excluded.supplier_id,
+        financier_id = excluded.financier_id
+    `);
+  }
+  console.log(`[seed] linked demo app_user roles (only emails present in auth.users)`);
+}
+
 async function main(): Promise<void> {
   console.log("[seed] truncating read-models...");
   await truncate();
@@ -375,6 +560,8 @@ async function main(): Promise<void> {
   console.log(`[seed] replaying ${MOCK_AGREEMENTS.length} agreements as events...`);
   for (const a of MOCK_AGREEMENTS) await replayAgreement(a);
   await replayReputation();
+  const financierId = await seedFinancing();
+  await seedAppUsers(financierId);
   console.log("[seed] done. read-models populated from the mock-data fixture.");
   process.exit(0);
 }

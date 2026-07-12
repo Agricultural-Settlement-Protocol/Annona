@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Screen I: Rekonsiliasi Residu (Agrinas view).
+ * Screen I: Rekonsiliasi Residu (Supplier view).
  *
  * Inter-institutional ledger: per-KMP residu collected, owed, remitted, cleared.
  * Drill into a KMP to see its individual residu rows.
@@ -324,7 +324,7 @@ function CoopResiduSection({
               <THead>
                 <Th>Petani</Th>
                 <Th>Komoditas</Th>
-                <Th>Pokok Agrinas</Th>
+                <Th>Pokok Supplier</Th>
                 <Th>Status</Th>
                 <Th>Ref Bank</Th>
                 <Th>Tgl Remit</Th>
@@ -521,12 +521,12 @@ export default function ResiduRekonsiliasiPage() {
     <div className="space-y-6">
       <OversightPageHeader
         title="Rekonsiliasi Residu"
-        description="Ledger antar-lembaga: pokok Agrinas yang tersimpan di kas koperasi. Dual gate: KMP mencatat, Agrinas memverifikasi. Sengketa adalah indikator tinjauan manusia."
+        description="Ledger antar-lembaga: pokok Supplier yang tersimpan di kas koperasi. Dual gate: KMP mencatat, Supplier memverifikasi. Sengketa adalah indikator tinjauan manusia."
       />
 
-      {/* Alert: residu is Agrinas's money */}
+      {/* Alert: residu is Supplier's money */}
       <Alert tone="warning" title="Residu pokok bukan milik koperasi">
-        Ini adalah uang pokok saprotan Agrinas yang dikumpulkan saat panen dan
+        Ini adalah uang pokok saprotan Supplier yang dikumpulkan saat panen dan
         disimpan sementara di kas KMP. Verifikasi setelah menerima konfirmasi bank.
         Sengketa membekukan reputasi on-chain KMP sebagai indikator, bukan tuduhan.
       </Alert>
@@ -536,14 +536,14 @@ export default function ResiduRekonsiliasiPage() {
         <StatCard
           label="Belum Diterima"
           value={<RupiahAmount smallest={totalPending} className="text-3xl" />}
-          hint="KMP belum remit ke Agrinas"
+          hint="KMP belum remit ke Supplier"
           tone={totalPending > 0n ? "warn" : "good"}
           icon={<Landmark size={18} />}
         />
         <StatCard
           label="Menunggu Verifikasi"
           value={<RupiahAmount smallest={totalRemitted} className="text-3xl" />}
-          hint="KMP sudah remit, Agrinas perlu verifikasi"
+          hint="KMP sudah remit, Supplier perlu verifikasi"
           tone={totalRemitted > 0n ? "warn" : "good"}
           icon={<Building2 size={18} />}
         />
@@ -602,7 +602,7 @@ export default function ResiduRekonsiliasiPage() {
       <Card>
         <CardHeader
           title="Dual Gate Residu: Cara Kerja"
-          description="Dua tahap verifikasi melindungi Agrinas dan mendisiplinkan KMP."
+          description="Dua tahap verifikasi melindungi Supplier dan mendisiplinkan KMP."
           action={<ShieldCheck size={16} className="text-aqua-400" />}
         />
         <CardContent className="space-y-3">
@@ -624,9 +624,9 @@ export default function ResiduRekonsiliasiPage() {
                 2
               </span>
               <div>
-                <p className="font-medium">Agrinas Verifikasi</p>
+                <p className="font-medium">Supplier Verifikasi</p>
                 <p className="text-muted-foreground">
-                  Agrinas menekan Setujui Remitansi setelah mengkonfirmasi catatan
+                  Supplier menekan Setujui Remitansi setelah mengkonfirmasi catatan
                   bank. Status berubah ke Terverifikasi.{" "}
                   <span className="font-mono">confirm_remittance</span> dicatat di
                   Stellar.
@@ -640,7 +640,7 @@ export default function ResiduRekonsiliasiPage() {
               <div>
                 <p className="font-medium">Jika Ada Sengketa</p>
                 <p className="text-muted-foreground">
-                  Agrinas dapat Ajukan Sengketa jika ada selisih. Ini hanya indikator
+                  Supplier dapat Ajukan Sengketa jika ada selisih. Ini hanya indikator
                   untuk peninjauan manusia, bukan tuduhan otomatis. Reputasi on-chain
                   KMP dibekukan sementara. Penyelesaian dilakukan di luar sistem oleh
                   pihak berwenang.

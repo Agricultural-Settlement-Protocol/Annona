@@ -23,7 +23,7 @@ import { SearchSelect, type SearchSelectItem } from "@/components/kmp/search-sel
 import { TBody, THead, Table, TableFrame, Td, Th, Tr } from "@/components/kmp/table";
 import { ScrollArea } from "@/components/scroll-area";
 import {
-  MOCK_AGRINAS,
+  MOCK_SUPPLIER,
   MOCK_SHIPMENTS,
   type MockDelivery,
   type MockShipment,
@@ -136,7 +136,7 @@ function ShipmentDetailSheet({
             </div>
             <p className="mt-1 text-xs text-gray-500 font-medium">
               {shipment.commodityCode === "GABAH" ? "Gabah Kering Panen" : "Jagung Pipilan Kering"}{" "}
-              ke {shipment.agrinasName}
+              ke {shipment.supplierName}
             </p>
           </div>
           <button
@@ -316,11 +316,11 @@ function groupIntoLots(deliveries: MockDelivery[]): DeliveryLot[] {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-const AGRINAS_OPTIONS: SearchSelectItem[] = [
+const SUPPLIER_OPTIONS: SearchSelectItem[] = [
   {
-    id: MOCK_AGRINAS.id,
+    id: MOCK_SUPPLIER.id,
     label: "Gudang Agrinas Cianjur",
-    sublabel: MOCK_AGRINAS.name,
+    sublabel: MOCK_SUPPLIER.name,
   },
 ];
 
@@ -333,7 +333,7 @@ export default function LogistikPage() {
 
   // Buat Pengiriman state
   const [selectedDeliveryIds, setSelectedDeliveryIds] = useState<Set<string>>(new Set());
-  const [tujuanId, setTujuanId] = useState<string | null>(MOCK_AGRINAS.id);
+  const [tujuanId, setTujuanId] = useState<string | null>(MOCK_SUPPLIER.id);
   const [shipmentSent, setShipmentSent] = useState(false);
   const [sending, setSending] = useState(false);
 
@@ -409,8 +409,8 @@ export default function LogistikPage() {
         id: newId,
         ref: `SHP-2026-${String(allShipments.length + 1).padStart(3, "0")}`,
         coopName: "KMP Sukamaju",
-        agrinasId: MOCK_AGRINAS.id,
-        agrinasName: "Gudang Agrinas Cianjur",
+        supplierId: MOCK_SUPPLIER.id,
+        supplierName: "Gudang Agrinas Cianjur",
         commodityCode: selectedDeliveries[0]?.agreementId
           ? (getAgreement(selectedDeliveries[0].agreementId)?.commodityCode ?? "GABAH")
           : "GABAH",
@@ -452,7 +452,7 @@ export default function LogistikPage() {
           s.ref.toLowerCase().includes(q) ||
           s.commodityCode.toLowerCase().includes(q) ||
           s.status.toLowerCase().includes(q) ||
-          s.agrinasName.toLowerCase().includes(q);
+          s.supplierName.toLowerCase().includes(q);
         const matchDate = inDateRange(s.sentAt ?? s.createdAt, dateRange);
         return matchSearch && matchDate;
       }),
@@ -606,7 +606,7 @@ export default function LogistikPage() {
                 Tujuan Gudang
               </label>
               <SearchSelect
-                items={AGRINAS_OPTIONS}
+                items={SUPPLIER_OPTIONS}
                 value={tujuanId}
                 onChange={setTujuanId}
                 placeholder="Pilih gudang Agrinas..."

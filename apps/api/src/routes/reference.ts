@@ -9,7 +9,7 @@ const json = (data: unknown) =>
 /**
  * Reference data reads (off-chain authoritative):
  * - commodities + current HPP anchor (price_ref)
- * - Agrinas master saprotan catalog (base_price_agrinas = principal)
+ * - Supplier master saprotan catalog (base_price_supplier = principal)
  * - yield table backing the transparent estimator
  */
 export const referenceRoute = new Hono()

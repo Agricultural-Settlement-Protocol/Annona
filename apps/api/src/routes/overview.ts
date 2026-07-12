@@ -74,7 +74,7 @@ export const overviewRoute = new Hono().get("/", async (c) => {
       hppPerKg: a.hppPerKg,
       remainingDebt: a.remainingDebt,
       hppHandlingFeeBps: a.hppHandlingFeeBps,
-      basePriceAgrinas: a.basePriceAgrinas,
+      basePriceSupplier: a.basePriceSupplier,
       inputDebt: a.inputDebt,
     });
     return s + split.netToFarmer;
@@ -124,6 +124,6 @@ export const overviewRoute = new Hono().get("/", async (c) => {
 /** Coop parties + prefunded cash (Screen A header). */
 export const coopRoute = new Hono().get("/", async (c) => {
   const rows = await getDb().select().from(schema.coop);
-  const agrinasRows = await getDb().select().from(schema.agrinas);
-  return c.json(jsonSafe({ coop: rows[0] ?? null, agrinas: agrinasRows[0] ?? null }));
+  const supplierRows = await getDb().select().from(schema.supplier);
+  return c.json(jsonSafe({ coop: rows[0] ?? null, supplier: supplierRows[0] ?? null }));
 });

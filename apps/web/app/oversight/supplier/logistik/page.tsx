@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Logistik Saprotan (Agrinas view) — saprotan dispatch desk.
+ * Logistik Saprotan (Supplier view) — saprotan dispatch desk.
  *
  * Pending dispatch requests from KMPs (from buildDispatchRequests) shown as
  * responsive cards. Each dispatch records dispatch_supply on Stellar via useMockTx.
@@ -173,7 +173,7 @@ function HistoryDetailSheet({
                 <div className="mt-1 h-8 w-px bg-border" />
               </div>
               <div>
-                <p className="text-sm font-medium text-foreground">Dispatched oleh Agrinas</p>
+                <p className="text-sm font-medium text-foreground">Dispatched oleh Supplier</p>
                 <p className="text-xs text-muted-foreground">{row.dispatchedAt}</p>
                 <TxHashLink hash={row.txHash} />
               </div>
@@ -459,12 +459,12 @@ export default function LogistikPage() {
                 {
                   step: 1,
                   title: "Permintaan dari KMP",
-                  desc: "KMP mengirim permintaan gabungan saprotan berdasarkan perjanjian aktif. Agrinas melihat total kebutuhan per koperasi.",
+                  desc: "KMP mengirim permintaan gabungan saprotan berdasarkan perjanjian aktif. Supplier melihat total kebutuhan per koperasi.",
                 },
                 {
                   step: 2,
-                  title: "Agrinas Dispatch",
-                  desc: "Operator Agrinas menekan Dispatch. Transaksi dispatch_supply dicatat di Stellar testnet dengan detail item dan nilai pokok.",
+                  title: "Supplier Dispatch",
+                  desc: "Operator Supplier menekan Dispatch. Transaksi dispatch_supply dicatat di Stellar testnet dengan detail item dan nilai pokok.",
                 },
                 {
                   step: 3,
