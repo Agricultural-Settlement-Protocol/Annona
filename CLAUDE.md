@@ -13,6 +13,7 @@ Built for the **APAC Stellar Hackathon 2026** (submit 15 Jul), then the **Stella
 **The one-line mental model:** we ship one app (KDMP-facing), but architect a protocol (a reusable offtake settlement standard). UI feels like a KDMP app; contracts feel like infrastructure others build on.
 
 **Read before coding:**
+- `docs/BUILD-PLAN.md` for the v4.0 execution plan: phases, lanes, per-phase test gates + checklists. **This is the live plan of record. When you finish a task, tick its checklist box and update the Progress Tracker in the SAME PR — a box is "done" only when merged + its Test Gate is green, never on a promise.**
 - `docs/PRD.md` for product: features (F1 to F10), interfaces, roadmap, business.
 - `docs/technical/ARCHITECTURE.md` for system, layers, project structure, settlement.
 - `docs/technical/SMART-CONTRACT.md` for the Soroban contract spec.
