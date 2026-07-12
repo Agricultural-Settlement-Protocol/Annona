@@ -172,9 +172,9 @@ function SidebarContent({
 
   const roleLabel = isSupplier ? "SUPPLIER" : "PEMERINTAH";
   const roleIcon = isSupplier ? (
-    <Package size={10} className="text-[#0c6a78]" />
+    <Package size={10} className="shrink-0 text-[#0c6a78]" />
   ) : (
-    <ShieldCheck size={10} className="text-emerald-800" />
+    <ShieldCheck size={10} className="shrink-0 text-emerald-800" />
   );
 
   return (
@@ -193,18 +193,18 @@ function SidebarContent({
               href="/"
               onClick={onNavigate}
               aria-label="Annona"
-              className="min-w-0"
+              className="shrink-0"
             >
               <Logo size={20} className="shrink-0" />
             </Link>
             <span
               className={cn(
-                "inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-[9px] font-bold tracking-wide uppercase shadow-sm",
+                "inline-flex min-w-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-[9px] font-bold tracking-wide uppercase shadow-sm",
                 roleBadgeClass,
               )}
             >
               {roleIcon}
-              {roleLabel}
+              <span className="truncate">{roleLabel}</span>
             </span>
           </>
         )}
@@ -232,7 +232,7 @@ function SidebarContent({
             : "border-soft-green/30 bg-soft-green/20"
         )}>
           <p className="text-sm font-bold text-gray-900 leading-snug">
-            {isSupplier ? "PT Agrinas Pangan Nusantara" : "Kementerian Pertanian RI"}
+            {isSupplier ? "PT Pupuk Indonesia" : "Kementerian Pertanian RI"}
           </p>
           <p className="mt-1 text-xs font-semibold text-gray-500 leading-normal">
             {isSupplier ? "Operator protokol offtake" : "Pengawas regional (hanya baca)"}

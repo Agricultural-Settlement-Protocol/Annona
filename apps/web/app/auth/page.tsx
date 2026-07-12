@@ -22,7 +22,7 @@ const ROLE_ICON = {
 
 const DEMO_PASSWORDS: Record<string, string> = {
   "kmp@annona.id": "AnnonaKMP2026!",
-  "agrinas@annona.id": "AnnonaSupplier2026!",
+  "pupukindonesia@annona.id": "AnnonaSupplier2026!",
   "pemerintah@annona.id": "AnnonaGov2026!",
   "financier@annona.id": "AnnonaFinancier2026!",
 };

@@ -154,10 +154,10 @@ function SidebarContent({
       >
         {collapsed ? null : (
           <>
-            <Link href="/" onClick={onNavigate} aria-label="Annona" className="min-w-0">
+            <Link href="/" onClick={onNavigate} aria-label="Annona" className="shrink-0">
               <Logo size={20} className="shrink-0" />
             </Link>
-            <span className="rounded-full bg-[#e7fafc] border border-[#c3f2f6]/50 px-2 py-0.5 text-[9px] font-mono font-bold tracking-wide text-[#0c6a78] uppercase">
+            <span className="min-w-0 shrink truncate rounded-full bg-[#e7fafc] border border-[#c3f2f6]/50 px-2 py-0.5 text-[9px] font-mono font-bold tracking-wide text-[#0c6a78] uppercase">
               KMP
             </span>
           </>

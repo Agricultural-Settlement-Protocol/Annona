@@ -24,7 +24,7 @@ import type { RepTier } from "@annona/ui";
 
 export const MOCK_SUPPLIER = {
   id: "agr-0001",
-  name: "PT Agrinas Pangan Nusantara",
+  name: "PT Pupuk Indonesia",
   walletAddress: "GAGRINAS7Y2K4XW3PJM5V6QN8RD9TB2CE4FH6JK8LM2NP4QR6ST8UV2W",
 } as const;
 
@@ -1556,7 +1556,7 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
     homePath: "/financier",
   },
   {
-    email: "agrinas@annona.id",
+    email: "pupukindonesia@annona.id",
     role: "supplier",
     displayName: "Operator Supplier",
     homePath: "/oversight/supplier",
