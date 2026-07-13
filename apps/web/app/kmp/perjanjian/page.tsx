@@ -122,7 +122,7 @@ export default function PerjanjianPage() {
                     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
                       a.subsidyTier === "Subsidized"
                         ? "bg-amber-100 text-amber-800"
-                        : "bg-gray-100 text-gray-600"
+                        : "bg-slate-200 text-slate-700"
                     }`}>
                       {a.subsidyTier === "Subsidized"
                         ? t("badge.subsidy.Subsidized")

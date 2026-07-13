@@ -217,7 +217,11 @@ export default function KmpHomePage() {
                           {t("common.per")} {formatKg(a.expectedVolKg)}, panen{" "}
                           {a.expectedHarvestDate}
                         </p>
-                        <span className="mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium bg-amber-50 text-amber-700">
+                        <span className={`mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                          a.subsidyTier === "Subsidized"
+                            ? "bg-amber-100 text-amber-800"
+                            : "bg-slate-200 text-slate-700"
+                        }`}>
                           {a.subsidyTier === "Subsidized"
                             ? t("badge.subsidy.Subsidized")
                             : t("badge.subsidy.Commercial")}
