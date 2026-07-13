@@ -34,6 +34,7 @@ import {
 } from "@annona/ui";
 import {
   AlertTriangle,
+  BadgePercent,
   BarChart3,
   CheckCircle2,
   CloudRain,
@@ -45,7 +46,10 @@ import {
   TrendingUp,
   Wheat,
 } from "lucide-react";
+import { useI18n } from "@/lib/i18n/use-i18n";
 import { useMemo, useState } from "react";
+import { fetchSubsidyDistribution } from "@/lib/api";
+import { useApi } from "@/lib/use-api";
 
 // ─── Flag reason labels ───────────────────────────────────────────────────────
 
@@ -65,6 +69,7 @@ type SortKey = "settlement" | "residu" | "name";
 type SortDir = "asc" | "desc";
 
 function LeaderboardTable() {
+  const { t } = useI18n();
   const [sortKey, setSortKey] = useState<SortKey>("settlement");
   const [sortDir, setSortDir] = useState<SortDir>("asc"); // asc = worst first (reds float up)
 
@@ -123,25 +128,25 @@ function LeaderboardTable() {
         <thead className="border-b border-border bg-surface-muted text-left">
           <tr>
             <th className="px-4 py-3">
-              <SortHeader label="Koperasi" sk="name" />
+              <SortHeader label={t("page.oversight.pemerintah.leaderboard.col.coop")} sk="name" />
             </th>
             <th className="px-4 py-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-              Kabupaten
+              {t("page.kmp.perjanjian.detail.district")}
             </th>
             <th className="px-4 py-3">
-              <SortHeader label="Settlement Rate" sk="settlement" />
+              <SortHeader label={t("page.oversight.pemerintah.leaderboard.col.settlement")} sk="settlement" />
             </th>
             <th className="px-4 py-3">
-              <SortHeader label="Kepatuhan Residu" sk="residu" />
+              <SortHeader label={t("page.oversight.pemerintah.leaderboard.col.reputation")} sk="residu" />
             </th>
             <th className="px-4 py-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-              Perjanjian Aktif
+              {t("page.oversight.pemerintah.activeCoops")}
             </th>
             <th className="px-4 py-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-              Total Produksi
+              {t("page.oversight.pemerintah.totalVolume")}
             </th>
             <th className="px-4 py-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-              Status
+              {t("common.status")}
             </th>
           </tr>
         </thead>
@@ -207,17 +212,17 @@ function LeaderboardTable() {
                   <div className="flex flex-wrap gap-1">
                     {isFrozen && (
                       <Badge tone="danger" icon={<Lock size={10} />}>
-                        Dibekukan
+                        {t("badge.status.Flagged")}
                       </Badge>
                     )}
                     {isProblem && !isFrozen && (
                       <Badge tone="warning" icon={<AlertTriangle size={10} />}>
-                        Bermasalah
+                        {t("badge.status.Flagged")}
                       </Badge>
                     )}
                     {!isProblem && !isFrozen && (
                       <Badge tone="success" icon={<CheckCircle2 size={10} />}>
-                        Baik
+                        {t("badge.reputation.good")}
                       </Badge>
                     )}
                     {coop.flagQueue > 0 && (
@@ -239,6 +244,7 @@ function LeaderboardTable() {
 // ─── Flag queue ───────────────────────────────────────────────────────────────
 
 function FlagQueue({ items }: { items: FlagQueueItem[] }) {
+  const { t } = useI18n();
   const [reviewed, setReviewed] = useState<Set<string>>(new Set());
 
   function toggle(id: string) {
@@ -253,8 +259,7 @@ function FlagQueue({ items }: { items: FlagQueueItem[] }) {
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground">
-        Flag adalah indikator untuk peninjauan manusia, bukan tuduhan otomatis.
-        "Tandai sudah ditinjau" hanya tersimpan di perangkat ini.
+        {t("page.oversight.pemerintah.flags")}
       </p>
       {items.map((item) => {
         const meta = FLAG_REASON_META[item.reason] ?? {
@@ -289,7 +294,7 @@ function FlagQueue({ items }: { items: FlagQueueItem[] }) {
                   onChange={() => toggle(item.id)}
                   className="h-4 w-4 rounded border-border accent-verdant-600"
                 />
-                Sudah ditinjau
+                {t("page.oversight.pemerintah.flags.view")}
               </label>
             </div>
           </div>
@@ -299,9 +304,149 @@ function FlagQueue({ items }: { items: FlagQueueItem[] }) {
   );
 }
 
+// ─── Subsidy distribution card (live from API) ────────────────────────────────
+
+function SubsidyDistributionCard() {
+  const { t } = useI18n();
+  const { data, loading, error } = useApi(fetchSubsidyDistribution, []);
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="py-8 text-center text-sm text-muted-foreground">
+          {t("common.loading")}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error || !data) {
+    return null;
+  }
+
+  const subsidized = data.byTier.find((t) => t.tier === "Subsidized");
+  const commercial = data.byTier.find((t) => t.tier === "Commercial");
+  const eligible = data.byFarmerStatus.find((f) => f.status === "eligible");
+  const unknown = data.byFarmerStatus.find((f) => f.status === "unknown");
+
+  return (
+    <Card>
+      <CardHeader
+        title={t("page.oversight.pemerintah.subsidy.title")}
+        description={t("page.oversight.pemerintah.subsidy.desc")}
+        action={<BadgePercent size={16} className="text-emerald-400" />}
+      />
+      <CardContent className="space-y-6">
+        {/* Tier split — two big stat boxes */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="rounded-xl border border-emerald-100 bg-emerald-50/40 px-5 py-4">
+            <p className="text-xs font-semibold tracking-wide text-emerald-700 uppercase">
+              {t("badge.subsidy.Subsidized")}
+            </p>
+            <p className="mt-1.5 text-3xl font-bold text-emerald-800">
+              {data.subsidizedAgreementCount}
+            </p>
+            <p className="mt-1 text-xs text-emerald-700">
+              Perjanjian &middot; nilai proyeksi{" "}
+              <RupiahAmount smallest={subsidized?.projectedValue ?? 0n} className="font-semibold" />
+            </p>
+          </div>
+          <div className="rounded-xl border border-gray-200 bg-gray-50/60 px-5 py-4">
+            <p className="text-xs font-semibold tracking-wide text-gray-600 uppercase">
+              {t("badge.subsidy.Commercial")}
+            </p>
+            <p className="mt-1.5 text-3xl font-bold text-gray-800">
+              {data.commercialAgreementCount}
+            </p>
+            <p className="mt-1 text-xs text-gray-600">
+              Perjanjian &middot; nilai proyeksi{" "}
+              <RupiahAmount smallest={commercial?.projectedValue ?? 0n} className="font-semibold" />
+            </p>
+          </div>
+        </div>
+
+        {/* Farmer e-RDKK eligibility */}
+        <div>
+          <p className="mb-2 text-sm font-semibold text-gray-700">
+            {t("page.oversight.pemerintah.subsidy.farmerEligibility")}
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+              <CheckCircle2 size={12} />
+              {t("page.oversight.pemerintah.subsidy.eligible")}: {eligible?.count ?? 0}
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-600">
+              <AlertTriangle size={12} />
+              {t("page.oversight.pemerintah.subsidy.notEligible")}: {unknown?.count ?? 0}
+            </span>
+          </div>
+        </div>
+
+        {/* HET-gated catalog items */}
+        {data.hetCatalog.length > 0 && (
+          <div>
+            <p className="mb-2 text-sm font-semibold text-gray-700">
+              {t("page.oversight.pemerintah.subsidy.hetCatalog")} ({data.hetCatalog.length})
+            </p>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-max text-sm">
+                <thead className="border-b border-border">
+                  <tr>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">
+                      {t("page.oversight.supplier.katalog.table.col.name")}
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">
+                      {t("page.oversight.supplier.katalog.table.col.source")}
+                    </th>
+                    <th className="px-3 py-2 text-right text-xs font-semibold text-muted-foreground">
+                      {t("page.oversight.pemerintah.subsidy.hetCatalog")}
+                    </th>
+                    <th className="px-3 py-2 text-right text-xs font-semibold text-muted-foreground">
+                      e-RDKK
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {data.hetCatalog.map((item) => (
+                    <tr key={item.id} className="hover:bg-surface-muted/40">
+                      <td className="px-3 py-2 font-medium text-foreground">
+                        {item.name}
+                      </td>
+                      <td className="px-3 py-2 text-muted-foreground">
+                        {item.priceTier ?? "-"}
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums text-foreground">
+                        {item.hetPrice
+                          ? new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(Number(item.hetPrice))
+                          : "-"}
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        {item.erdkkGated ? (
+                          <CheckCircle2 size={14} className="ml-auto text-emerald-500" />
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        <div className="rounded-lg border border-border bg-surface-muted px-3 py-2 text-xs text-muted-foreground">
+          {t("page.oversight.pemerintah.desc")}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function PengawasanRegionalPage() {
+  const { t } = useI18n();
   const metrics = useMemo(() => protocolMetrics(), []);
   const regional = useMemo(() => buildRegionalData(), []);
 
@@ -324,44 +469,43 @@ export default function PengawasanRegionalPage() {
   return (
     <div className="space-y-6">
       <OversightPageHeader
-        title="Pengawasan Regional"
-        description="Data produksi komoditas dan kinerja koperasi di seluruh jaringan Annona Protocol. Tampilan hanya baca untuk keperluan regulasi dan kebijakan."
+        title={t("page.oversight.pemerintah.title")}
+        description={t("page.oversight.pemerintah.desc")}
       />
 
       {/* Read-only indicator */}
       <div className="flex items-center gap-2 rounded-lg border border-verdant-200 bg-verdant-50 px-4 py-3">
         <ShieldCheck size={16} className="text-verdant-600" />
         <p className="text-sm font-medium text-verdant-800">
-          Mode pengawasan: Anda melihat data sebagai regulator. Tidak ada tindakan
-          tulis yang tersedia.
+          {t("page.oversight.pemerintah.desc")}
         </p>
       </div>
 
       {/* Macro stat cards */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          label="Total Produksi"
+          label={t("page.oversight.pemerintah.totalVolume")}
           value={`${metrics.totalProducedKg.toLocaleString("id-ID")} kg`}
-          hint="Seluruh komoditas, semua koperasi terdaftar"
+          hint={t("page.oversight.pemerintah.desc")}
           icon={<Wheat size={18} />}
         />
         <StatCard
-          label="Total Petani Aktif"
+          label={t("page.oversight.pemerintah.totalFarmers")}
           value={String(totalFarmers)}
-          hint="Petani dengan perjanjian aktif di jaringan"
+          hint={t("page.oversight.pemerintah.desc")}
           icon={<Leaf size={18} />}
         />
         <StatCard
-          label="Rasio Panen Sukses"
+          label={t("page.oversight.pemerintah.totalPaid")}
           value={`${successRatePct}%`}
           hint={`${totalSuccessHarvest} sukses dari ${totalSuccessHarvest + totalFailedHarvest} total tertutup`}
           tone={successRatePct >= 70 ? "good" : successRatePct >= 50 ? "warn" : "bad"}
           icon={<CheckCircle2 size={18} />}
         />
         <StatCard
-          label="Gagal Panen Tercatat"
+          label={t("page.oversight.pemerintah.flags")}
           value={String(totalFailedHarvest)}
-          hint="Flagged + ForceMajeure di seluruh koperasi"
+          hint={t("page.oversight.pemerintah.desc")}
           tone={totalFailedHarvest > 5 ? "warn" : "neutral"}
           icon={<CloudRain size={18} />}
         />
@@ -372,8 +516,8 @@ export default function PengawasanRegionalPage() {
         <div className="lg:col-span-2">
           <Card>
             <CardHeader
-              title="Leaderboard Koperasi"
-              description="Urutkan berdasarkan settlement rate atau kepatuhan residu. KMP bermasalah muncul di atas secara default."
+              title={t("page.oversight.pemerintah.leaderboard")}
+              description={t("page.oversight.pemerintah.desc")}
               action={<BarChart3 size={16} className="text-verdant-400" />}
             />
             <CardContent className="p-0">
@@ -386,8 +530,8 @@ export default function PengawasanRegionalPage() {
         <div>
           <Card>
             <CardHeader
-              title="Distribusi Komoditas"
-              description="Komposisi produksi berdasarkan jenis komoditas. Sumber: data perjanjian aktif."
+              title={t("page.oversight.pemerintah.commodityDist")}
+              description={t("page.oversight.pemerintah.desc")}
               action={<Wheat size={16} className="text-verdant-400" />}
             />
             <CardContent className="space-y-4">
@@ -406,24 +550,26 @@ export default function PengawasanRegionalPage() {
                     />
                   </div>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    {c.kgTotal.toLocaleString("id-ID")} kg total
+                    {t("page.oversight.pemerintah.totalVolume")}
                   </p>
                 </div>
               ))}
               <div className="rounded-lg border border-border bg-surface-muted px-3 py-2 text-xs text-muted-foreground">
-                Sumber: perjanjian diselesaikan (Settled), data off-chain per
-                koperasi.
+                {t("page.oversight.pemerintah.desc")}
               </div>
             </CardContent>
           </Card>
         </div>
       </div>
 
+      {/* Subsidy distribution — live from API */}
+      <SubsidyDistributionCard />
+
       {/* Regional breakdown */}
       <Card>
         <CardHeader
-          title="Produktivitas Per Kabupaten"
-          description="Rata-rata yield berdasarkan tabel KATAM Balitbangtan dan BPS. Digunakan sebagai acuan estimasi transparan pada perjanjian."
+          title={t("page.oversight.pemerintah.regionalBreakdown")}
+          description={t("page.oversight.pemerintah.desc")}
           action={<MapIcon size={16} className="text-aqua-400" />}
         />
         <CardContent className="p-0">
@@ -432,22 +578,22 @@ export default function PengawasanRegionalPage() {
               <thead className="border-b border-border bg-surface-muted text-left">
                 <tr>
                   <th className="px-4 py-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                    Kabupaten
+                    {t("page.kmp.perjanjian.detail.district")}
                   </th>
                   <th className="px-4 py-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                     Provinsi
                   </th>
                   <th className="px-4 py-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                    Petani Aktif
+                    {t("page.oversight.pemerintah.totalFarmers")}
                   </th>
                   <th className="px-4 py-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                    Total Produksi
+                    {t("page.oversight.pemerintah.totalVolume")}
                   </th>
                   <th className="px-4 py-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                     Rata-rata Yield
                   </th>
                   <th className="px-4 py-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                    Settlement Rate
+                    {t("page.oversight.pemerintah.leaderboard.col.settlement")}
                   </th>
                   <th className="px-4 py-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                     Panen Sukses
@@ -501,8 +647,8 @@ export default function PengawasanRegionalPage() {
       {/* Flag queue */}
       <Card>
         <CardHeader
-          title="Antrean Flag dan Intervensi"
-          description="Perjanjian yang memerlukan verifikasi pemerintah. Flag hanya indikator untuk peninjauan manusia, bukan tuduhan otomatis."
+          title={t("page.oversight.pemerintah.flags")}
+          description={t("page.oversight.pemerintah.desc")}
           action={<AlertTriangle size={16} className="text-amber-500" />}
         />
         <CardContent>

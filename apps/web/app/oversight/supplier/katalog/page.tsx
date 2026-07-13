@@ -26,6 +26,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import { useI18n } from "@/lib/i18n/use-i18n";
 import { Fragment, useCallback, useRef, useState } from "react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -117,6 +118,7 @@ function CatalogFormSheet({
   onClose: () => void;
   onSave: (form: FormState, id: string | null) => void;
 }) {
+  const { t } = useI18n();
   const [form, setForm] = useState<FormState>(initial);
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
   const firstInputRef = useRef<HTMLInputElement>(null);
@@ -173,17 +175,17 @@ function CatalogFormSheet({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label={editingId ? "Edit Item Katalog" : "Tambah Item Katalog"}
+        aria-label={editingId ? t("common.edit") : t("page.oversight.supplier.katalog.add")}
         className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col bg-surface shadow-md overflow-hidden"
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div>
             <p className="font-semibold text-foreground">
-              {editingId ? "Edit Item Katalog" : "Tambah Item Katalog"}
+              {editingId ? t("page.oversight.supplier.katalog.form.title") : t("page.oversight.supplier.katalog.add")}
             </p>
             <p className="text-xs text-muted-foreground">
-              Perubahan katalog dicatat off-chain
+              {t("page.oversight.supplier.katalog.desc")}
             </p>
           </div>
           <button
@@ -201,7 +203,7 @@ function CatalogFormSheet({
           {/* Kode */}
           <div>
             <label className="mb-1 block text-sm font-medium text-foreground" htmlFor="form-code">
-              Kode Barang
+               {t("page.oversight.supplier.katalog.form.code")}
             </label>
             <input
               id="form-code"
@@ -218,7 +220,7 @@ function CatalogFormSheet({
           {/* Nama */}
           <div>
             <label className="mb-1 block text-sm font-medium text-foreground" htmlFor="form-name">
-              Nama Barang
+               {t("page.oversight.supplier.katalog.form.name")}
             </label>
             <Input
               id="form-name"
@@ -232,7 +234,7 @@ function CatalogFormSheet({
           {/* Kategori */}
           <div>
             <label className="mb-1 block text-sm font-medium text-foreground" htmlFor="form-category">
-              Kategori
+               {t("page.oversight.supplier.katalog.table.col.category")}
             </label>
             <select
               id="form-category"
@@ -267,7 +269,7 @@ function CatalogFormSheet({
           {/* Harga Pokok */}
           <div>
             <label className="mb-1 block text-sm font-medium text-foreground" htmlFor="form-price">
-              Harga Pokok (Rp/unit)
+               {t("page.oversight.supplier.katalog.form.price")}
             </label>
             <Input
               id="form-price"
@@ -287,7 +289,7 @@ function CatalogFormSheet({
           {/* Subsidi */}
           <div>
             <label className="mb-1 block text-sm font-medium text-foreground" htmlFor="form-subsidi">
-              Status Subsidi
+               Status Subsidi
             </label>
             <select
               id="form-subsidi"
@@ -303,7 +305,7 @@ function CatalogFormSheet({
           {/* Status Stok */}
           <div>
             <label className="mb-1 block text-sm font-medium text-foreground" htmlFor="form-stock">
-              Status Stok
+               Status Stok
             </label>
             <select
               id="form-stock"
@@ -334,7 +336,7 @@ function CatalogFormSheet({
           {/* Sumber */}
           <div>
             <label className="mb-1 block text-sm font-medium text-foreground" htmlFor="form-source">
-              Sumber / Produsen
+               {t("page.oversight.supplier.katalog.form.source")}
             </label>
             <Input
               id="form-source"
@@ -348,10 +350,10 @@ function CatalogFormSheet({
         {/* Footer */}
         <div className="flex items-center justify-end gap-3 border-t border-border px-6 py-4">
           <Button variant="outline" size="sm" onClick={onClose}>
-            Batal
+            {t("common.cancel")}
           </Button>
           <Button variant="primary" size="sm" onClick={handleSave}>
-            {editingId ? "Simpan Perubahan" : "Tambah Item"}
+            {editingId ? t("page.oversight.supplier.katalog.form.save") : t("page.oversight.supplier.katalog.add")}
           </Button>
         </div>
       </div>
@@ -370,33 +372,34 @@ function HapusConfirm({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const { t } = useI18n();
   return (
     <>
       <button
         type="button"
         className="fixed inset-0 z-40 bg-foreground/30 backdrop-blur-[1px]"
         onClick={onCancel}
-        aria-label="Batal"
+        aria-label={t("common.cancel")}
       />
       {/* biome-ignore lint/a11y/useSemanticElements: confirm dialog uses role="dialog" on div; native <dialog> lacks the CSS positioning primitives needed for this centered overlay */}
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Konfirmasi hapus item"
+        aria-label={t("page.oversight.supplier.katalog.form.delete")}
         className="fixed inset-0 z-50 flex items-center justify-center p-4"
       >
         <div className="w-full max-w-sm rounded-[14px] bg-surface p-6 shadow-md">
           <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-red-100">
             <Trash2 size={18} className="text-red-600" />
           </div>
-          <p className="font-semibold text-foreground">Hapus item katalog?</p>
+          <p className="font-semibold text-foreground">{t("page.oversight.supplier.katalog.form.delete")}</p>
           <p className="mt-1 text-sm text-muted-foreground">
             <span className="font-medium text-foreground">{item.name}</span> ({item.code}) akan
             dihapus dari katalog. Perjanjian yang sudah dibuat tidak terpengaruh.
           </p>
           <div className="mt-5 flex gap-3">
             <Button variant="outline" size="sm" onClick={onCancel} className="flex-1">
-              Batal
+              {t("common.cancel")}
             </Button>
             <Button
               variant="primary"
@@ -404,7 +407,7 @@ function HapusConfirm({
               onClick={onConfirm}
               className="flex-1 bg-red-600 hover:bg-red-700"
             >
-              Hapus
+              {t("common.delete")}
             </Button>
           </div>
         </div>
@@ -416,6 +419,7 @@ function HapusConfirm({
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function KatalogPage() {
+  const { t } = useI18n();
   const [catalog, setCatalog] = useState<CatalogEntry[]>(() =>
     buildEditableCatalog().map((r) => ({
       id: r.id,
@@ -538,8 +542,8 @@ export default function KatalogPage() {
   return (
     <div className="space-y-6">
       <OversightPageHeader
-        title="Katalog Saprotan"
-        description="Kelola daftar barang saprotan Supplier. Harga pokok terkunci ke perjanjian saat dibuat. Data katalog bersifat off-chain."
+        title={t("page.oversight.supplier.katalog.title")}
+        description={t("page.oversight.supplier.katalog.desc")}
         actions={
           <Button
             variant="primary"
@@ -547,7 +551,7 @@ export default function KatalogPage() {
             leftIcon={<Plus size={14} />}
             onClick={openAdd}
           >
-            Tambah Item Katalog
+            {t("page.oversight.supplier.katalog.add")}
           </Button>
         }
       />
@@ -555,29 +559,29 @@ export default function KatalogPage() {
       {/* Stat row */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatCard
-          label="Total Item"
+          label={t("page.oversight.supplier.katalog.total")}
           value={String(catalog.length)}
-          hint="Jenis saprotan terdaftar"
+          hint={t("page.oversight.supplier.katalog.desc")}
           icon={<Package size={18} />}
         />
         <StatCard
           label="Stok Menipis"
           value={String(stokMenipis)}
-          hint="Perlu perhatian pengadaan"
+          hint={t("page.oversight.supplier.katalog.desc")}
           tone={stokMenipis > 0 ? "warn" : "neutral"}
           icon={<AlertCircle size={18} />}
         />
         <StatCard
           label="Stok Habis"
           value={String(stokHabis)}
-          hint="Tidak tersedia untuk permintaan baru"
+          hint={t("page.oversight.supplier.katalog.desc")}
           tone={stokHabis > 0 ? "bad" : "neutral"}
           icon={<PackageX size={18} />}
         />
         <StatCard
           label="Tersedia"
           value={String(catalog.filter((r) => r.stockStatus === "Tersedia").length)}
-          hint="Siap untuk permintaan KMP"
+          hint={t("page.oversight.supplier.katalog.desc")}
           tone="good"
           icon={<CheckCircle2 size={18} />}
         />
@@ -592,7 +596,7 @@ export default function KatalogPage() {
           />
           <input
             type="text"
-            placeholder="Cari kode, nama, atau wilayah..."
+            placeholder={t("page.oversight.supplier.katalog.search")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full rounded-[10px] border border-border bg-surface py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
@@ -610,7 +614,7 @@ export default function KatalogPage() {
                   : "border border-border text-muted-foreground hover:border-ring hover:text-foreground"
               }`}
             >
-              {k === "semua" ? "Semua" : k}
+              {k === "semua" ? t("common.all") : k}
             </button>
           ))}
         </div>
@@ -618,8 +622,7 @@ export default function KatalogPage() {
 
       {/* Off-chain note */}
       <p className="text-xs text-muted-foreground">
-        Perubahan katalog dicatat off-chain. Harga pokok yang aktif di perjanjian tidak berubah
-        saat katalog diperbarui (snapshot on-chain saat perjanjian dibuat).
+        {t("page.oversight.supplier.katalog.desc")}
       </p>
 
       {/* Table */}
@@ -628,21 +631,21 @@ export default function KatalogPage() {
           <TableFrame>
             <Table>
               <THead>
-                <Th>Kode</Th>
-                <Th>Nama Barang</Th>
-                <Th>Kategori</Th>
+                <Th>{t("page.oversight.supplier.katalog.table.col.code")}</Th>
+                <Th>{t("page.oversight.supplier.katalog.table.col.name")}</Th>
+                <Th>{t("page.oversight.supplier.katalog.table.col.category")}</Th>
                 <Th>Satuan</Th>
-                <Th className="text-right">Harga Pokok</Th>
-                <Th>Subsidi</Th>
+                <Th className="text-right">{t("page.oversight.supplier.katalog.table.col.price")}</Th>
+                <Th>{t("page.oversight.supplier.katalog.table.col.source")}</Th>
                 <Th>Stok</Th>
                 <Th>Wilayah</Th>
-                <Th>Aksi</Th>
+                <Th>{t("page.oversight.supplier.katalog.table.col.actions")}</Th>
               </THead>
               <TBody>
                 {filtered.length === 0 ? (
                   <Tr>
                     <Td colSpan={9} className="py-10 text-center text-muted-foreground">
-                      Tidak ada item yang cocok.
+                      {t("page.oversight.supplier.katalog.table.empty")}
                     </Td>
                   </Tr>
                 ) : (
@@ -675,7 +678,7 @@ export default function KatalogPage() {
                               className="flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:border-ring hover:text-foreground"
                             >
                               <Edit3 size={11} />
-                              Edit
+                              {t("common.edit")}
                             </button>
                             <button
                               type="button"
@@ -683,7 +686,7 @@ export default function KatalogPage() {
                               className="flex items-center gap-1 rounded-md border border-red-200 px-2 py-1 text-xs text-red-600 hover:border-red-400 hover:bg-red-50"
                             >
                               <Trash2 size={11} />
-                              Hapus
+                              {t("common.delete")}
                             </button>
                           </div>
                         </Td>

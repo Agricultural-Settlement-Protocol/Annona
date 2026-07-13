@@ -1,5 +1,8 @@
 "use client";
 
+import { useI18n } from "@/lib/i18n/use-i18n";
+import { WalletBadge } from "@/components/kmp/wallet-badge";
+import { LanguageToggle } from "@/lib/i18n/language-toggle";
 import { signOutToAuth } from "@/lib/supabase";
 import { Logo, cn } from "@annona/ui";
 import type { LucideIcon } from "lucide-react";
@@ -31,34 +34,36 @@ type NavItem = {
   exact?: boolean;
 };
 
-const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
-  {
-    label: null,
-    items: [
-      {
-        href: "/financier",
-        label: "Ringkasan",
-        icon: LayoutDashboard,
-        exact: true,
-      },
-    ],
-  },
-  {
-    label: "Pendanaan",
-    items: [
-      {
-        href: "/financier/antrean",
-        label: "Antrean Persetujuan",
-        icon: ClipboardCheck,
-      },
-      {
-        href: "/financier/portofolio",
-        label: "Portofolio",
-        icon: Wallet,
-      },
-    ],
-  },
-];
+function navGroups(t: (key: string) => string): { label: string | null; items: NavItem[] }[] {
+  return [
+    {
+      label: null,
+      items: [
+        {
+          href: "/financier",
+          label: t("shell.financier.nav.ringkasan"),
+          icon: LayoutDashboard,
+          exact: true,
+        },
+      ],
+    },
+    {
+      label: t("shell.financier.nav.pendanaan"),
+      items: [
+        {
+          href: "/financier/antrean",
+          label: t("shell.financier.nav.antrean"),
+          icon: ClipboardCheck,
+        },
+        {
+          href: "/financier/portofolio",
+          label: t("shell.financier.nav.portofolio"),
+          icon: Wallet,
+        },
+      ],
+    },
+  ];
+}
 
 const STORAGE_KEY = "annona.financier.sidebar.collapsed";
 
@@ -123,6 +128,7 @@ function SidebarContent({
   onToggle?: () => void;
 }) {
   const pathname = usePathname();
+  const { t } = useI18n();
 
   return (
     <div className="flex h-full flex-col">
@@ -139,7 +145,7 @@ function SidebarContent({
               <Logo size={20} className="shrink-0" />
             </Link>
             <span className="rounded-full bg-amber-50 border border-amber-200/60 px-2 py-0.5 text-[9px] font-mono font-bold tracking-wide text-amber-800 uppercase">
-              PEMODAL
+              {t("shell.financier.label")}
             </span>
           </>
         )}
@@ -147,7 +153,7 @@ function SidebarContent({
           <button
             type="button"
             onClick={onToggle}
-            aria-label={collapsed ? "Perlebar menu" : "Perkecil menu"}
+            aria-label={collapsed ? t("shell.financier.sidebar.expand") : t("shell.financier.sidebar.collapse")}
             className={cn(
               "hidden rounded-md p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 lg:block",
               collapsed ? "mt-2" : "ml-auto",
@@ -179,9 +185,9 @@ function SidebarContent({
           "hover:[&::-webkit-scrollbar-thumb]:bg-gray-400/70",
           collapsed ? "px-2" : "px-3",
         )}
-        aria-label="Menu pemodal"
+        aria-label={t("shell.financier.menu.label")}
       >
-        {NAV_GROUPS.map((group) => (
+        {navGroups(t).map((group) => (
           <div key={group.label ?? "utama"}>
             {group.label && !collapsed ? (
               <p className="px-3 pb-1 text-[10px] font-bold tracking-[0.14em] text-gray-400 uppercase">
@@ -218,11 +224,12 @@ function SidebarContent({
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-100 text-sm font-bold text-amber-800 border border-amber-200">
               LP
             </div>
+            <LanguageToggle iconOnly className="inline-flex items-center justify-center rounded-lg border border-amber-200/60 bg-amber-50 p-1.5 text-amber-700 transition-all hover:bg-amber-100 hover:text-amber-800 hover:border-amber-300 active:scale-[0.97]" />
             <button
               type="button"
               onClick={() => void signOutToAuth()}
-              title="Keluar"
-              aria-label="Keluar"
+              title={t("shell.financier.logout")}
+              aria-label={t("shell.financier.logout")}
               className="rounded-md p-2 text-gray-500 transition-colors hover:bg-red-50 hover:text-red-700"
             >
               <LogOut size={16} />
@@ -236,24 +243,26 @@ function SidebarContent({
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold text-foreground leading-tight">
-                  Petugas LPDB
+                  {t("shell.financier.user")}
                 </p>
                 <p className="text-[11px] text-muted-foreground leading-tight">
-                  Pemodal
+                  {t("shell.financier.userSub")}
                 </p>
               </div>
               <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-amber-50 px-1.5 py-0.5 text-[8px] font-mono font-bold text-amber-700 border border-amber-200/50">
                 <Wifi size={9} className="animate-pulse" />
-                Testnet
+                {t("shell.financier.testnet")}
               </span>
             </div>
+            <WalletBadge />
+            <LanguageToggle />
             <button
               type="button"
               onClick={() => void signOutToAuth()}
               className="flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-gray-200 px-3 text-xs font-semibold text-gray-600 transition-colors hover:bg-red-50 hover:text-red-700 hover:border-red-100"
             >
               <LogOut size={14} />
-              Keluar
+              {t("shell.financier.logout")}
             </button>
           </div>
         )}
@@ -263,6 +272,7 @@ function SidebarContent({
 }
 
 export function FinancierShell({ children }: { children: ReactNode }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [hydrated, setHydrated] = useState(false);
@@ -302,7 +312,7 @@ export function FinancierShell({ children }: { children: ReactNode }) {
           <div className="fixed inset-0 z-50 lg:hidden">
             <motion.button
               type="button"
-              aria-label="Tutup menu"
+              aria-label={t("shell.financier.menu.close")}
               initial={{ opacity: 0 }}
               animate={{ opacity: 0.4 }}
               exit={{ opacity: 0 }}
@@ -318,7 +328,7 @@ export function FinancierShell({ children }: { children: ReactNode }) {
             >
               <button
                 type="button"
-                aria-label="Tutup menu"
+                aria-label={t("shell.financier.menu.close")}
                 className="absolute top-4 right-4 rounded-full p-2 text-gray-400 hover:bg-gray-100"
                 onClick={() => setOpen(false)}
               >
@@ -334,7 +344,7 @@ export function FinancierShell({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-gray-100 bg-white/80 px-4 backdrop-blur-md lg:hidden">
         <button
           type="button"
-          aria-label="Buka menu"
+          aria-label={t("shell.financier.menu.open")}
           className="rounded-full p-2 text-gray-700 hover:bg-gray-100"
           onClick={() => setOpen(true)}
         >
@@ -342,7 +352,7 @@ export function FinancierShell({ children }: { children: ReactNode }) {
         </button>
         <Logo className="h-6 w-auto" />
         <span className="ml-auto rounded-full bg-amber-50 border border-amber-200/50 px-2.5 py-0.5 text-[9px] font-mono font-bold text-amber-800 uppercase">
-          PEMODAL
+          {t("shell.financier.label")}
         </span>
       </header>
 

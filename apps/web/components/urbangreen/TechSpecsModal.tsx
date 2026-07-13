@@ -29,7 +29,7 @@ export default function TechSpecsModal({ isOpen, onClose }: TechSpecsModalProps)
           <div className="flex items-center justify-between border-b border-gray-100 pb-4">
             <div className="flex items-center gap-2">
               <Cpu className="w-5 h-5 text-primary-dark" />
-              <span className="text-sm font-semibold tracking-wider font-mono text-gray-500 uppercase">PROTOKOL & SPESIFIKASI TEKNIS</span>
+              <span className="text-sm font-semibold tracking-wider font-mono text-gray-500 uppercase">PROTOCOL & TECHNICAL SPECIFICATIONS</span>
             </div>
             <button
               onClick={onClose}
@@ -50,7 +50,7 @@ export default function TechSpecsModal({ isOpen, onClose }: TechSpecsModalProps)
               <div className="space-y-1.5">
                 <h4 className="font-semibold text-gray-900">Soroban Smart Contract (Netting)</h4>
                 <p className="text-xs text-gray-600 leading-relaxed">
-                  Kontrak pintar terdesentralisasi di Stellar Network yang mencatatkan setoran panen dan mengeksekusi netting tagihan saprotan secara atomik dan bebas dari risiko manipulasi pembukuan manual.
+                  Decentralized smart contracts on the Stellar Network that record crop deposits and execute input-credit netting atomically, eliminating manual bookkeeping errors.
                 </p>
                 <div className="flex flex-wrap gap-1.5 pt-1.5">
                   <span className="text-[10px] font-mono bg-white border border-gray-200 px-2 py-0.5 rounded-full text-gray-500">Stellar Soroban</span>
@@ -67,7 +67,7 @@ export default function TechSpecsModal({ isOpen, onClose }: TechSpecsModalProps)
               <div className="space-y-1.5">
                 <h4 className="font-semibold text-gray-900">Stellar Anchor & dIDR Bridge</h4>
                 <p className="text-xs text-gray-600 leading-relaxed">
-                  Gerbang pembayaran real-time yang memfasilitasi konversi otomatis antara stablecoin Rupiah Digital (dIDR) dengan rekening bank koperasi lokal untuk memastikan penarikan tunai cepat.
+                  Real-time payment gateway facilitating automated conversion between Digital Rupiah (dIDR) stablecoins and local cooperative bank accounts to ensure swift cash-outs.
                 </p>
                 <div className="flex flex-wrap gap-1.5 pt-1.5">
                   <span className="text-[10px] font-mono bg-white border border-gray-200 px-2 py-0.5 rounded-full text-gray-500">SEP-24 Standard</span>
@@ -82,13 +82,13 @@ export default function TechSpecsModal({ isOpen, onClose }: TechSpecsModalProps)
                 <Cpu className="w-5 h-5" />
               </div>
               <div className="space-y-1.5">
-                <h4 className="font-semibold text-gray-900">Skor Reputasi Desentralisasi</h4>
+                <h4 className="font-semibold text-gray-900">Decentralized Reputation Score</h4>
                 <p className="text-xs text-gray-600 leading-relaxed">
-                  Mesin evaluasi kelayakan kredit petani yang memetakan skor reputasi non-agunan berdasarkan konsistensi pengembalian, tonase panen historis, dan stabilitas operasional kelompok tani.
+                  A credit assessment engine that computes non-collateralized reputation scores based on repayment consistency, historical yield capacity, and operational stability.
                 </p>
                 <div className="flex flex-wrap gap-1.5 pt-1.5">
                   <span className="text-[10px] font-mono bg-white border border-gray-200 px-2 py-0.5 rounded-full text-gray-500">Decentralized ID (DID)</span>
-                  <span className="text-[10px] font-mono bg-white border border-gray-200 px-2 py-0.5 rounded-full text-gray-500">Skor 300-850</span>
+                  <span className="text-[10px] font-mono bg-white border border-gray-200 px-2 py-0.5 rounded-full text-gray-500">Score 300-850</span>
                 </div>
               </div>
             </div>
@@ -99,13 +99,13 @@ export default function TechSpecsModal({ isOpen, onClose }: TechSpecsModalProps)
                 <Layers className="w-5 h-5" />
               </div>
               <div className="space-y-1.5">
-                <h4 className="font-semibold text-gray-900">Timbangan Digital Pintar (IoT)</h4>
+                <h4 className="font-semibold text-gray-900">Smart Digital Weighing Scales (IoT)</h4>
                 <p className="text-xs text-gray-600 leading-relaxed">
-                  Integrasi sensor timbangan digital terkalibrasi di gudang-gudang koperasi secara langsung ke dalam blockchain untuk memverifikasi tonase riil hasil panen petani seketika.
+                  Direct blockchain integration of calibrated digital weighing sensors in cooperative warehouses to verify physical harvest tonnage instantly.
                 </p>
                 <div className="flex flex-wrap gap-1.5 pt-1.5">
                   <span className="text-[10px] font-mono bg-white border border-gray-200 px-2 py-0.5 rounded-full text-gray-500">Wi-Fi / LoRa</span>
-                  <span className="text-[10px] font-mono bg-white border border-gray-200 px-2 py-0.5 rounded-full text-gray-500">Akurasi ±100g</span>
+                  <span className="text-[10px] font-mono bg-white border border-gray-200 px-2 py-0.5 rounded-full text-gray-500">Accuracy ±100g</span>
                 </div>
               </div>
             </div>
@@ -113,9 +113,9 @@ export default function TechSpecsModal({ isOpen, onClose }: TechSpecsModalProps)
 
           {/* Footer certification checklist */}
           <div className="bg-[#E2F1E1]/40 border border-soft-green/30 rounded-3xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-700">
-            <span className="font-medium">Sertifikasi & Kepatuhan Regulasi:</span>
+            <span className="font-medium">Certifications & Regulatory Compliance:</span>
             <div className="flex gap-4">
-              <span className="flex items-center gap-1"><Check className="w-3.5 h-3.5 text-emerald-700" /> Sandbox OJK</span>
+              <span className="flex items-center gap-1"><Check className="w-3.5 h-3.5 text-emerald-700" /> OJK Sandbox</span>
               <span className="flex items-center gap-1"><Check className="w-3.5 h-3.5 text-emerald-700" /> Stellar Certified</span>
               <span className="flex items-center gap-1"><Check className="w-3.5 h-3.5 text-emerald-700" /> ISO 27001</span>
             </div>

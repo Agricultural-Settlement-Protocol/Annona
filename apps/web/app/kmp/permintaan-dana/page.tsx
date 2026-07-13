@@ -19,6 +19,8 @@ import { PageHeader } from "@/components/kmp/page-header";
 import { TBody, THead, Table, TableFrame, Td, Th, Tr } from "@/components/kmp/table";
 import { ScrollArea } from "@/components/scroll-area";
 import { useTx } from "@/components/kmp/use-tx";
+import { sha256Hex } from "@/lib/hash";
+import { requestFunding } from "@/lib/invocations";
 import type { Invocation } from "@/lib/tx";
 import {
   fetchAgreements,
@@ -49,6 +51,7 @@ import {
   Trash2,
 } from "lucide-react";
 import Link from "next/link";
+import { useI18n } from "@/lib/i18n/use-i18n";
 import { useMemo, useState } from "react";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -74,12 +77,13 @@ function riskBadgeClass(badge: RiskBadge): string {
 }
 
 function FundingStatusBadge({ status }: { status: FundingStatus }) {
+  const { t } = useI18n();
   const map: Record<FundingStatus, { cls: string; label: string }> = {
-    Requested: { cls: "bg-gray-100 text-gray-600 border-gray-200", label: "Diajukan" },
-    Approved: { cls: "bg-amber-50 text-amber-700 border-amber-200", label: "Disetujui" },
-    Rejected: { cls: "bg-red-50 text-red-700 border-red-200", label: "Ditolak" },
-    Disbursed: { cls: "bg-blue-50 text-blue-700 border-blue-200", label: "Dicairkan" },
-    Reconciled: { cls: "bg-emerald-50 text-emerald-700 border-emerald-200", label: "Direkonsiliasi" },
+    Requested: { cls: "bg-gray-100 text-gray-600 border-gray-200", label: t("badge.funding.Requested") },
+    Approved: { cls: "bg-amber-50 text-amber-700 border-amber-200", label: t("badge.funding.Approved") },
+    Rejected: { cls: "bg-red-50 text-red-700 border-red-200", label: t("badge.funding.Rejected") },
+    Disbursed: { cls: "bg-blue-50 text-blue-700 border-blue-200", label: t("badge.funding.Disbursed") },
+    Reconciled: { cls: "bg-emerald-50 text-emerald-700 border-emerald-200", label: t("badge.funding.Reconciled") },
   };
   const s = map[status];
   return (
@@ -259,6 +263,9 @@ function FundingHistoryTable() {
 // ─── Main page ───────────────────────────────────────────────────────────────
 
 export default function PermintaanDanaPage() {
+  /* ── I18n ──────────────────────────────────────────────────────────────── */
+  const { t } = useI18n();
+
   /* ── Live data ─────────────────────────────────────────────────────────── */
   const { data: agreements, loading: agrLoading } = useApi(fetchAgreements);
   const { data: ovData, loading: ovLoading } = useApi(fetchFinancierOverview);
@@ -311,14 +318,21 @@ export default function PermintaanDanaPage() {
     tx.reset();
   }
 
-  function handleAjukan() {
+  async function handleAjukan() {
     if (selectedIds.size === 0 || tx.state !== "idle") return;
-    // NOTE: maps to contract fn request_funding which is NOT yet built on-chain.
-    // TODO: wire real Invocation: requestFunding(caller, backing_agreement_ids, amount).
-    // In demo mode the builder is never called.
-    tx.run(
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      (_signer: string): Invocation => ({ method: "request_funding", args: [] }),
+    if (!ovData) return;
+    const ids = [...selectedIds].sort();
+    const backingHash = await sha256Hex(ids.join(":"));
+    const projectedSettlement = totalBacking;
+    const amountRequested = totalBacking; // full backing value as amount (simplified)
+    tx.run((coop) =>
+      requestFunding({
+        coop,
+        financier: ovData.financier.walletAddress,
+        backingHash,
+        projectedSettlement,
+        amountRequested,
+      }),
     );
   }
 
@@ -332,16 +346,16 @@ export default function PermintaanDanaPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Permintaan Dana Offtake"
-        description="Ajukan talangan modal kerja ke pemodal dengan jaminan bukti offtake on-chain."
+        title={t("page.kmp.permintaanDana.title")}
+        description={t("page.kmp.permintaanDana.desc")}
       />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* ── LEFT: Agreement selector ───────────────────────────────────── */}
         <Card className="rounded-2xl border-gray-100 bg-white shadow-sm">
             <CardHeader
-              title="Pilih Perjanjian Offtake"
-              description="Centang perjanjian yang akan dijadikan jaminan. Nilai jaminan adalah proyeksi sisa panen dikali HPP."
+              title={t("page.kmp.permintaanDana.selectTitle")}
+              description={t("page.kmp.permintaanDana.selectDesc")}
               action={<Coins size={18} className="text-emerald-600" />}
             />
             <CardContent className="space-y-3">
@@ -350,7 +364,7 @@ export default function PermintaanDanaPage() {
                 <Search size={13} className="shrink-0 text-gray-400" />
                 <input
                   type="search"
-                  placeholder="Cari petani atau komoditas..."
+                  placeholder={t("page.kmp.permintaanDana.search")}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="h-full w-full bg-transparent text-sm text-gray-800 outline-none placeholder:text-gray-400"
@@ -359,13 +373,13 @@ export default function PermintaanDanaPage() {
 
               {agrLoading && (
                 <p className="py-4 text-center text-sm text-gray-400">
-                  Memuat perjanjian...
+                  {t("common.loading")}
                 </p>
               )}
 
               {!agrLoading && filteredAgreements.length === 0 && (
                 <p className="py-6 text-center text-sm text-gray-400">
-                  Tidak ada perjanjian yang dapat dijaminkan.
+                  {t("page.kmp.permintaanDana.empty")}
                 </p>
               )}
 
@@ -393,7 +407,7 @@ export default function PermintaanDanaPage() {
                     className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-semibold text-gray-500 transition-colors hover:bg-emerald-50 hover:text-emerald-700"
                   >
                     <CheckCheck size={14} />
-                    Pilih semua
+                    {t("common.all")}
                   </button>
                   <button
                     type="button"
@@ -401,7 +415,7 @@ export default function PermintaanDanaPage() {
                     className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-semibold text-gray-500 transition-colors hover:bg-red-50 hover:text-red-600"
                   >
                     <Trash2 size={14} />
-                    Hapus pilihan
+                    {t("common.delete")}
                   </button>
                 </div>
               )}
@@ -411,24 +425,24 @@ export default function PermintaanDanaPage() {
           {/* Summary + submit */}
           <Card className="rounded-2xl border-gray-100 bg-white shadow-sm">
             <CardHeader
-              title="Ringkasan Permohonan"
+              title={t("page.kmp.permintaanDana.summary")}
               description={`Pemodal: ${ovLoading ? "..." : financierName}`}
             />
             <CardContent className="space-y-4">
               <div className="rounded-xl border border-gray-100 bg-gray-50/60 px-4 py-3 space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500">Perjanjian dipilih</span>
+                  <span className="text-gray-500">{t("page.kmp.permintaanDana.selected")}</span>
                   <span className="font-semibold text-gray-900">{selectedIds.size}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500">Total proyeksi panen</span>
+                  <span className="text-gray-500">{t("page.kmp.permintaanDana.totalBacking")}</span>
                   <RupiahAmount smallest={totalBacking} className="text-sm font-bold text-emerald-700" />
                 </div>
               </div>
 
               {selectedIds.size === 0 && (
                 <p className="text-xs text-gray-400">
-                  Pilih setidaknya satu perjanjian untuk mengajukan dana.
+                  {t("page.kmp.permintaanDana.empty")}
                 </p>
               )}
 
@@ -438,10 +452,7 @@ export default function PermintaanDanaPage() {
                   <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold text-gray-900">
-                      Permintaan terkirim (demo mode).
-                    </p>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      Pemodal akan meninjau dan memberikan keputusan.
+                      {t("page.kmp.permintaanDana.success")}
                     </p>
                   </div>
                   <TxHashLink hash={tx.txHash} />
@@ -457,24 +468,22 @@ export default function PermintaanDanaPage() {
                 className="w-full rounded-xl bg-primary-dark hover:bg-opacity-95 text-white disabled:opacity-50"
               >
                 {tx.state === "signing"
-                  ? "Menandatangani..."
+                  ? t("page.kmp.permintaanDana.signing")
                   : tx.state === "submitting"
-                    ? "Mengirim ke jaringan..."
+                    ? t("page.kmp.permintaanDana.submitting")
                     : submitted
-                      ? "Permintaan Terkirim"
-                      : "Ajukan Dana"}
+                      ? t("page.kmp.permintaanDana.submitted")
+                      : t("page.kmp.permintaanDana.submit")}
               </Button>
 
               {tx.state === "signing" && (
                 <p className="text-xs text-gray-400 text-center">
-                  Konfirmasi tanda tangan di Freighter. Jangan tutup jendela.
+                  {t("page.kmp.permintaanDana.signHint")}
                 </p>
               )}
 
               <p className="text-[11px] text-gray-400 leading-relaxed">
-                Tindakan ini akan mencatat permohonan di blockchain Stellar sebagai bukti
-                anti-manipulasi. Pembayaran kas dilakukan secara terpisah oleh pemodal setelah
-                persetujuan.
+                {t("page.kmp.permintaanDana.disclaimer")}
               </p>
             </CardContent>
           </Card>
@@ -483,8 +492,8 @@ export default function PermintaanDanaPage() {
       {/* ── History table (full width, long table needs the room) ───────── */}
       <Card className="rounded-2xl border-gray-100 bg-white shadow-sm">
         <CardHeader
-          title="Riwayat Permintaan Dana"
-          description="Semua permohonan talangan yang pernah diajukan koperasi ini. Klik detail untuk melihat perjanjian yang dijaminkan."
+          title={t("page.kmp.permintaanDana.history")}
+          description={t("page.kmp.permintaanDana.history.desc")}
         />
         <CardContent>
           <FundingHistoryTable />

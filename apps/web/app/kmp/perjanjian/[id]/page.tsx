@@ -55,6 +55,7 @@ import {
   User,
 } from "lucide-react";
 import Link from "next/link";
+import { useI18n } from "@/lib/i18n/use-i18n";
 import { useParams } from "next/navigation";
 
 /** Labeled info row — two-column pair used in the details grid. */
@@ -93,6 +94,7 @@ function SectionEmpty({
 
 export default function AgreementDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { t } = useI18n();
   const { data, loading, error } = useApi(
     () =>
       Promise.all([
@@ -109,7 +111,7 @@ export default function AgreementDetailPage() {
   if (loading) {
     return (
       <div className="py-16 text-center text-sm text-muted-foreground">
-        Memuat perjanjian...
+        {t("common.loading")}
       </div>
     );
   }
@@ -119,10 +121,10 @@ export default function AgreementDetailPage() {
       <div className="py-16">
         <EmptyState
           icon={<FileText size={36} />}
-          title="Perjanjian tidak ditemukan"
+          title={t("page.kmp.perjanjian.detail.notFound")}
           description={
             error
-              ? `Gagal memuat perjanjian: ${error}`
+              ? `${t("common.error")}: ${error}`
               : `Tidak ada perjanjian dengan ID "${id}". Periksa kembali daftar perjanjian.`
           }
           action={
@@ -132,7 +134,7 @@ export default function AgreementDetailPage() {
                 leftIcon={<ArrowLeft size={16} />}
                 className="rounded-full"
               >
-                Kembali ke Daftar
+                {t("page.kmp.perjanjian.detail.back")}
               </Button>
             </Link>
           }
@@ -179,7 +181,7 @@ export default function AgreementDetailPage() {
                 leftIcon={<ArrowLeft size={16} />}
                 className="rounded-full"
               >
-                Daftar Perjanjian
+                {t("page.kmp.perjanjian.detail.back")}
               </Button>
             </Link>
             {(agreement.status === "Active" ||
@@ -190,7 +192,7 @@ export default function AgreementDetailPage() {
                   leftIcon={<Scale size={16} />}
                   className="rounded-full bg-primary-dark hover:bg-opacity-95 text-white"
                 >
-                  Catat Setoran
+                  {t("page.kmp.setor.form.submit")}
                 </Button>
               </Link>
             )}
@@ -200,25 +202,23 @@ export default function AgreementDetailPage() {
 
       {/* Flagged / ForceMajeure alerts — flags indicate, humans decide */}
       {agreement.status === "Flagged" && (
-        <Alert tone="warning" title="Perlu Ditinjau">
-          Setoran {deliveredKg.toLocaleString("id-ID")} kg dari perkiraan{" "}
-          {agreement.expectedVolKg.toLocaleString("id-ID")} kg (
-          {Math.round((deliveredKg / agreement.expectedVolKg) * 100)}%).
-          Penyebab perlu dikonfirmasi petugas lapangan sebelum kesimpulan
-          diambil.
+        <Alert tone="warning" title={t("badge.status.Flagged")}>
+          {t("page.kmp.perjanjian.detail.alert.flagged", {
+            delivered: deliveredKg.toLocaleString("id-ID"),
+            expected: agreement.expectedVolKg.toLocaleString("id-ID"),
+            pct: Math.round((deliveredKg / agreement.expectedVolKg) * 100),
+          })}
         </Alert>
       )}
       {agreement.status === "ForceMajeure" && (
-        <Alert tone="danger" title="Gagal Panen Dikonfirmasi">
-          Kondisi force majeure telah dicatat. Tanpa penalti reputasi untuk
-          petani. Utang direstrukturisasi di luar sistem rantai sesuai prosedur
-          koperasi.
+        <Alert tone="danger" title={t("badge.status.ForceMajeure")}>
+          {t("page.kmp.perjanjian.detail.alert.forceMajeure")}
         </Alert>
       )}
 
       {/* Lifecycle timeline */}
       <Card>
-        <CardHeader title="Tahapan Perjanjian" />
+        <CardHeader title={t("page.kmp.perjanjian.detail.timelineTitle")} />
         <CardContent>
           <LifecycleTimeline status={agreement.status} />
         </CardContent>
@@ -229,23 +229,23 @@ export default function AgreementDetailPage() {
         {/* Petani + identitas */}
         <Card>
           <CardHeader
-            title="Info Petani"
+            title={t("page.kmp.perjanjian.detail.farmerInfo")}
             action={<Leaf size={18} className="text-verdant-400" />}
           />
           <CardContent className="space-y-3">
-            <InfoRow label="Nama">
+            <InfoRow label={t("page.kmp.perjanjian.detail.name")}>
               <span className="font-semibold">
-                {farmer?.name ?? "(tidak diketahui)"}
+                {farmer?.name ?? `(${t("common.unknown")})`}
               </span>
             </InfoRow>
-            <InfoRow label="Reputasi">
+            <InfoRow label={t("page.kmp.perjanjian.detail.reputation")}>
               {farmer ? <ReputationBadge tier={farmer.repTier} /> : null}
             </InfoRow>
-            <InfoRow label="Kecamatan">{farmer?.kecamatan}</InfoRow>
-            <InfoRow label="Luas Lahan">
+            <InfoRow label={t("page.kmp.perjanjian.detail.district")}>{farmer?.kecamatan}</InfoRow>
+            <InfoRow label={t("page.kmp.perjanjian.detail.landArea")}>
               {Number(farmer?.plotAreaHa ?? 0).toLocaleString("id-ID")} ha
             </InfoRow>
-            <InfoRow label="Dompet">
+            <InfoRow label={t("page.kmp.perjanjian.detail.wallet")}>
               <span className="font-mono text-xs text-muted-foreground">
                 {farmer
                   ? `${farmer.walletAddress.slice(0, 8)}...${farmer.walletAddress.slice(-6)}`
@@ -261,7 +261,7 @@ export default function AgreementDetailPage() {
                   size="sm"
                   leftIcon={<User size={14} />}
                 >
-                  Lihat profil petani
+                  {t("page.kmp.perjanjian.detail.viewProfile")}
                 </Button>
               </Link>
             </div>
@@ -271,72 +271,77 @@ export default function AgreementDetailPage() {
         {/* Komoditas + harga */}
         <Card>
           <CardHeader
-            title="Komoditas dan Harga"
+            title={t("page.kmp.perjanjian.detail.commodityCard")}
             action={<Tag size={18} className="text-verdant-400" />}
           />
           <CardContent className="space-y-3">
-            <InfoRow label="Komoditas">
+            <InfoRow label={t("page.kmp.perjanjian.detail.commodityCard")}>
               {agreement.commodityCode === "GABAH"
                 ? "Gabah Kering Panen"
                 : "Jagung Pipilan Kering"}
             </InfoRow>
 
-            {/* Grade: Perkiraan sebelum setoran pertama, Aktual setelahnya */}
-            <InfoRow label="Grade">
+            {/* Subsidy tier badge */}
+            <InfoRow label={t("page.kmp.perjanjian.detail.subsidyType")}>
+              <Badge tone={agreement.subsidyTier === "Subsidized" ? "warning" : "neutral"}>
+                {agreement.subsidyTier === "Subsidized" ? t("badge.subsidy.Subsidized") : t("badge.subsidy.Commercial")}
+              </Badge>
+            </InfoRow>
+
+            <InfoRow label={t("page.kmp.perjanjian.detail.grade")}>
               <span className="flex flex-col gap-1">
                 <span className="flex items-center gap-2">
                   <span className="font-semibold">Grade {gradeDisplay}</span>
                   <Badge tone={hasDelivery ? "verdant" : "neutral"}>
-                    {hasDelivery ? "Aktual" : "Perkiraan"}
+                    {hasDelivery ? t("badge.grade.actual") : t("badge.grade.estimate")}
                   </Badge>
                 </span>
                 <span className="text-xs text-muted-foreground">
                   {hasDelivery
-                    ? "Hasil pengukuran setoran terakhir"
-                    : "Nilai perkiraan sesuai SOP, diukur saat setoran panen"}
+                    ? t("badge.grade.actual")
+                    : t("badge.grade.estimate")}
                 </span>
               </span>
             </InfoRow>
 
-            {/* Kadar Air: sama, Perkiraan sebelum setoran, Aktual setelahnya */}
-            <InfoRow label="Kadar Air">
+            <InfoRow label={t("page.kmp.perjanjian.detail.moisture")}>
               <span className="flex flex-col gap-1">
                 <span className="flex items-center gap-2">
                   <span>{(moistureDisplay / 100).toFixed(1)}%</span>
                   <Badge tone={hasDelivery ? "verdant" : "neutral"}>
-                    {hasDelivery ? "Aktual" : "Perkiraan"}
+                    {hasDelivery ? t("badge.grade.actual") : t("badge.grade.estimate")}
                   </Badge>
                 </span>
                 <span className="text-xs text-muted-foreground">
                   {hasDelivery
-                    ? "Hasil pengukuran setoran terakhir"
-                    : "Nilai perkiraan sesuai SOP, diukur saat setoran panen"}
+                    ? t("badge.grade.actual")
+                    : t("badge.grade.estimate")}
                 </span>
               </span>
             </InfoRow>
 
-            <InfoRow label="Harga Pokok Supplier">
+            <InfoRow label={t("page.kmp.perjanjian.detail.hpp")}>
               <RupiahAmount smallest={agreement.basePriceSupplier} />
               <span className="ml-1 text-xs text-muted-foreground">
-                (pokok saprotan)
+                ({t("page.kmp.perjanjian.detail.inputDebt")})
               </span>
             </InfoRow>
-            <InfoRow label="Markup Saprotan">
+            <InfoRow label={t("page.kmp.perjanjian.detail.markup")}>
               {agreement.saprotanMarkupBps / 100}%
             </InfoRow>
-            <InfoRow label="Utang Saprotan">
+            <InfoRow label={t("page.kmp.perjanjian.detail.inputDebt")}>
               <RupiahAmount smallest={agreement.inputDebt} />
             </InfoRow>
-            <InfoRow label="Biaya Penanganan">
+            <InfoRow label={t("page.kmp.perjanjian.detail.hppHandling")}>
               {agreement.hppHandlingFeeBps / 100}% dari hasil
             </InfoRow>
-            <InfoRow label="HPP per kg">
+            <InfoRow label={t("page.kmp.perjanjian.detail.hppPerKg")}>
               <RupiahAmount smallest={agreement.hppPerKg} />
               <span className="ml-1 text-xs text-muted-foreground">
                 (v{agreement.hppVersion}, {priceRef?.hppSource ?? "Inpres"})
               </span>
             </InfoRow>
-            <InfoRow label="Toleransi Setoran">
+            <InfoRow label={t("page.kmp.perjanjian.detail.tolerance")}>
               {agreement.toleranceBps / 100}%
             </InfoRow>
           </CardContent>
@@ -346,7 +351,7 @@ export default function AgreementDetailPage() {
       {/* Rincian saprotan (inputs) */}
       <Card>
         <CardHeader
-          title="Rincian Saprotan"
+          title={t("page.kmp.perjanjian.detail.inputBasket")}
           description="Barang yang diterima petani. Harga pokok Supplier, markup KMP menghasilkan utang saprotan."
           action={<Boxes size={18} className="text-verdant-400" />}
         />
@@ -354,9 +359,9 @@ export default function AgreementDetailPage() {
           <TableFrame className="border-0 shadow-none">
             <Table>
               <THead>
-                <Th>Barang</Th>
-                <Th>Kategori</Th>
-                <Th className="text-right">Jumlah</Th>
+                <Th>{t("common.name")}</Th>
+                <Th>{t("common.type")}</Th>
+                <Th className="text-right">{t("common.volume")}</Th>
                 <Th className="text-right">Harga Pokok / unit</Th>
                 <Th className="text-right">Subtotal Pokok</Th>
               </THead>
@@ -367,7 +372,7 @@ export default function AgreementDetailPage() {
                       colSpan={5}
                       className="px-4 py-6 text-center text-sm text-muted-foreground"
                     >
-                      Belum ada rincian saprotan tercatat untuk perjanjian ini.
+                      {t("page.kmp.perjanjian.detail.inputBasket.empty")}
                     </td>
                   </tr>
                 )}
@@ -400,7 +405,7 @@ export default function AgreementDetailPage() {
                     colSpan={4}
                     className="px-4 py-3 text-sm font-semibold text-foreground"
                   >
-                    Total Pokok Supplier
+                    {t("page.kmp.perjanjian.baru.form.ledger.principal")}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <RupiahAmount
@@ -430,7 +435,7 @@ export default function AgreementDetailPage() {
       {/* Progress setoran */}
       <Card>
         <CardHeader
-          title="Progress Setoran"
+          title={t("page.kmp.perjanjian.detail.deliveryCard")}
           description={`${deliveredKg.toLocaleString("id-ID")} kg dari ${agreement.expectedVolKg.toLocaleString("id-ID")} kg perkiraan`}
           action={<Percent size={18} className="text-verdant-400" />}
         />
@@ -438,7 +443,7 @@ export default function AgreementDetailPage() {
           <ProgressBar
             value={deliveredKg}
             max={agreement.expectedVolKg}
-            label={`Sudah disetor: ${deliveredKg.toLocaleString("id-ID")} kg`}
+            label={`${t("page.kmp.perjanjian.detail.stats.delivered")}: ${deliveredKg.toLocaleString("id-ID")} kg`}
             tone={
               deliveredKg >= agreement.expectedVolKg * 0.98
                 ? "verdant"
@@ -459,7 +464,7 @@ export default function AgreementDetailPage() {
           )}
           <div className="mt-3 flex flex-wrap gap-4 text-sm">
             <div>
-              <span className="text-muted-foreground">Utang tersisa: </span>
+              <span className="text-muted-foreground">{t("page.kmp.perjanjian.detail.remainingDebt")}: </span>
               <RupiahAmount
                 smallest={agreement.remainingDebt}
                 tone={agreement.remainingDebt > 0n ? "negative" : "positive"}
@@ -467,7 +472,7 @@ export default function AgreementDetailPage() {
             </div>
             <div>
               <span className="text-muted-foreground">
-                Dibayarkan ke petani:{" "}
+                {t("page.kmp.perjanjian.detail.stats.farmerPaid")}:{" "}
               </span>
               <RupiahAmount smallest={agreement.paidToFarmer} tone="positive" />
             </div>
@@ -478,26 +483,25 @@ export default function AgreementDetailPage() {
       {/* Riwayat setoran — always shown, null state before first delivery */}
       <Card>
         <CardHeader
-          title="Riwayat Setoran Panen"
+          title={t("page.kmp.perjanjian.detail.deliveryCard")}
           description="Setiap setoran memiliki resi on-chain yang dapat diverifikasi."
           action={<Calendar size={18} className="text-aqua-400" />}
         />
         <CardContent className={deliveries.length === 0 ? "" : "p-0 pb-4"}>
           {deliveries.length === 0 ? (
             <SectionEmpty icon={<Calendar size={22} />}>
-              Belum ada setoran panen. Riwayat setoran muncul di sini setelah
-              setoran pertama dicatat on-chain.
+              {t("page.kmp.perjanjian.detail.delivery.empty")}
             </SectionEmpty>
           ) : (
             <TableFrame className="border-0 shadow-none">
               <Table>
                 <THead>
-                  <Th>Seq</Th>
-                  <Th className="text-right">Volume</Th>
-                  <Th>Grade</Th>
-                  <Th className="text-right">Kadar Air</Th>
-                  <Th>Tanggal</Th>
-                  <Th>Resi On-chain</Th>
+                  <Th>{t("page.kmp.perjanjian.detail.delivery.colNumber")}</Th>
+                  <Th className="text-right">{t("page.kmp.perjanjian.detail.delivery.colVolume")}</Th>
+                  <Th>{t("page.kmp.perjanjian.detail.delivery.colGrade")}</Th>
+                  <Th className="text-right">{t("page.kmp.perjanjian.detail.delivery.colMoisture")}</Th>
+                  <Th>{t("page.kmp.perjanjian.detail.delivery.colDate")}</Th>
+                  <Th>{t("page.kmp.perjanjian.detail.delivery.colTx")}</Th>
                 </THead>
                 <TBody>
                   {deliveries.map((d) => (
@@ -544,15 +548,14 @@ export default function AgreementDetailPage() {
       {/* Penyelesaian (settlements) — always shown, null state before first settle */}
       <Card>
         <CardHeader
-          title="Catatan Penyelesaian"
+          title={t("page.kmp.perjanjian.detail.settlementCardTitle")}
           description="Catatan pembayaran anti-manipulasi. Kas keluar dari BRILink/BRI, split tercatat di Stellar."
           action={<Landmark size={18} className="text-aqua-400" />}
         />
         <CardContent className="space-y-6">
           {settlements.length === 0 ? (
             <SectionEmpty icon={<Landmark size={22} />}>
-              Belum ada penyelesaian pembayaran. Rincian split tiga arah muncul
-              setelah pembayaran pertama diproses.
+              {t("page.kmp.perjanjian.detail.settlement.empty")}
             </SectionEmpty>
           ) : (
             settlements.map((s) => (
@@ -591,15 +594,14 @@ export default function AgreementDetailPage() {
       {/* Residu pokok Supplier — always shown, null state when no residu */}
       <Card>
         <CardHeader
-          title="Residu Pokok Supplier"
+          title={t("page.kmp.perjanjian.detail.residuTitle")}
           description="Bagian Supplier dari pembayaran. Wajib disetor balik ke Supplier."
           action={<Landmark size={18} className="text-aqua-400" />}
         />
         <CardContent className="space-y-4">
           {!residu ? (
             <SectionEmpty icon={<Landmark size={22} />}>
-              Belum ada residu pokok Supplier. Bagian ini muncul setelah pembayaran
-              menyisakan pokok Supplier yang wajib disetor balik.
+              {t("page.kmp.perjanjian.detail.residu.empty")}
             </SectionEmpty>
           ) : (
             <>
@@ -607,7 +609,7 @@ export default function AgreementDetailPage() {
               <div>
                 <ResiduStatusBadge status={residu.status} />
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Jumlah pokok:{" "}
+                  {t("page.kmp.perjanjian.detail.residu.colAmount")}:{" "}
                   <RupiahAmount
                     smallest={residu.principalAmount}
                     className="text-sm"
@@ -619,7 +621,7 @@ export default function AgreementDetailPage() {
 
             {residu.bankRef && (
               <div className="text-sm text-muted-foreground">
-                Referensi bank:{" "}
+                {t("page.kmp.perjanjian.detail.residu.colBankRef")}:{" "}
                 <span className="font-mono text-foreground">
                   {residu.bankRef}
                 </span>
@@ -628,7 +630,7 @@ export default function AgreementDetailPage() {
 
             {residu.remittedAt && (
               <div className="text-sm text-muted-foreground">
-                Tanggal setor: {residu.remittedAt}
+                {t("page.kmp.perjanjian.detail.residu.colDate")}: {residu.remittedAt}
               </div>
             )}
 
@@ -639,7 +641,7 @@ export default function AgreementDetailPage() {
             )}
 
             {residu.status === "Pending" && (
-              <Alert tone="warning" title="Residu belum disetor">
+              <Alert tone="warning" title={t("badge.residu.Pending")}>
                 Sebesar{" "}
                 <RupiahAmount
                   smallest={residu.principalAmount}
@@ -664,7 +666,7 @@ export default function AgreementDetailPage() {
             className="flex items-center gap-1 font-medium hover:underline"
           >
             <ExternalLink size={14} />
-            Lihat perjanjian di Stellar Explorer
+            {t("common.view")} (testnet)
           </a>
           <span className="text-muted-foreground">(testnet)</span>
         </div>

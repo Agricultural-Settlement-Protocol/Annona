@@ -72,6 +72,8 @@ export function CreateAgreementForm() {
   const [markupPct, setMarkupPct] = useState(10);
   const [handlingPct, setHandlingPct] = useState(5);
   const [tolerancePct, setTolerancePct] = useState(20);
+  // Subsidy tier — controls which price column (HET for Subsidized, standard for Commercial)
+  const [subsidyTier, setSubsidyTier] = useState<"Subsidized" | "Commercial">("Subsidized");
 
   // TX (create_agreement, coop-signed)
   const { state: txState, txHash, error: txError, run: runTx, reset: resetTx } = useTx();
@@ -174,6 +176,7 @@ export function CreateAgreementForm() {
           moistureBps: MOISTURE_BPS_ESTIMATE,
           hppVersion: HPP_VERSION,
         },
+        subsidyTier,
         basePriceSupplier: basePrincipal,
         saprotanMarkupBps: markupBps,
         hppHandlingFeeBps: handlingBps,
@@ -486,6 +489,50 @@ export function CreateAgreementForm() {
                 <p className="mt-1 text-xs text-gray-400 font-semibold">{toleranceBps} bps</p>
               </div>
             </div>
+
+            {/* Subsidy tier toggle */}
+            <fieldset className="mt-5 space-y-2.5">
+              <legend className="block text-sm font-bold text-gray-900">Jenis Subsidi</legend>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setSubsidyTier("Subsidized")}
+                  className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-all ${
+                    subsidyTier === "Subsidized"
+                      ? "border-amber-400 bg-amber-50 text-amber-800 ring-2 ring-amber-200/50"
+                      : "border-gray-200 bg-white text-gray-500 hover:border-gray-300"
+                  }`}
+                >
+                  <span className={`h-3 w-3 rounded-full border-2 ${
+                    subsidyTier === "Subsidized"
+                      ? "border-amber-500 bg-amber-400"
+                      : "border-gray-300"
+                  }`} />
+                  Bersubsidi
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSubsidyTier("Commercial")}
+                  className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-all ${
+                    subsidyTier === "Commercial"
+                      ? "border-gray-400 bg-gray-100 text-gray-800 ring-2 ring-gray-200/50"
+                      : "border-gray-200 bg-white text-gray-500 hover:border-gray-300"
+                  }`}
+                >
+                  <span className={`h-3 w-3 rounded-full border-2 ${
+                    subsidyTier === "Commercial"
+                      ? "border-gray-500 bg-gray-400"
+                      : "border-gray-300"
+                  }`} />
+                  Komersial
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {subsidyTier === "Subsidized"
+                  ? "HET pemerintah berlaku. Petani menerima bantuan pupuk bersubsidi."
+                  : "Harga pasar komersial. Tidak ada HET."}
+              </p>
+            </fieldset>
           </CardContent>
         </Card>
       </div>

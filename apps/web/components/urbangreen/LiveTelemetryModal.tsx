@@ -80,11 +80,11 @@ export default function LiveTelemetryModal({ isOpen, onClose, initialCityId = 'c
               <div className="bg-black/60 backdrop-blur-md rounded-full px-4 py-2 border border-white/10 flex items-center gap-2">
                 <span className={`w-2.5 h-2.5 rounded-full ${isLive ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
                 <span className="text-xs font-mono tracking-widest text-emerald-400">
-                  {isLive ? 'LORA FEED: AKTIF' : 'LORA FEED: TERHENTI'}
+                  {isLive ? 'LORA FEED: ACTIVE' : 'LORA FEED: PAUSED'}
                 </span>
               </div>
               <div className="bg-black/60 backdrop-blur-md rounded-full px-4 py-2 border border-white/10 text-xs font-mono text-white">
-                SINKRONISASI UTC: {new Date().toISOString().substring(11, 19)}
+                UTC SYNC: {new Date().toISOString().substring(11, 19)}
               </div>
             </div>
 
@@ -92,19 +92,19 @@ export default function LiveTelemetryModal({ isOpen, onClose, initialCityId = 'c
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               {!isLive && (
                 <div className="bg-black/80 text-white p-4 rounded-full border border-white/10">
-                  <span className="text-xs font-mono">MONITOR DIHENTIKAN</span>
+                  <span className="text-xs font-mono">MONITORING PAUSED</span>
                 </div>
               )}
             </div>
 
             {/* Bottom HUD info */}
             <div className="relative z-10 p-6 bg-gradient-to-t from-black/90 via-black/40 to-transparent w-full mt-auto text-white">
-              <p className="text-sm font-mono text-emerald-400 mb-1">MONITOR TRANSAKSI KOPERASI</p>
+              <p className="text-sm font-mono text-emerald-400 mb-1">COOPERATIVE TRANSACTION MONITOR</p>
               <h3 className="text-3xl font-medium tracking-tight text-white mb-2">
                 KUD {selectedCity.name} <span className="text-lg text-zinc-400 font-light">, {selectedCity.country}</span>
               </h3>
               <p className="text-xs text-zinc-300 max-w-md font-sans">
-                Memantau penyaluran saprotan aman, pengukuran tonase panen terverifikasi, dan pelunasan netting otomatis secara real-time di Stellar Blockchain.
+                Monitoring secure agri-input credit distribution, verified harvest yield measurements, and automated netting settlements in real-time on the Stellar Blockchain.
               </p>
             </div>
           </div>
@@ -118,7 +118,7 @@ export default function LiveTelemetryModal({ isOpen, onClose, initialCityId = 'c
             <div className="relative z-10 flex items-center justify-between mb-6">
               <div className="flex items-center gap-2 text-emerald-800">
                 <Activity className="w-5 h-5 animate-pulse" />
-                <span className="text-sm font-semibold tracking-wider font-mono">METRIK LEDGER KUD</span>
+                <span className="text-sm font-semibold tracking-wider font-mono">COOPERATIVE LEDGER METRICS</span>
               </div>
               <button
                 onClick={onClose}
@@ -155,15 +155,15 @@ export default function LiveTelemetryModal({ isOpen, onClose, initialCityId = 'c
                     <Heart className="w-4 h-4" />
                   </div>
                   <div>
-                    <p className="text-[9px] text-gray-400 font-mono">INDEKS REPUTASI</p>
-                    <p className="text-xs font-semibold text-gray-800">Reputasi Koperasi</p>
+                    <p className="text-[9px] text-gray-400 font-mono">REPUTATION INDEX</p>
+                    <p className="text-xs font-semibold text-gray-800">Cooperative Score</p>
                   </div>
                 </div>
                 <div className="text-right">
                   <p className="text-xl font-bold font-mono text-emerald-800">
                     {selectedCity.plantHealth}%
                   </p>
-                  <p className="text-[9px] text-emerald-600 font-mono font-bold">SANGAT BAIK</p>
+                  <p className="text-[9px] text-emerald-600 font-mono font-bold">EXCELLENT</p>
                 </div>
               </div>
 
@@ -172,9 +172,9 @@ export default function LiveTelemetryModal({ isOpen, onClose, initialCityId = 'c
                 <div className="bg-gray-50/50 rounded-2xl p-3 border border-gray-100 flex flex-col justify-between">
                   <div className="flex items-center gap-2 text-gray-400 mb-2">
                     <Thermometer className="w-4 h-4 text-orange-500" />
-                    <span className="text-[10px] font-mono">YIELD RATA-RATA</span>
+                    <span className="text-[10px] font-mono">AVERAGE YIELD</span>
                   </div>
-                  <p className="text-lg font-mono font-bold text-gray-900">{selectedCity.temperature} Ton</p>
+                  <p className="text-lg font-mono font-bold text-gray-900">{selectedCity.temperature} Tons</p>
                 </div>
 
                 <div className="bg-gray-50/50 rounded-2xl p-3 border border-gray-100 flex flex-col justify-between">
@@ -189,25 +189,25 @@ export default function LiveTelemetryModal({ isOpen, onClose, initialCityId = 'c
               {/* AQI Indicator */}
               <div className="bg-gray-50/50 rounded-2xl p-4 border border-gray-100 flex items-center justify-between">
                 <div>
-                  <p className="text-[9px] text-gray-400 font-mono">MITRA PETANI AKTIF</p>
-                  <p className="text-xs font-semibold text-gray-800 mt-0.5">Petani Terdaftar</p>
+                  <p className="text-[9px] text-gray-400 font-mono">ACTIVE FARMERS</p>
+                  <p className="text-xs font-semibold text-gray-800 mt-0.5">Registered Farmers</p>
                 </div>
                 <span className="px-3 py-1 rounded-full bg-[#ebf5e9] text-emerald-800 border border-soft-green/30 text-xs font-mono font-bold">
-                  {selectedCity.activeSensors} Jiwa
+                  {selectedCity.activeSensors} Farmers
                 </span>
               </div>
 
               {/* CO2 Sequestration Rate */}
               <div className="bg-[#ebf5e9]/40 border border-soft-green/15 rounded-2xl p-4">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-emerald-800 font-bold font-mono">DANA NETTING TERKUNCI</span>
+                  <span className="text-xs text-emerald-800 font-bold font-mono">LOCKED NETTING VOLUME</span>
                   <Globe className="w-4 h-4 text-emerald-800" />
                 </div>
                 <p className="text-xl font-mono font-bold text-emerald-950 tracking-tight">
                   Rp {(selectedCity.co2Offset * 1000 + (ticker * 150000)).toLocaleString('id-ID')}
                 </p>
                 <p className="text-[10px] text-emerald-700/80 mt-1 font-sans">
-                  Total volume modal dan netting yang berjalan secara aman di KUD ini.
+                  Total volume of agri-input capital and netting settlements safely processed for this cooperative.
                 </p>
               </div>
             </div>
@@ -219,7 +219,7 @@ export default function LiveTelemetryModal({ isOpen, onClose, initialCityId = 'c
                 className="flex items-center gap-2 text-xs font-mono text-gray-500 hover:text-gray-900 transition-colors"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isLive ? 'animate-spin' : ''}`} />
-                {isLive ? 'HENTIKAN MONITOR' : 'SINKRONISASI KEMBALI'}
+                {isLive ? 'PAUSE MONITOR' : 'RESUME MONITOR'}
               </button>
               <span className="text-[10px] font-mono text-gray-400 font-bold">KUD-{selectedCity.id.toUpperCase()}-X8</span>
             </div>

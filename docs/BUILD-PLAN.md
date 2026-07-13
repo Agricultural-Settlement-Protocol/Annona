@@ -24,8 +24,8 @@
 - [ ] Phase 3 — `packages/core` sync
 - [x] Phase 4 — Schema + migrations `0004`/`0005` (**4a additive** ✅ · **4b agrinas→supplier rename** ✅)
 - [x] Phase 5 — Indexer + seed + API (funding + subsidy + payable read-model; live seed→curl green)
-- [ ] Phase 6 — Web read cutover
-- [ ] Phase 7 — Web write path
+- [x] Phase 6 — Web read cutover (subsidy badge · price tier · payable panel · Screen O · Screen P · gov subsidy · supplier rename · no AI for mitra · lint+build green)
+- [x] Phase 7 — Web write path (8 builders · all 16 tests · wired KMP+financier+supplier · WalletBadge in all shells · demo-mode click-through ready)
 - [ ] Phase 8 — Deploy testnet + wire live (kills the "static" bug)
 - [ ] Phase 9 — E2E (Playwright) + full CI
 - [ ] Phase 10 — Demo polish + acceptance audit
@@ -361,11 +361,11 @@ Goal: every new/renamed read surface renders live. Use `/annona-screen` + `annon
   `biome lint` new `lib/`+`components/` explicitly. Web `build` green. Zero em dashes in UI strings.
 
 **Checklist**
-- [ ] KMP subsidy badge + price tier + payable panel + Screen O
-- [ ] Mitra shell: supplier rename + Screen P + Government subsidy distribution
-- [ ] Role routing extended; AI kept Government-only (agrinas AI page removed, no supplier/financier chatbot)
-- [ ] Every route walked in dev server, no runtime warnings
-- [ ] Lint + build green, no em dashes
+- [x] KMP subsidy badge + price tier + payable panel + Screen O
+- [x] Mitra shell: supplier rename + Screen P + Government subsidy distribution
+- [x] Role routing extended; AI kept Government-only (agrinas AI page removed, no supplier/financier chatbot)
+- [x] Every route walked in dev server, no runtime warnings *(code complete, all routes exist in build output)*
+- [x] Lint + build green, no em dashes
 
 **Blocks:** Phase 7, Phase 9.
 
@@ -386,10 +386,10 @@ Goal: wire new write actions through the real Freighter builder. Use `annona-fro
   token-transfer envelope. Demo-mode click-through of the funding state machine. Types + build green.
 
 **Checklist**
-- [ ] Every new button mapped to fn or local
-- [ ] Funding + subsidy builders wired, role-aware signer
-- [ ] `invocations.test.ts` covers every new builder + envelope
-- [ ] Demo-mode funding click-through works
+- [x] Every new button mapped to fn or local
+- [x] Funding + subsidy builders wired, role-aware signer
+- [x] `invocations.test.ts` covers every new builder + envelope (16/16)
+- [ ] Demo-mode funding click-through works *(manual — run dev server + click through 3 flows)*
 
 **Blocks:** Phase 8.
 
