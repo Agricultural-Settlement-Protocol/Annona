@@ -19,6 +19,8 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { nativeToScVal, xdr as sdkXdr } from "@stellar/stellar-sdk";
+import { decodeEvent } from "./poll.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const RUST = resolve(HERE, "../../../../contracts/offtake-registry/src/events.rs");
@@ -110,3 +112,54 @@ for (const [symbol, { type, topicFields }] of rust) {
     );
   });
 }
+
+/* ────────────────────── unit-enum decode (live-chain regression) ──────────────────────
+ * Caught on the 2026-07-13 testnet deploy: a Soroban #[contracttype] unit enum is
+ * encoded as a 1-element VEC of the variant symbol, so scValToNative returns
+ * ["Subsidized"], not "Subsidized". The reducer writes subsidyTier straight into a
+ * Postgres enum column, so the array would have blown up (or corrupted) every live
+ * AgreementCreated. The SEED never hit it — it synthesizes events in TS with the
+ * string already correct, so only a real chain event exposes the vec encoding.
+ * Symbol-typed fields (ForceMajeure.reason) are plain strings and must NOT be touched.
+ */
+const sym = (s: string) => sdkXdr.ScVal.scvSymbol(s);
+const FARMER = "GCQ4HV75LRP3SL4SHRM6KJTEET3VC2ESGALZEV5FZ7ALGHPZ6HAOFHCE";
+const COOP = "GB52CZEWENJGENADNZKVK5HFY3NKBI2Y47GCGTCGVJF2L6YHTMBXTRVL";
+
+/** Build a raw RPC event the way the chain actually encodes it. */
+function rawEvent(topicName: string, topics: sdkXdr.ScVal[], body: Record<string, sdkXdr.ScVal>) {
+  const entries = Object.keys(body)
+    .sort() // Soroban requires map keys sorted by symbol
+    .map((k) => new sdkXdr.ScMapEntry({ key: sym(k), val: body[k] as sdkXdr.ScVal }));
+  return {
+    topic: [sym(topicName), ...topics],
+    value: sdkXdr.ScVal.scvMap(entries),
+    txHash: "abc",
+    ledger: 1,
+    ledgerClosedAt: "2026-07-13T00:00:00Z",
+  } as unknown as Parameters<typeof decodeEvent>[0];
+}
+
+test("a unit-variant enum (SubsidyTier) decodes to a bare string, not a 1-element array", () => {
+  const ev = rawEvent(
+    "agreement_created",
+    [nativeToScVal(1n, { type: "u64" }), nativeToScVal(FARMER, { type: "address" }), nativeToScVal(COOP, { type: "address" })],
+    {
+      // exactly how the chain encodes `subsidy_tier: SubsidyTier` — a vec of the variant
+      subsidy_tier: sdkXdr.ScVal.scvVec([sym("Subsidized")]),
+      base_price: nativeToScVal(20000000000000n, { type: "i128" }),
+    },
+  );
+  const d = decodeEvent(ev, 0);
+  assert.ok(d);
+  assert.equal(d.data.subsidyTier, "Subsidized", "SubsidyTier must be unwrapped to a bare string");
+  assert.equal(typeof d.data.subsidyTier, "string");
+  assert.equal(d.data.basePrice, 20000000000000n, "the wire field is `base_price` → `basePrice`");
+});
+
+test("a Symbol-typed field (ForceMajeure.reason) is left alone by the enum unwrap", () => {
+  const ev = rawEvent("force_majeure", [nativeToScVal(1n, { type: "u64" })], { reason: sym("BANJIR") });
+  const d = decodeEvent(ev, 0);
+  assert.ok(d);
+  assert.equal(d.data.reason, "BANJIR");
+});

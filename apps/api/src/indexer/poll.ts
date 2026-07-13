@@ -58,6 +58,28 @@ function deepCamel(value: unknown): unknown {
   return value;
 }
 
+/** Event fields whose Rust type is a `#[contracttype]` UNIT-VARIANT ENUM
+ *  (`SubsidyTier`, `FlagReason`) rather than a Symbol or scalar.
+ *
+ *  Soroban encodes such an enum as a 1-element vec of the variant name, so
+ *  `scValToNative` hands back `["Subsidized"]`, NOT `"Subsidized"`. The TS types
+ *  (and the Postgres enum columns) want the bare string. Unwrap them here, at the
+ *  decode boundary, so `applyEvent` only ever sees the clean shape.
+ *
+ *  Field-SCOPED on purpose: a blanket "unwrap any 1-element array" would silently
+ *  corrupt a legitimate single-element Vec field. Fields typed `Symbol` (e.g.
+ *  ForceMajeure.reason) decode to a plain string already and pass through untouched.
+ *
+ *  The seed never hit this because it synthesizes events in TS with the string
+ *  already correct — only a REAL chain event exposes the vec encoding. */
+const ENUM_VALUED_FIELDS = new Set(["subsidyTier", "reason"]);
+
+function unwrapUnitEnum(value: unknown): unknown {
+  return Array.isArray(value) && value.length === 1 && typeof value[0] === "string"
+    ? value[0]
+    : value;
+}
+
 /** Decoded event ready for applyEvent (the exact EventEnvelope shape). */
 export interface DecodedEvent {
   type: AnnonaEventType;
@@ -86,6 +108,10 @@ export function decodeEvent(raw: rpc.Api.EventResponse, eventIndex: number): Dec
   });
   const body = deepCamel(scValToNative(raw.value)) as Record<string, unknown>;
   Object.assign(data, body);
+
+  for (const field of ENUM_VALUED_FIELDS) {
+    if (field in data) data[field] = unwrapUnitEnum(data[field]);
+  }
 
   return {
     type: entry.type,

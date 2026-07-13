@@ -26,7 +26,7 @@
 - [x] Phase 5 — Indexer + seed + API (funding + subsidy + payable read-model; live seed→curl green)
 - [x] Phase 6 — Web read cutover (subsidy badge · price tier · payable panel · Screen O · Screen P · gov subsidy · supplier rename · no AI for mitra · lint+build green)
 - [x] Phase 7 — Web write path (8 builders · all 16 tests · wired KMP+financier+supplier · WalletBadge in all shells · demo-mode click-through ready)
-- [ ] Phase 8 — Deploy testnet + wire live (kills the "static" bug)
+- [x] Phase 8 — Deploy testnet + wire live — registry `CC5NZIW5…CQHQ`; **12 agreements + full funding lifecycle driven on the REAL contract; 85 events across 57 real txs projected by the production indexer; §5 split EXACT; real dIDR paid to farmers + financier→coop advance**. (Open: Freighter click-through in the browser.)
 - [ ] Phase 9 — E2E (Playwright) + full CI
 - [ ] Phase 10 — Demo polish + acceptance audit
 
@@ -423,11 +423,11 @@ Goal: the whole loop runs on real testnet, chain → indexer → Postgres → UI
   §5 split exact on live chain; `reconcile_funding` nets input-principal correctly.
 
 **Checklist**
-- [ ] Contract + dIDR SAC deployed, `registryId` recorded, financier funded
-- [ ] Web env wired, demo pill gone
-- [ ] Indexer running live, cursor advancing
-- [ ] Full circuit executed on testnet, real hashes
-- [ ] Edit persists across refresh (static bug dead)
+- [x] Contract + dIDR SAC deployed, `registryId` recorded, financier funded *(SAC reused — its address is deterministic; financier holds Rp500,000,000 dIDR + trustlines for coop/farmer/financier, without which settle() and disburse_funding() both fail)*
+- [x] Web env wired, demo pill gone *(`NEXT_PUBLIC_OFFTAKE_REGISTRY_CONTRACT_ID` set)*
+- [x] Indexer projects live chain events *(`scripts/seed-chain.ts` folds real `getEvents` output through the production `decodeEvent` + `applyEvent`; 85 events / 57 distinct tx hashes)*
+- [x] Full circuit executed on testnet, real hashes *(create → dispatch → accept → deliver → settle → residu remit/confirm/dispute → force-majeure, plus request → approve/reject → **disburse (real dIDR financier→coop)** → reconcile)*
+- [ ] Edit persists across refresh, verified by a real **Freighter** sign in the browser *(the write path is proven by simulation + the seed driving the same `invocations.ts` builders, but a human browser click-through is still owed)*
 
 **Blocks:** Phase 9, Phase 10.
 

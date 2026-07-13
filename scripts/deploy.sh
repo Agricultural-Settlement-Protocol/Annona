@@ -15,8 +15,23 @@ set -euo pipefail
 NETWORK="${STELLAR_NETWORK:-testnet}"
 ADMIN_KEY="${ADMIN_KEY:-annona-admin}"
 ASSET_CODE="${ASSET_CODE:-dIDR}"
-# Pre-fund amount in the SAC's smallest unit (7 decimals). Default ~Rp1,000,000.
-PREFUND="${PREFUND:-10000000000000}"
+# Pre-fund amount in the SAC's smallest unit (7 decimals), i.e. rupiah * 1e7.
+# Default Rp1,000,000,000 — settle() pays net_to_farmer OUT OF THE CONTRACT's
+# balance, and ONE hero-example settlement is Rp13,855,000 (=1.3855e14 units).
+# The old default (1e13) covered 0.07 of a single settlement, so the first
+# settle() would have failed on insufficient funds. Size this to the demo.
+PREFUND="${PREFUND:-10000000000000000}"
+
+# Soroban RPC. `soroban-testnet.stellar.org` is IPv6-ONLY; on an IPv4-only host
+# the CLI dies with "client error (Connect)". Override with an IPv4-reachable
+# node. Passphrase must still match the target network.
+RPC_URL="${STELLAR_RPC_URL:-}"
+NET_PASSPHRASE="${STELLAR_NETWORK_PASSPHRASE:-Test SDF Network ; September 2015}"
+if [ -n "$RPC_URL" ]; then
+  NET_ARGS=(--rpc-url "$RPC_URL" --network-passphrase "$NET_PASSPHRASE")
+else
+  NET_ARGS=(--network "$NETWORK")
+fi
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ARTIFACTS="$ROOT/scripts/artifacts.testnet.json"
@@ -31,20 +46,29 @@ WASM="$ROOT/contracts/target/wasm32v1-none/release/offtake_registry.wasm"
 # The on-chain WASM hash is the sha256 of the built artifact.
 WASM_HASH="$(sha256sum "$WASM" | cut -d' ' -f1)"
 
-# 2. Deploy dIDR as a SAC (wraps the classic asset dIDR:<ADMIN> issued by admin).
-echo "deploying $ASSET_CODE SAC..."
-DIDR_SAC="$(stellar contract asset deploy \
-  --asset "${ASSET_CODE}:${ADMIN_ADDR}" \
-  --source "$ADMIN_KEY" \
-  --network "$NETWORK")"
-echo "  $ASSET_CODE SAC = $DIDR_SAC"
+# 2. dIDR SAC. Its address is DETERMINISTIC from (asset, issuer, passphrase), so on
+#    a REdeploy `asset deploy` fails with "contract already exists" and, under
+#    `set -e`, kills the script. The SAC is unaffected by any registry rework —
+#    reuse it if it is already on-chain, deploy only when it is genuinely missing.
+DIDR_SAC="$(stellar contract id asset --asset "${ASSET_CODE}:${ADMIN_ADDR}" "${NET_ARGS[@]}")"
+if stellar contract invoke --id "$DIDR_SAC" --source "$ADMIN_KEY" "${NET_ARGS[@]}" \
+     -- decimals >/dev/null 2>&1; then
+  echo "  $ASSET_CODE SAC already deployed, reusing = $DIDR_SAC"
+else
+  echo "deploying $ASSET_CODE SAC..."
+  stellar contract asset deploy \
+    --asset "${ASSET_CODE}:${ADMIN_ADDR}" \
+    --source "$ADMIN_KEY" \
+    "${NET_ARGS[@]}" >/dev/null
+  echo "  $ASSET_CODE SAC = $DIDR_SAC"
+fi
 
 # 3. Deploy the registry, passing __constructor(admin, token) args after `--`.
 echo "deploying offtake-registry..."
 REGISTRY_ID="$(stellar contract deploy \
   --wasm "$WASM" \
   --source "$ADMIN_KEY" \
-  --network "$NETWORK" \
+  "${NET_ARGS[@]}" \
   -- \
   --admin "$ADMIN_ADDR" \
   --token "$DIDR_SAC")"
@@ -55,7 +79,7 @@ echo "pre-funding registry with $PREFUND units of $ASSET_CODE..."
 stellar contract invoke \
   --id "$DIDR_SAC" \
   --source "$ADMIN_KEY" \
-  --network "$NETWORK" \
+  "${NET_ARGS[@]}" \
   -- \
   mint --to "$REGISTRY_ID" --amount "$PREFUND"
 

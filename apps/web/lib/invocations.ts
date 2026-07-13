@@ -8,7 +8,7 @@
  *
  * Contract signatures (SMART-CONTRACT.md §A, §B, §C):
  *   KMP (coop) signed:
- *     create_agreement(coop, farmer, supplier, commodity, subsidy_tier: Symbol,
+ *     create_agreement(coop, farmer, supplier, commodity, subsidy_tier: SubsidyTier (unit enum),
  *       base_price: i128, saprotan_markup_bps: u32, hpp_handling_fee_bps: u32,
  *       expected_vol_g: i128, hpp_per_kg: i128, tolerance_bps: u32, ktp_hash: BytesN<32>)
  *     accept_supply(coop, id: u64)
@@ -38,6 +38,16 @@ const i128 = (v: bigint): xdr.ScVal => nativeToScVal(v, { type: "i128" });
 const u64 = (v: bigint): xdr.ScVal => nativeToScVal(v, { type: "u64" });
 const u32 = (v: number): xdr.ScVal => nativeToScVal(v, { type: "u32" });
 const sym = (s: string): xdr.ScVal => nativeToScVal(s, { type: "symbol" });
+
+/** A Soroban `#[contracttype]` UNIT-VARIANT ENUM (e.g. `SubsidyTier::Subsidized`).
+ *
+ *  It is NOT a Symbol. On the wire it is a 1-element VEC holding the variant name,
+ *  and passing a bare Symbol makes the contract TRAP with
+ *  `WasmVm, InvalidAction / UnreachableCodeReached` when it tries to unmarshal the
+ *  arg. Verified by simulating against the deployed contract — a round-trip test
+ *  cannot catch this, because it only checks our encoder against ITSELF, never
+ *  against the contract's expected arg type. */
+const unitEnum = (variant: string): xdr.ScVal => xdr.ScVal.scvVec([xdr.ScVal.scvSymbol(variant)]);
 
 /** hex string (64 chars) -> ScBytes of exactly 32 bytes (Soroban BytesN<32>). */
 function bytes32(hex: string): xdr.ScVal {
@@ -89,7 +99,7 @@ export interface CreateAgreementArgs {
   farmer: string;
   supplier: string;
   commodity: CommodityArg;
-  /** "Subsidized" | "Commercial" — passed as a Soroban Symbol. */
+  /** "Subsidized" | "Commercial" — a Soroban unit ENUM (vec-encoded), not a Symbol. */
   subsidyTier: string;
   basePriceSupplier: bigint;
   saprotanMarkupBps: number;
@@ -108,7 +118,7 @@ export function createAgreement(a: CreateAgreementArgs): Invocation {
       addr(a.farmer),
       addr(a.supplier),
       commodity(a.commodity),
-      sym(a.subsidyTier),
+      unitEnum(a.subsidyTier), // SubsidyTier is a unit enum, NOT a Symbol
       i128(a.basePriceSupplier),
       u32(a.saprotanMarkupBps),
       u32(a.hppHandlingFeeBps),
