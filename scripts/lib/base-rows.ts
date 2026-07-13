@@ -127,13 +127,20 @@ export async function seedBaseRows(db: Db, r: WalletResolvers): Promise<BaseRowI
 
 /** Truncate every read-model + base table (idempotent re-runs / genesis rebuild). */
 export async function truncateAll(db: Db, sql: (typeof import("drizzle-orm"))["sql"]): Promise<void> {
+  // MUST list every table a seed writes. The v4.0 tables (financier, funding_*,
+  // supplier_payable, harvest_*, warehouse_operator) were added without updating
+  // this, which silently made the seeds NON-RERUNNABLE: the second run blew up on
+  // `financier_wallet_address_unique` because the old row was never cleared.
   await db.execute(sql`
     truncate table
       ${schema.eventLog}, ${schema.settlement}, ${schema.delivery},
       ${schema.residuRemittance}, ${schema.agreementInput}, ${schema.agreement},
       ${schema.reputationCache}, ${schema.coopReputationCache}, ${schema.indexerCursor},
       ${schema.farmer}, ${schema.saprotanCatalog}, ${schema.priceRef},
-      ${schema.yieldTable}, ${schema.commodity}, ${schema.coop}, ${schema.supplier}
+      ${schema.yieldTable}, ${schema.commodity}, ${schema.coop}, ${schema.supplier},
+      ${schema.fundingRequestLine}, ${schema.fundingRequest}, ${schema.financier},
+      ${schema.supplierPayable}, ${schema.harvestShipmentLine}, ${schema.harvestShipment},
+      ${schema.warehouseOperator}, ${schema.appUser}
     restart identity cascade
   `);
 }

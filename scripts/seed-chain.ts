@@ -94,6 +94,68 @@ const farmerKp = (mockFarmerId: string): Keypair =>
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/** Retry a public-RPC call on TRANSIENT failures only.
+ *
+ *  The seed fires ~80 sequential transactions at a free public node, which
+ *  intermittently answers 503/429 or drops the connection. Those are worth
+ *  retrying with backoff. A 404 (account not found) or a contract error is NOT —
+ *  `ensureFarmerAccount` relies on getAccount THROWING for a missing account, so a
+ *  blanket retry would both mask real errors and stall for a minute on every new
+ *  farmer. Retry only on signals we can positively identify as transient. */
+function isTransient(err: unknown): boolean {
+  const e = err as {
+    isAxiosError?: boolean;
+    response?: { status?: number };
+    status?: number;
+  };
+  // An AxiosError with NO response never reached the server: DNS/TCP/TLS/abort.
+  // The underlying code (ETIMEDOUT etc.) is buried arbitrarily deep in the cause
+  // chain and is often not surfaced at all, so keying on `err.code` misses it —
+  // which is exactly how the first version of this retry let a network blip through.
+  if (e?.isAxiosError && e.response === undefined) return true;
+  const status = e?.response?.status ?? e?.status;
+  if (status !== undefined && (status >= 500 || status === 429)) return true;
+  // Walk the cause chain for a recognisable network errno.
+  const NET = new Set([
+    "ETIMEDOUT",
+    "ECONNRESET",
+    "ECONNREFUSED",
+    "EAI_AGAIN",
+    "ENOTFOUND",
+    "EPIPE",
+    "UND_ERR_CONNECT_TIMEOUT",
+    "UND_ERR_SOCKET",
+  ]);
+  for (let cur: unknown = err, depth = 0; cur && depth < 8; depth++) {
+    const c = (cur as { code?: string }).code;
+    if (c && NET.has(c)) return true;
+    if (cur instanceof AggregateError && cur.errors.some((x) => NET.has((x as { code?: string })?.code ?? "")))
+      return true;
+    cur = (cur as { cause?: unknown }).cause;
+  }
+  return false;
+}
+
+/** Retry a public-RPC call on TRANSIENT failures only. A 404 (account not found)
+ *  or a contract error must NOT be retried: `ensureFarmerAccount` relies on
+ *  getAccount THROWING for a missing account, and a blanket retry would both mask
+ *  real errors and stall a minute on every new farmer. */
+async function rpcRetry<T>(label: string, fn: () => Promise<T>, tries = 7): Promise<T> {
+  let last: unknown;
+  for (let i = 0; i < tries; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      last = err;
+      if (!isTransient(err)) throw err; // real error — surface it
+      const wait = Math.min(1000 * 2 ** i, 15_000);
+      console.warn(`  [retry] ${label} (${i + 1}/${tries}) after ${wait}ms`);
+      await sleep(wait);
+    }
+  }
+  throw new Error(`${label}: gave up after ${tries} attempts: ${String(last)}`);
+}
+
 /* ─────────────────────────── chain plumbing ─────────────────────────── */
 
 /** Submit one contract invocation, signed by `signer`, and wait for the result. */
@@ -101,7 +163,7 @@ async function invoke(
   signer: Keypair,
   inv: { method: string; args: ReturnType<typeof createAgreement>["args"] },
 ): Promise<unknown> {
-  const account = await server.getAccount(signer.publicKey());
+  const account = await rpcRetry("getAccount", () => server.getAccount(signer.publicKey()));
   const built = new TransactionBuilder(account, {
     fee: "2000000", // generous: Soroban resource fees dwarf BASE_FEE
     networkPassphrase: Networks.TESTNET,
@@ -113,15 +175,15 @@ async function invoke(
   // prepareTransaction simulates + attaches the SorobanData/auth footprint. For
   // disburse_funding this is what captures the financier's nested token.transfer
   // authorization (the sub-invocation), which a naive build would omit.
-  const prepared = await server.prepareTransaction(built);
+  const prepared = await rpcRetry("prepareTransaction", () => server.prepareTransaction(built));
   prepared.sign(signer);
 
-  const sent = await server.sendTransaction(prepared);
+  const sent = await rpcRetry("sendTransaction", () => server.sendTransaction(prepared));
   if (sent.status === "ERROR") {
     throw new Error(`${inv.method}: submit failed: ${JSON.stringify(sent.errorResult)}`);
   }
   for (let i = 0; i < 40; i++) {
-    const got = await server.getTransaction(sent.hash);
+    const got = await rpcRetry("getTransaction", () => server.getTransaction(sent.hash));
     if (got.status === rpc.Api.GetTransactionStatus.SUCCESS) {
       return got.returnValue ? scValToNative(got.returnValue) : undefined;
     }
@@ -136,10 +198,10 @@ async function invoke(
 /** Submit a signed classic tx and wait. Returns false if it failed (which we treat
  *  as "already in the desired state" for the idempotent setup ops below). */
 async function submitClassic(tx: Transaction): Promise<boolean> {
-  const sent = await server.sendTransaction(tx);
+  const sent = await rpcRetry("sendTransaction", () => server.sendTransaction(tx));
   if (sent.status === "ERROR") return false;
   for (let i = 0; i < 30; i++) {
-    const got = await server.getTransaction(sent.hash);
+    const got = await rpcRetry("getTransaction", () => server.getTransaction(sent.hash));
     if (got.status === rpc.Api.GetTransactionStatus.SUCCESS) return true;
     if (got.status === rpc.Api.GetTransactionStatus.FAILED) return false;
     await sleep(1000);
@@ -160,7 +222,7 @@ async function ensureFarmerAccount(kp: Keypair): Promise<void> {
   try {
     account = await server.getAccount(addr);
   } catch {
-    const adminAcct = await server.getAccount(ADMIN.publicKey());
+    const adminAcct = await rpcRetry("getAccount(admin)", () => server.getAccount(ADMIN.publicKey()));
     const create = new TransactionBuilder(adminAcct, {
       fee: BASE_FEE,
       networkPassphrase: Networks.TESTNET,
@@ -170,7 +232,7 @@ async function ensureFarmerAccount(kp: Keypair): Promise<void> {
       .build();
     create.sign(ADMIN);
     if (!(await submitClassic(create))) throw new Error(`could not create account ${addr}`);
-    account = await server.getAccount(addr);
+    account = await rpcRetry("getAccount(farmer)", () => server.getAccount(addr));
   }
 
   // Trustline is NOT optional: settle() transfers dIDR (a SAC over a CLASSIC asset)
@@ -278,6 +340,11 @@ async function driveFunding(): Promise<void> {
       }),
     )) as bigint;
 
+    // "Requested" means AWAITING the financier — it must stay pending, with no
+    // approve call at all. Approving it with amount 0 is what the contract (rightly)
+    // rejects as InvalidAmount: a zero approval is not a state, it is a bad input.
+    if (target === "Requested") continue;
+
     if (target === "Rejected") {
       await invoke(FINANCIER, rejectFunding(FINANCIER.publicKey(), id, "COVERAGE_TOO_HIGH"));
       continue;
@@ -295,11 +362,11 @@ async function project(fromLedger: number): Promise<number> {
   let start = fromLedger;
   let total = 0;
   for (;;) {
-    const res = await server.getEvents({
+    const res = await rpcRetry("getEvents", () => server.getEvents({
       startLedger: start,
       filters: [{ type: "contract", contractIds: [REGISTRY as string] }],
       limit: 200,
-    });
+    }));
     if (res.events.length === 0) break;
     for (const [i, raw] of res.events.entries()) {
       const decoded = decodeEvent(raw, i);
@@ -318,7 +385,7 @@ async function project(fromLedger: number): Promise<number> {
 
 async function main(): Promise<void> {
   console.log(`[chain-seed] registry ${REGISTRY} via ${RPC_URL}`);
-  const startLedger = (await server.getLatestLedger()).sequence;
+  const startLedger = (await rpcRetry("getLatestLedger", () => server.getLatestLedger())).sequence;
 
   console.log(`[chain-seed] preparing ${MOCK_FARMERS.length} farmer accounts (fund + trustline)...`);
   for (const f of MOCK_FARMERS) await ensureFarmerAccount(farmerKp(f.id));
