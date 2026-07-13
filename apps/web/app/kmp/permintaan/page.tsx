@@ -2,7 +2,7 @@
 
 /** Screen: Permintaan Saprotan — the bulk-request desk.
  *  KMP aggregates Created agreements into a single on-chain bulk request to
- *  Agrinas. Agrinas reads the same mv_bulk_request_queue; no email or Excel
+ *  Supplier. Supplier reads the same mv_bulk_request_queue; no email or Excel
  *  needed. CSV export exists as offline fallback. */
 
 import {
@@ -41,6 +41,7 @@ import {
   Truck,
 } from "lucide-react";
 import Link from "next/link";
+import { useI18n } from "@/lib/i18n/use-i18n";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type SupplyRequestStatus = "Draft" | "Terkirim" | "Dikirim" | "Diterima";
@@ -60,7 +61,7 @@ function RequestStatusBadge({ status }: { status: SupplyRequestStatus }) {
   if (status === "Draft")
     return <Badge tone="neutral" className="rounded-full font-bold">Draf</Badge>;
   if (status === "Terkirim")
-    return <Badge tone="aqua" className="rounded-full font-bold">Terkirim ke Agrinas</Badge>;
+    return <Badge tone="aqua" className="rounded-full font-bold">Terkirim ke Supplier</Badge>;
   if (status === "Dikirim")
     return <Badge tone="aqua" className="rounded-full font-bold">Dalam Pengiriman</Badge>;
   // Diterima
@@ -103,7 +104,7 @@ function buildCsv(rows: EffectiveRow[], catalog: CatalogMap): string {
   const headers = ["Petani", "No. Perjanjian", "Rincian Barang", "Nilai Pokok (Rp)", "Perkiraan Panen", "Status"];
   const lines = rows.map((r) => {
     const items = compactItems(r.agreement, catalog);
-    const principal = formatRupiah(r.agreement.basePriceAgrinas);
+    const principal = formatRupiah(r.agreement.basePriceSupplier);
     return [
       r.farmerName,
       `#${String(r.agreement.onchainId)}`,
@@ -132,6 +133,7 @@ function downloadCsv(rows: EffectiveRow[], catalog: CatalogMap) {
 // ─── Main page ───────────────────────────────────────────────────────────────
 
 export default function PermintaanPage() {
+  const { t } = useI18n();
   const { data, loading, error } = useApi(
     () => Promise.all([fetchOverview(), fetchCatalog(), fetchFarmers()]),
     [],
@@ -272,8 +274,8 @@ export default function PermintaanPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Permintaan Saprotan"
-        description="Rekap kebutuhan input petani (perjanjian Dibuat) yang dikirim KMP ke Agrinas sebagai permintaan gabungan. Setelah dikirim, Agrinas langsung melihat antrean ini di sistem operator tanpa perlu email atau berkas manual."
+        title={t("page.kmp.permintaan.title")}
+        description={t("page.kmp.permintaan.desc")}
         actions={
           <Button
             type="button"
@@ -282,16 +284,16 @@ export default function PermintaanPage() {
             leftIcon={<Download size={14} />}
             onClick={() => downloadCsv(filteredRows, catalog)}
           >
-            Ekspor CSV
+            {t("common.export")}
           </Button>
         }
       />
 
       {loading && (
-        <p className="text-sm text-muted-foreground">Memuat antrean permintaan saprotan...</p>
+        <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
       )}
       {error && (
-        <Alert tone="warning" title="Gagal memuat permintaan saprotan">
+        <Alert tone="warning" title={t("common.error")}>
           {error}
         </Alert>
       )}
@@ -299,28 +301,28 @@ export default function PermintaanPage() {
       {/* 4 stat cards */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatCard
-          label="Draf"
+          label={t("common.all")}
           value={String(countDraft)}
-          hint="Belum dikirim ke Agrinas"
+          hint={t("page.kmp.permintaan.open")}
           icon={<ClipboardList size={18} />}
           tone="neutral"
         />
         <StatCard
-          label="Terkirim"
+          label={t("page.kmp.permintaan.ready")}
           value={String(countTerkirim)}
-          hint="Menunggu pengiriman Agrinas"
+          hint="Menunggu pengiriman Supplier"
           icon={<Send size={18} />}
           tone={countTerkirim > 0 ? "good" : "neutral"}
         />
         <StatCard
-          label="Dalam Pengiriman"
+          label={t("page.kmp.logistik.badge.inTransit")}
           value={String(countDikirim)}
           hint="Saprotan sedang dikirim"
           icon={<Truck size={18} />}
           tone={countDikirim > 0 ? "good" : "neutral"}
         />
         <StatCard
-          label="Diterima"
+          label={t("page.kmp.logistik.badge.delivered")}
           value={String(countDiterima)}
           hint="Sudah diterima oleh KMP"
           icon={<CheckCircle2 size={18} />}
@@ -331,7 +333,7 @@ export default function PermintaanPage() {
       {/* Success alert from last bulk submit */}
       {showSuccess && lastTxHash && (
         <Alert tone="success" title="Permintaan gabungan tercatat di chain" className="rounded-xl">
-          Agrinas melihat antrean ini di dasbor operatornya. Tidak perlu email atau berkas manual.{" "}
+          Supplier melihat antrean ini di dasbor operatornya. Tidak perlu email atau berkas manual.{" "}
           <span className="mt-1 block">
             <TxHashLink hash={lastTxHash} />
           </span>
@@ -365,12 +367,12 @@ export default function PermintaanPage() {
                     className="h-4 w-4 rounded border-gray-300 text-primary accent-primary"
                   />
                 </Th>
-                <Th>Petani</Th>
-                <Th>Perjanjian</Th>
-                <Th>Rincian Barang</Th>
-                <Th className="text-right">Nilai Pokok</Th>
-                <Th>Perkiraan Panen</Th>
-                <Th>Status</Th>
+                <Th>{t("page.kmp.permintaan.table.col.farmer")}</Th>
+                <Th>{t("page.kmp.permintaan.table.col.commodity")}</Th>
+                <Th>{t("page.kmp.permintaan.table.col.items")}</Th>
+                <Th className="text-right">{t("common.amount")}</Th>
+                <Th>{t("page.kmp.permintaan.table.col.volume")}</Th>
+                <Th>{t("page.kmp.permintaan.table.col.status")}</Th>
               </THead>
               <TBody>
                 {filteredRows.length === 0 ? (
@@ -416,7 +418,7 @@ export default function PermintaanPage() {
                           </span>
                         </Td>
                         <Td className="text-right font-bold text-gray-900">
-                          <RupiahAmount smallest={r.agreement.basePriceAgrinas} className="text-sm" />
+                          <RupiahAmount smallest={r.agreement.basePriceSupplier} className="text-sm" />
                         </Td>
                         <Td className="text-gray-500 font-semibold text-sm">
                           {r.agreement.expectedHarvestDate}
@@ -434,7 +436,7 @@ export default function PermintaanPage() {
 
           {/* Explainer strip */}
           <div className="rounded-2xl border border-gray-100 bg-[#ebf5e9]/20 px-5 py-4 text-sm text-gray-600 font-medium leading-relaxed">
-            <span className="font-bold text-gray-900">Alur selanjutnya:</span> Setelah Agrinas
+            <span className="font-bold text-gray-900">Alur selanjutnya:</span> Setelah Supplier
             mengirim saprotan, kargo muncul di{" "}
             <Link href="/kmp/gudang" className="text-[#0c6a78] font-bold hover:underline">
               Gudang dan Pasokan
@@ -448,18 +450,18 @@ export default function PermintaanPage() {
           <div className="space-y-4 lg:sticky lg:top-6">
             <Card className="rounded-[2rem] border-gray-100 bg-white shadow-sm overflow-hidden p-5 sm:p-6">
               <CardHeader
-                title="Kebutuhan Gabungan"
+                title={t("page.kmp.permintaan.totalRequested")}
                 description={
                   selectedCount > 0
                     ? `Dari ${selectedCount} draf dipilih`
-                    : "Semua draf (belum ada pilihan)"
+                    : t("page.kmp.permintaan.send.empty")
                 }
                 action={<Package size={18} className="text-emerald-700" />}
                 className="pb-3"
               />
               <CardContent className="space-y-3 pt-3">
                 {aggregated.length === 0 ? (
-                  <p className="text-sm text-gray-500 font-semibold">Tidak ada kebutuhan draf.</p>
+                    <p className="text-sm text-gray-500 font-semibold">{t("page.kmp.permintaan.history.empty")}</p>
                 ) : (
                   <>
                     {aggregated.map(({ item, qty, principal }) => (
@@ -478,13 +480,13 @@ export default function PermintaanPage() {
                     ))}
 
                     <div className="flex items-center justify-between border-t border-gray-100 pt-4">
-                      <span className="text-sm font-bold text-gray-900">Total Pokok</span>
+                      <span className="text-sm font-bold text-gray-900">{t("page.kmp.permintaan.totalValue")}</span>
                       <RupiahAmount smallest={grandTotal} className="text-base font-bold text-gray-950" />
                     </div>
 
                     <div className="flex w-fit items-center gap-1.5 rounded-full bg-cyan-50 border border-cyan-150/40 px-3 py-1 text-xs font-bold text-[#0c6a78]">
                       <LinkIcon size={10} />
-                      Nilai dikunci saat submit ke Agrinas
+                      Nilai dikunci saat submit ke Supplier
                     </div>
                   </>
                 )}
@@ -507,12 +509,12 @@ export default function PermintaanPage() {
                   : txSubmit.state === "submitting"
                     ? "Mengirim ke chain..."
                     : selectedCount > 0
-                      ? `Kirim Permintaan Gabungan (${selectedCount})`
-                      : "Kirim Permintaan Gabungan"}
+                      ? `${t("page.kmp.permintaan.send")} (${selectedCount})`
+                      : t("page.kmp.permintaan.send")}
               </Button>
               <p className="text-center text-xs text-gray-505 font-semibold leading-relaxed">
                 {selectedCount > 0
-                  ? "Permintaan dicatat di chain, langsung terlihat oleh Agrinas."
+                  ? "Permintaan dicatat di chain, langsung terlihat oleh Supplier."
                   : "Pilih draf pada tabel untuk mengirim permintaan gabungan."}
               </p>
             </div>

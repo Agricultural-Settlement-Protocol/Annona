@@ -7,9 +7,9 @@ import { useState, useMemo } from 'react';
 import { Shield, Sparkles, Activity, Award, CheckCircle, TrendingUp } from 'lucide-react';
 
 export default function MicroClimateSimulator() {
-  const [moisture, setMoisture] = useState(85); // Riwayat Pelunasan (%)
-  const [temp, setTemp] = useState(25); // Kapasitas Produksi (Ton)
-  const [sunlight, setSunlight] = useState(6); // Harga Acuan Komoditas (Ribuan Rp/kg)
+  const [moisture, setMoisture] = useState(85); // Repayment History (%)
+  const [temp, setTemp] = useState(25); // Yield Capacity (Tons)
+  const [sunlight, setSunlight] = useState(6); // Commodity Market Price (k IDR/kg)
 
   // Real-time calculation of credit score and borrowing limit
   const simulation = useMemo(() => {
@@ -24,20 +24,20 @@ export default function MicroClimateSimulator() {
 
     const score = Math.max(300, Math.min(850, Math.round(baseScore + paymentContribution + yieldContribution + priceContribution)));
 
-    let statusText = 'Reputasi Cukup (B)';
+    let statusText = 'Fair Reputation (B)';
     let statusColor = 'text-yellow-800 bg-yellow-50/60 border-yellow-200';
 
     if (score >= 750) {
-      statusText = 'Reputasi Sangat Baik (A+)';
+      statusText = 'Outstanding (A+)';
       statusColor = 'text-emerald-800 bg-emerald-100/60 border-emerald-200';
     } else if (score >= 650) {
-      statusText = 'Reputasi Baik (A)';
+      statusText = 'Good Reputation (A)';
       statusColor = 'text-emerald-700 bg-emerald-50 border-emerald-200';
     } else if (score >= 500) {
-      statusText = 'Reputasi Cukup (B)';
+      statusText = 'Fair Reputation (B)';
       statusColor = 'text-yellow-700 bg-yellow-50/60 border-yellow-100';
     } else {
-      statusText = 'Risiko Tinggi (C)';
+      statusText = 'High Risk (C)';
       statusColor = 'text-red-800 bg-red-50/60 border-red-200';
     }
 
@@ -60,7 +60,7 @@ export default function MicroClimateSimulator() {
       <div className="relative z-10 flex items-center justify-between border-b border-gray-100 pb-3">
         <div className="flex items-center gap-2">
           <Activity className="w-4 h-4 text-emerald-800 animate-pulse" />
-          <span className="text-xs font-semibold font-mono text-gray-500 uppercase tracking-wider">SIMULATOR SKOR KREDIT</span>
+          <span className="text-xs font-semibold font-mono text-gray-500 uppercase tracking-wider">CREDIT SCORE SIMULATOR</span>
         </div>
         <span className={`text-[11px] font-mono font-bold px-3 py-1 rounded-full border ${simulation.statusColor}`}>
           {simulation.statusText}
@@ -72,8 +72,8 @@ export default function MicroClimateSimulator() {
         {/* Payment history slider (was Moisture) */}
         <div className="space-y-1.5">
           <div className="flex justify-between items-center text-xs font-mono text-gray-500">
-            <span className="flex items-center gap-1"><CheckCircle className="w-3.5 h-3.5 text-emerald-600" /> Riwayat Pelunasan (Netting)</span>
-            <span className="font-semibold text-gray-900">{moisture}% Tepat Waktu</span>
+            <span className="flex items-center gap-1"><CheckCircle className="w-3.5 h-3.5 text-emerald-600" /> Repayment History (Netting)</span>
+            <span className="font-semibold text-gray-900">{moisture}% On Time</span>
           </div>
           <input
             type="range"
@@ -89,8 +89,8 @@ export default function MicroClimateSimulator() {
         {/* Yield Production capacity slider (was Temp) */}
         <div className="space-y-1.5">
           <div className="flex justify-between items-center text-xs font-mono text-gray-500">
-            <span className="flex items-center gap-1"><TrendingUp className="w-3.5 h-3.5 text-blue-500" /> Kapasitas Hasil Produksi (Panen)</span>
-            <span className="font-semibold text-gray-900">{temp} Ton / Musim</span>
+            <span className="flex items-center gap-1"><TrendingUp className="w-3.5 h-3.5 text-blue-500" /> Crop Yield Capacity</span>
+            <span className="font-semibold text-gray-900">{temp} Tons / Season</span>
           </div>
           <input
             type="range"
@@ -106,8 +106,8 @@ export default function MicroClimateSimulator() {
         {/* Commodity price slider (was Sunlight) */}
         <div className="space-y-1.5">
           <div className="flex justify-between items-center text-xs font-mono text-gray-500">
-            <span className="flex items-center gap-1"><Award className="w-3.5 h-3.5 text-yellow-500" /> Estimasi Harga Komoditas</span>
-            <span className="font-semibold text-gray-900">Rp {sunlight}.000 / kg</span>
+            <span className="flex items-center gap-1"><Award className="w-3.5 h-3.5 text-yellow-500" /> Est. Commodity Market Price</span>
+            <span className="font-semibold text-gray-900">Rp {sunlight},000 / kg</span>
           </div>
           <input
             type="range"
@@ -124,13 +124,13 @@ export default function MicroClimateSimulator() {
       {/* Outputs */}
       <div className="relative z-10 grid grid-cols-2 gap-4 pt-3 border-t border-gray-100">
         <div className="bg-gray-50 p-3.5 rounded-2xl border border-gray-100 text-center">
-          <span className="text-[10px] font-mono text-gray-400 block uppercase mb-1">SKOR KREDIT LEDGER</span>
+          <span className="text-[10px] font-mono text-gray-400 block uppercase mb-1">LEDGER CREDIT SCORE</span>
           <p className="text-2xl font-mono font-bold text-gray-900">{simulation.score} <span className="text-xs text-gray-400 font-sans">/ 850</span></p>
         </div>
         <div className="bg-[#ebf5e9]/40 p-3.5 rounded-2xl border border-soft-green/15 text-center">
-          <span className="text-[10px] font-mono text-emerald-800 block uppercase mb-1">LIMIT MODAL KERJA</span>
+          <span className="text-[10px] font-mono text-emerald-800 block uppercase mb-1">WORKING CAPITAL LIMIT</span>
           <p className="text-2xl font-mono font-bold text-emerald-950 flex items-center justify-center gap-1">
-            {simulation.limitAmount} jt
+            Rp {simulation.limitAmount}M
             <span className="text-[10px] font-sans font-light text-gray-500">IDR</span>
           </p>
         </div>

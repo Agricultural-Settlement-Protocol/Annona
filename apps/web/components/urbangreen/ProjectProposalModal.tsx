@@ -64,8 +64,8 @@ export default function ProjectProposalModal({ isOpen, onClose }: ProjectProposa
   const handleNextStep = () => {
     if (step === 2) {
       const errs: Record<string, string> = {};
-      if (!name.trim()) errs.name = 'Nama Lengkap wajib diisi';
-      if (!email.trim() || !email.includes('@')) errs.email = 'Email tidak valid';
+      if (!name.trim()) errs.name = 'Full name is required';
+      if (!email.trim() || !email.includes('@')) errs.email = 'Invalid email address';
       
       if (Object.keys(errs).length > 0) {
         setErrors(errs);
@@ -107,14 +107,14 @@ export default function ProjectProposalModal({ isOpen, onClose }: ProjectProposa
             <div className="relative z-10">
               <div className="flex items-center gap-2 text-soft-green mb-6">
                 <Sprout className="w-5 h-5" />
-                <span className="text-xs font-semibold tracking-wider uppercase font-mono">KALKULATOR MITRA</span>
+                <span className="text-xs font-semibold tracking-wider uppercase font-mono">PARTNER CALCULATOR</span>
               </div>
               
               <h3 className="text-2xl font-medium tracking-tight text-white mb-2 leading-snug">
-                Estimasi Dampak Kemitraan
+                Estimated Partnership Impact
               </h3>
               <p className="text-sm text-gray-300 font-light mb-8">
-                Dihitung secara real-time berdasarkan kapasitas komoditas dan luas lahan pertanian yang dikelola.
+                Calculated in real-time based on commodity type and managed agricultural acreage.
               </p>
 
               {/* Dynamic Stats Stack */}
@@ -122,33 +122,33 @@ export default function ProjectProposalModal({ isOpen, onClose }: ProjectProposa
                 {/* Funding Estimation */}
                 <div>
                   <div className="flex items-center justify-between text-xs text-gray-400 font-mono mb-1">
-                    <span>ESTIMASI ALOKASI MODAL</span>
+                    <span>ESTIMATED WORKING CAPITAL</span>
                     <Sparkles className="w-3.5 h-3.5 text-soft-green" />
                   </div>
                   <p className="text-3xl font-mono font-semibold text-soft-green">
-                    Rp {metrics.totalFunding} <span className="text-sm font-sans font-light text-white">Juta/musim</span>
+                    Rp {metrics.totalFunding} <span className="text-sm font-sans font-light text-white">Million/season</span>
                   </p>
                 </div>
 
                 {/* Crop Production Estimate */}
                 <div>
                   <div className="flex items-center justify-between text-xs text-gray-400 font-mono mb-1">
-                    <span>PRODUKSI YIELD ESTIMASI</span>
+                    <span>ESTIMATED YIELD PRODUCTION</span>
                     <Droplets className="w-3.5 h-3.5 text-blue-300" />
                   </div>
                   <p className="text-3xl font-mono font-semibold text-white">
-                    {metrics.totalYield} <span className="text-sm font-sans font-light text-gray-300">Ton/musim</span>
+                    {metrics.totalYield} <span className="text-sm font-sans font-light text-gray-300">Tons/season</span>
                   </p>
                 </div>
 
                 {/* Netting Accuracy */}
                 <div>
                   <div className="flex items-center justify-between text-xs text-gray-400 font-mono mb-1">
-                    <span>EFISIENSI NETTING OTOMATIS</span>
+                    <span>AUTOMATED SETTLEMENT EFFICIENCY</span>
                     <Building className="w-3.5 h-3.5 text-orange-300" />
                   </div>
                   <p className="text-3xl font-mono font-semibold text-white">
-                    {metrics.efficiencyRate}% <span className="text-sm font-sans font-light text-gray-300">Akurasi</span>
+                    {metrics.efficiencyRate}% <span className="text-sm font-sans font-light text-gray-300">Accuracy</span>
                   </p>
                 </div>
               </div>
@@ -156,7 +156,7 @@ export default function ProjectProposalModal({ isOpen, onClose }: ProjectProposa
 
             {/* Microclaimer bottom */}
             <p className="text-[10px] text-gray-400 font-mono leading-relaxed mt-6 relative z-10">
-              *Estimasi didasarkan pada yield historis rata-rata komoditas daerah bersangkutan dan audit harga pasar Bapanas.
+              *Estimates are based on historical regional crop yields and current Bapanas market price standards.
             </p>
           </div>
 
@@ -165,7 +165,7 @@ export default function ProjectProposalModal({ isOpen, onClose }: ProjectProposa
             {/* Header / Dismiss */}
             <div className="flex items-center justify-between mb-4">
               <span className="text-xs font-mono font-semibold text-gray-400">
-                LANGKAH {step} DARI 3 • {step === 1 ? 'KONFIGURASI' : step === 2 ? 'PROFIL PENGURUS' : 'RANGKUMAN'}
+                STEP {step} OF 3 • {step === 1 ? 'CONFIGURATION' : step === 2 ? 'COOPERATIVE PROFILE' : 'SUMMARY'}
               </span>
               <button
                 onClick={onClose}
@@ -181,13 +181,13 @@ export default function ProjectProposalModal({ isOpen, onClose }: ProjectProposa
               {step === 1 && (
                 <div className="space-y-5">
                   <div>
-                    <h2 className="text-2xl font-semibold tracking-tight text-gray-900">Konfigurasi Lahan & Mitra</h2>
-                    <p className="text-sm text-gray-500 mt-1">Tentukan tipe kelompok tani dan kapasitas lahan Anda untuk kalkulasi model netting.</p>
+                    <h2 className="text-2xl font-semibold tracking-tight text-gray-900">Land & Partnership Configuration</h2>
+                    <p className="text-sm text-gray-500 mt-1">Select your cooperative category and total farm size to calculate the netting settlement model.</p>
                   </div>
 
                   {/* Project Type Grid Selector */}
                   <div className="space-y-2">
-                    <label className="text-xs font-semibold text-gray-700 font-mono uppercase tracking-wider">KATEGORI KELOMPOK / KOPERASI</label>
+                    <label className="text-xs font-semibold text-gray-700 font-mono uppercase tracking-wider">GROUP / COOPERATIVE CATEGORY</label>
                     <div className="grid grid-cols-2 gap-3">
                       <button
                         type="button"
@@ -198,8 +198,8 @@ export default function ProjectProposalModal({ isOpen, onClose }: ProjectProposa
                             : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
                         }`}
                       >
-                        <span className="font-semibold block">KUD Sektor Padi</span>
-                        <span className="text-xs text-gray-500 leading-tight">Serealia & Tanaman Pangan</span>
+                        <span className="font-semibold block">Paddy Sector Cooperative (KUD)</span>
+                        <span className="text-xs text-gray-500 leading-tight">Grains & Food Crops</span>
                       </button>
 
                       <button
@@ -211,8 +211,8 @@ export default function ProjectProposalModal({ isOpen, onClose }: ProjectProposa
                             : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
                         }`}
                       >
-                        <span className="font-semibold block">KUD Hortikultura</span>
-                        <span className="text-xs text-gray-500 leading-tight">Sayuran & Buah Musiman</span>
+                        <span className="font-semibold block">Horticulture Cooperative (KUD)</span>
+                        <span className="text-xs text-gray-500 leading-tight">Seasonal Fruits & Vegetables</span>
                       </button>
 
                       <button
@@ -224,8 +224,8 @@ export default function ProjectProposalModal({ isOpen, onClose }: ProjectProposa
                             : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
                         }`}
                       >
-                        <span className="font-semibold block">Koperasi Perkebunan</span>
-                        <span className="text-xs text-gray-500 leading-tight">Komoditas Kopi, Kakao, & Teh</span>
+                        <span className="font-semibold block">Plantation Cooperative</span>
+                        <span className="text-xs text-gray-500 leading-tight">Coffee, Cocoa, & Tea Commodities</span>
                       </button>
 
                       <button
@@ -237,8 +237,8 @@ export default function ProjectProposalModal({ isOpen, onClose }: ProjectProposa
                             : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
                         }`}
                       >
-                        <span className="font-semibold block">Kelompok Tani Desa</span>
-                        <span className="text-xs text-gray-500 leading-tight">Gabungan Kelompok Tani lokal</span>
+                        <span className="font-semibold block">Village Farmer Group (Poktan)</span>
+                        <span className="text-xs text-gray-500 leading-tight">Local Farmer Unions & Gapoktan</span>
                       </button>
                     </div>
                   </div>
@@ -246,9 +246,9 @@ export default function ProjectProposalModal({ isOpen, onClose }: ProjectProposa
                   {/* Square Footage Slider */}
                   <div className="space-y-3">
                     <div className="flex justify-between items-center text-xs font-semibold text-gray-700 font-mono tracking-wider">
-                      <span>ESTIMASI TOTAL LUAS LAHAN</span>
+                      <span>ESTIMATED TOTAL LAND SIZE</span>
                       <span className="text-sm font-semibold text-primary-dark bg-pale-mint/50 px-3 py-1 rounded-full border border-soft-green">
-                        {sqFootage} Hektar (HA)
+                        {sqFootage} Hectares (HA)
                       </span>
                     </div>
                     <input
@@ -269,17 +269,17 @@ export default function ProjectProposalModal({ isOpen, onClose }: ProjectProposa
 
                   {/* City dropdown */}
                   <div className="space-y-2">
-                    <label className="text-xs font-semibold text-gray-700 font-mono uppercase tracking-wider">LOKASI WILAYAH UTAMA</label>
+                    <label className="text-xs font-semibold text-gray-700 font-mono uppercase tracking-wider">PRIMARY OPERATIONS REGION</label>
                     <select
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
                       className="w-full px-4 py-3 rounded-2xl border border-gray-200 text-sm focus:outline-none focus:ring-1 focus:ring-primary-dark focus:border-primary-dark"
                     >
-                      <option value="Cianjur">Cianjur, Jawa Barat</option>
-                      <option value="Malang">Malang, Jawa Timur</option>
-                      <option value="Subang">Subang, Jawa Barat</option>
+                      <option value="Cianjur">Cianjur, West Java</option>
+                      <option value="Malang">Malang, East Java</option>
+                      <option value="Subang">Subang, West Java</option>
                       <option value="Aceh Gayo">Aceh Gayo, Aceh</option>
-                      <option value="Lainnya">Wilayah Lain (Luar Lokasi Pilot)</option>
+                      <option value="Lainnya">Other Regions (Outside Pilots)</option>
                     </select>
                   </div>
                 </div>
@@ -288,16 +288,16 @@ export default function ProjectProposalModal({ isOpen, onClose }: ProjectProposa
               {step === 2 && (
                 <div className="space-y-5">
                   <div>
-                    <h2 className="text-2xl font-semibold tracking-tight text-gray-900">Hubungkan Koperasi Anda</h2>
-                    <p className="text-sm text-gray-500 mt-1">Lengkapi informasi pengurus koperasi untuk divalidasi dan dihubungkan ke Stellar Node kami.</p>
+                    <h2 className="text-2xl font-semibold tracking-tight text-gray-900">Connect Your Cooperative</h2>
+                    <p className="text-sm text-gray-500 mt-1">Provide the representative details to validate and establish your node on our network.</p>
                   </div>
 
                   <form className="space-y-4">
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-gray-700 font-mono uppercase">Nama Lengkap Pengurus</label>
+                      <label className="text-xs font-semibold text-gray-700 font-mono uppercase">Full Name of Representative</label>
                       <input
                         type="text"
-                        placeholder="Suhardi"
+                        placeholder="e.g. Suhardi"
                         value={name}
                         onChange={(e) => {
                           setName(e.target.value);
@@ -311,10 +311,10 @@ export default function ProjectProposalModal({ isOpen, onClose }: ProjectProposa
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-gray-700 font-mono uppercase">Alamat Email Koperasi</label>
+                      <label className="text-xs font-semibold text-gray-700 font-mono uppercase">Cooperative Email Address</label>
                       <input
                         type="email"
-                        placeholder="kud.jaya@desa.id"
+                        placeholder="e.g. jaya.coop@desa.id"
                         value={email}
                         onChange={(e) => {
                           setEmail(e.target.value);
@@ -328,10 +328,10 @@ export default function ProjectProposalModal({ isOpen, onClose }: ProjectProposa
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-gray-700 font-mono uppercase">Nama Koperasi / Badan Hukum (Opsional)</label>
+                      <label className="text-xs font-semibold text-gray-700 font-mono uppercase">Cooperative / Legal Entity Name (Optional)</label>
                       <input
                         type="text"
-                        placeholder="KUD Cianjur Jaya Mandiri"
+                        placeholder="e.g. KUD Cianjur Jaya Mandiri"
                         value={org}
                         onChange={(e) => setOrg(e.target.value)}
                         className="w-full px-4 py-3 rounded-2xl border border-gray-200 text-sm focus:outline-none focus:ring-1 focus:ring-primary-dark"
@@ -349,34 +349,34 @@ export default function ProjectProposalModal({ isOpen, onClose }: ProjectProposa
                   </div>
 
                   <div className="space-y-2">
-                    <h2 className="text-3xl font-semibold tracking-tight text-gray-900">Kemitraan Diajukan!</h2>
+                    <h2 className="text-3xl font-semibold tracking-tight text-gray-900">Partnership Submitted!</h2>
                     <p className="text-sm text-gray-600 max-w-md mx-auto">
-                      Terima kasih, Bapak/Ibu <span className="font-semibold text-gray-900">{name}</span>. Kami telah membuat proposal analisis kelayakan dan netting otomatis untuk lahan seluas <span className="font-semibold text-gray-900">{sqFootage} HA</span> di wilayah <span className="font-semibold text-gray-900">{city}</span>.
+                      Thank you, <span className="font-semibold text-gray-900">{name}</span>. We have generated your automated netting and credit capacity proposal for <span className="font-semibold text-gray-900">{sqFootage} HA</span> in <span className="font-semibold text-gray-900">{city}</span>.
                     </p>
                   </div>
 
                   {/* Summary Box */}
                   <div className="bg-gray-50 border border-gray-100 rounded-3xl p-5 text-left text-xs space-y-3 font-mono">
                     <div className="flex justify-between border-b border-gray-200 pb-2">
-                      <span className="text-gray-400">REGISTRASI PROPOSAL</span>
+                      <span className="text-gray-400">PROPOSAL REGISTRATION</span>
                       <span className="font-semibold text-gray-800">#AN-{city.toUpperCase().substring(0, 3)}-{Math.floor(Math.random() * 90000 + 10000)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400 font-sans">Luas Garapan Terdaftar:</span>
+                      <span className="text-gray-400 font-sans">Registered Land Size:</span>
                       <span className="font-semibold text-gray-800 font-sans">{sqFootage} HA</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400 font-sans">Potensi Penyaluran Dana:</span>
-                      <span className="font-semibold text-emerald-700 font-sans">Rp {metrics.totalFunding} Juta/musim</span>
+                      <span className="text-gray-400 font-sans">Potential Working Capital:</span>
+                      <span className="font-semibold text-emerald-700 font-sans">Rp {metrics.totalFunding} Million/season</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400 font-sans">Email Hubungan:</span>
+                      <span className="text-gray-400 font-sans">Contact Email:</span>
                       <span className="font-semibold text-gray-800 font-sans">{email}</span>
                     </div>
                   </div>
 
                   <p className="text-xs text-gray-500 font-light max-w-sm mx-auto">
-                    Kertas kerja kerja sama kemitraan, lembar integrasi API dIDR, dan rancangan model netting pelunasan telah kami kirimkan ke email Anda.
+                    The partnership framework, dIDR API integration guide, and smart contract netting parameters have been sent to your email.
                   </p>
                 </div>
               )}
@@ -390,7 +390,7 @@ export default function ProjectProposalModal({ isOpen, onClose }: ProjectProposa
                   className="px-6 py-3 rounded-full border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 flex items-center gap-2 transition-colors"
                 >
                   <ArrowLeft className="w-4 h-4" />
-                  Kembali
+                  Back
                 </button>
               ) : (
                 <div />
@@ -401,7 +401,7 @@ export default function ProjectProposalModal({ isOpen, onClose }: ProjectProposa
                   onClick={handleNextStep}
                   className="px-6 py-3 rounded-full bg-primary-dark text-white text-sm font-medium hover:bg-opacity-90 flex items-center gap-2 transition-colors ml-auto"
                 >
-                  {step === 1 ? 'Lengkapi Profil' : 'Kirim Kemitraan'}
+                  {step === 1 ? 'Complete Profile' : 'Submit Proposal'}
                   <ArrowRight className="w-4 h-4" />
                 </button>
               ) : (
@@ -409,7 +409,7 @@ export default function ProjectProposalModal({ isOpen, onClose }: ProjectProposa
                   onClick={onClose}
                   className="px-8 py-3 rounded-full bg-primary-dark text-white text-sm font-medium hover:bg-opacity-90 transition-colors w-full"
                 >
-                  Selesai & Tutup
+                  Finish & Close
                 </button>
               )}
             </div>

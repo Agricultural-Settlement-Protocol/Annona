@@ -1,5 +1,8 @@
 "use client";
 
+import { WalletBadge } from "@/components/kmp/wallet-badge";
+import { LanguageToggle } from "@/lib/i18n/language-toggle";
+import { useI18n } from "@/lib/i18n/use-i18n";
 import { signOutToAuth } from "@/lib/supabase";
 import { Logo, cn } from "@annona/ui";
 import type { LucideIcon } from "lucide-react";
@@ -24,12 +27,12 @@ import { usePathname } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 
-/** Shared oversight shell for Agrinas (operator) and Pemerintah (regulator).
- *  Visual identity: aqua/teal for Agrinas, neutral (ink/verdant) for Pemerintah.
+/** Shared oversight shell for Supplier (operator) and Pemerintah (regulator).
+ *  Visual identity: aqua/teal for Supplier, neutral (ink/verdant) for Pemerintah.
  *  Mirrors KMP shell: collapsible sidebar, localStorage persistence, mobile drawer.
  *  "Ganti Peran" returns to /oversight role select. */
 
-export type OversightRole = "agrinas" | "pemerintah";
+export type OversightRole = "supplier" | "pemerintah";
 
 type NavItem = {
   href: string;
@@ -38,50 +41,50 @@ type NavItem = {
   exact?: boolean;
 };
 
-const AGRINAS_NAV: { label: string | null; items: NavItem[] }[] = [
-  {
-    label: null,
-    items: [
-      {
-        href: "/oversight/agrinas",
-        label: "Ringkasan",
-        icon: LayoutDashboard,
-        exact: true,
-      },
-    ],
-  },
-  {
-    label: "Operasional",
-    items: [
-      { href: "/oversight/agrinas/katalog", label: "Katalog Saprotan", icon: Package },
-      { href: "/oversight/agrinas/logistik", label: "Logistik Saprotan", icon: Truck },
-      { href: "/oversight/agrinas/penerimaan", label: "Penerimaan Panen", icon: PackageCheck },
-      { href: "/oversight/agrinas/residu", label: "Rekonsiliasi Residu", icon: Landmark },
-    ],
-  },
-  {
-    label: "Asisten",
-    items: [{ href: "/oversight/agrinas/ai", label: "Asisten AI", icon: Bot }],
-  },
-];
+function supplierNav(t: (key: string) => string): { label: string | null; items: NavItem[] }[] {
+  return [
+    {
+      label: null,
+      items: [
+        {
+          href: "/oversight/supplier",
+          label: t("shell.oversight.supplier.nav.ringkasan"),
+          icon: LayoutDashboard,
+          exact: true,
+        },
+      ],
+    },
+    {
+      label: t("shell.oversight.supplier.nav.operasional"),
+      items: [
+        { href: "/oversight/supplier/katalog", label: t("shell.oversight.supplier.nav.katalog"), icon: Package },
+        { href: "/oversight/supplier/logistik", label: t("shell.oversight.supplier.nav.logistik"), icon: Truck },
+        { href: "/oversight/supplier/penerimaan", label: t("shell.oversight.supplier.nav.penerimaan"), icon: PackageCheck },
+        { href: "/oversight/supplier/residu", label: t("shell.oversight.supplier.nav.residu"), icon: Landmark },
+      ],
+    },
+  ];
+}
 
-const PEMERINTAH_NAV: { label: string | null; items: NavItem[] }[] = [
-  {
-    label: null,
-    items: [
-      {
-        href: "/oversight/pemerintah",
-        label: "Pengawasan Regional",
-        icon: BarChart3,
-        exact: true,
-      },
-    ],
-  },
-  {
-    label: "Alat Analisis",
-    items: [{ href: "/oversight/pemerintah/ai", label: "Asisten AI", icon: Bot }],
-  },
-];
+function pemerintahNav(t: (key: string) => string): { label: string | null; items: NavItem[] }[] {
+  return [
+    {
+      label: null,
+      items: [
+        {
+          href: "/oversight/pemerintah",
+          label: t("shell.oversight.pemerintah.nav.pengawasan"),
+          icon: BarChart3,
+          exact: true,
+        },
+      ],
+    },
+    {
+      label: t("shell.oversight.pemerintah.nav.analisis"),
+      items: [{ href: "/oversight/pemerintah/ai", label: t("shell.oversight.pemerintah.nav.ai"), icon: Bot }],
+    },
+  ];
+}
 
 const STORAGE_KEY = "annona.oversight.sidebar.collapsed";
 
@@ -104,7 +107,7 @@ function NavLink({
   onNavigate?: () => void;
 }) {
   const Icon = item.icon;
-  const isAgrinas = role === "agrinas";
+  const isSupplier = role === "supplier";
   return (
     <Link
       href={item.href}
@@ -116,7 +119,7 @@ function NavLink({
         "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
         collapsed ? "justify-center px-2 py-2" : "gap-3 px-4 py-2.5",
         active
-          ? isAgrinas
+          ? isSupplier
             ? "bg-[#e7fafc] text-[#0c6a78]"
             : "bg-soft-green text-emerald-950"
           : "text-gray-500 hover:bg-gray-50 hover:text-gray-900",
@@ -127,7 +130,7 @@ function NavLink({
         className={cn(
           "shrink-0 transition-colors",
           active
-            ? isAgrinas
+            ? isSupplier
               ? "text-[#0c6a78]"
               : "text-emerald-800"
             : "text-gray-400 group-hover:text-gray-700",
@@ -140,7 +143,7 @@ function NavLink({
             <span
               className={cn(
                 "ml-auto h-5 w-1 rounded-full",
-                isAgrinas ? "bg-[#0c6a78]" : "bg-emerald-700",
+                isSupplier ? "bg-[#0c6a78]" : "bg-emerald-700",
               )}
               aria-hidden
             />
@@ -163,18 +166,19 @@ function SidebarContent({
   onToggle?: () => void;
 }) {
   const pathname = usePathname();
-  const navGroups = role === "agrinas" ? AGRINAS_NAV : PEMERINTAH_NAV;
-  const isAgrinas = role === "agrinas";
+  const { t } = useI18n();
+  const navGroups = role === "supplier" ? supplierNav(t) : pemerintahNav(t);
+  const isSupplier = role === "supplier";
 
-  const roleBadgeClass = isAgrinas
+  const roleBadgeClass = isSupplier
     ? "bg-[#e7fafc] text-[#0c6a78] border border-[#c3f2f6]"
     : "bg-soft-green text-emerald-950 border border-soft-green/30";
 
-  const roleLabel = isAgrinas ? "AGRINAS" : "PEMERINTAH";
-  const roleIcon = isAgrinas ? (
-    <Package size={10} className="text-[#0c6a78]" />
+  const roleLabel = isSupplier ? t("shell.oversight.supplier.label") : t("shell.oversight.pemerintah.label");
+  const roleIcon = isSupplier ? (
+    <Package size={10} className="shrink-0 text-[#0c6a78]" />
   ) : (
-    <ShieldCheck size={10} className="text-emerald-800" />
+    <ShieldCheck size={10} className="shrink-0 text-emerald-800" />
   );
 
   return (
@@ -183,7 +187,7 @@ function SidebarContent({
           min-w-0, badge + toggle are shrink-0. Collapsed shows toggle only. */}
       <div
         className={cn(
-          "flex items-center overflow-hidden pt-5 pb-4",
+          "flex items-center pt-5 pb-4",
           collapsed ? "justify-center px-2" : "gap-2.5 px-4.5",
         )}
       >
@@ -193,18 +197,18 @@ function SidebarContent({
               href="/"
               onClick={onNavigate}
               aria-label="Annona"
-              className="min-w-0 overflow-hidden"
+              className="shrink-0"
             >
-              <Logo className="h-6 w-auto" />
+              <Logo size={20} className="shrink-0" />
             </Link>
             <span
               className={cn(
-                "inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-[9px] font-bold tracking-wide uppercase shadow-sm",
+                "inline-flex min-w-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-[9px] font-bold tracking-wide uppercase shadow-sm",
                 roleBadgeClass,
               )}
             >
               {roleIcon}
-              {roleLabel}
+              <span className="truncate">{roleLabel}</span>
             </span>
           </>
         )}
@@ -212,7 +216,7 @@ function SidebarContent({
           <button
             type="button"
             onClick={onToggle}
-            aria-label={collapsed ? "Perlebar menu" : "Perkecil menu"}
+            aria-label={collapsed ? t("shell.oversight.sidebar.expand") : t("shell.oversight.sidebar.collapse")}
             className={cn(
               "hidden shrink-0 rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-55 hover:text-gray-800 lg:block",
               collapsed ? "" : "ml-auto",
@@ -227,23 +231,29 @@ function SidebarContent({
       {collapsed ? null : (
         <div className={cn(
           "mx-4.5 mb-4 rounded-2xl border p-4 shadow-sm",
-          isAgrinas 
+          isSupplier 
             ? "border-[#c3f2f6] bg-[#e7fafc]/40" 
             : "border-soft-green/30 bg-soft-green/20"
         )}>
           <p className="text-sm font-bold text-gray-900 leading-snug">
-            {isAgrinas ? "PT Agrinas Pangan Nusantara" : "Kementerian Pertanian RI"}
+            {isSupplier ? "PT Pupuk Indonesia" : "Kementerian Pertanian RI"}
           </p>
           <p className="mt-1 text-xs font-semibold text-gray-500 leading-normal">
-            {isAgrinas ? "Operator protokol offtake" : "Pengawas regional (hanya baca)"}
+            {isSupplier ? t("shell.oversight.supplier.userSub") : t("shell.oversight.pemerintah.userSub")}
           </p>
         </div>
       )}
 
       {/* Navigation */}
       <nav
-        className={cn("flex-1 space-y-4.5 overflow-y-auto pt-2", collapsed ? "px-2" : "px-3")}
-        aria-label="Menu pengawasan"
+        className={cn(
+          "flex-1 space-y-4.5 overflow-y-auto pt-2 [scrollbar-width:thin]",
+          "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent",
+          "[&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300/60",
+          "hover:[&::-webkit-scrollbar-thumb]:bg-gray-400/70",
+          collapsed ? "px-2" : "px-3",
+        )}
+        aria-label={t("shell.oversight.nav.label")}
       >
         {navGroups.map((group) => (
           <div key={group.label ?? "utama"} className="space-y-1.5">
@@ -278,16 +288,17 @@ function SidebarContent({
             <div
               className={cn(
                 "flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold shadow-sm",
-                isAgrinas ? "bg-[#e7fafc] text-[#0c6a78]" : "bg-soft-green text-emerald-950",
+                isSupplier ? "bg-[#e7fafc] text-[#0c6a78]" : "bg-soft-green text-emerald-950",
               )}
             >
-              {isAgrinas ? "AG" : "PG"}
+              {isSupplier ? "AG" : "PG"}
             </div>
+            <LanguageToggle iconOnly className="inline-flex items-center justify-center rounded-lg border border-emerald-200/60 bg-emerald-50 p-1.5 text-emerald-700 transition-all hover:bg-emerald-100 hover:text-emerald-800 hover:border-emerald-300 active:scale-[0.97]" />
             <button
               type="button"
               onClick={() => void signOutToAuth()}
-              title="Keluar"
-              aria-label="Keluar"
+              title={t("shell.oversight.logout")}
+              aria-label={t("shell.oversight.logout")}
               className="rounded-full p-2.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600"
             >
               <LogOut size={16} />
@@ -299,31 +310,33 @@ function SidebarContent({
               <div
                 className={cn(
                   "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold shadow-sm",
-                  isAgrinas ? "bg-[#e7fafc] text-[#0c6a78]" : "bg-soft-green text-emerald-950",
+                  isSupplier ? "bg-[#e7fafc] text-[#0c6a78]" : "bg-soft-green text-emerald-950",
                 )}
               >
-                {isAgrinas ? "AG" : "PG"}
+                {isSupplier ? "AG" : "PG"}
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-bold text-gray-900">
-                  {isAgrinas ? "Operator Agrinas" : "Petugas Pengawas"}
+                  {isSupplier ? t("shell.oversight.supplier.user") : t("shell.oversight.pemerintah.user")}
                 </p>
                 <p className="text-[11px] font-semibold text-gray-400 mt-0.5">
-                  {isAgrinas ? "Akses penuh operator" : "Hanya baca"}
+                  {isSupplier ? t("shell.oversight.supplier.userSub") : t("shell.oversight.pemerintah.userSub")}
                 </p>
               </div>
               <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-cyan-50 px-2 py-0.5 text-[9px] font-bold text-cyan-800 border border-cyan-100">
                 <Wifi size={10} />
-                Testnet
+                {t("shell.oversight.testnet")}
               </span>
             </div>
+            <WalletBadge />
+            <LanguageToggle />
             <button
               type="button"
               onClick={() => void signOutToAuth()}
               className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-gray-100 px-4 py-2.5 text-sm font-bold text-gray-600 transition-colors hover:bg-red-50 hover:text-red-700 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
             >
               <LogOut size={16} className="shrink-0" />
-              Keluar
+              {t("shell.oversight.logout")}
             </button>
           </>
         )}
@@ -342,6 +355,7 @@ export function OversightShell({
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const { t } = useI18n();
 
   useEffect(() => {
     setCollapsed(localStorage.getItem(STORAGE_KEY) === "1");
@@ -381,7 +395,7 @@ export function OversightShell({
               initial={{ opacity: 0 }}
               animate={{ opacity: 0.4 }}
               exit={{ opacity: 0 }}
-              aria-label="Tutup menu"
+              aria-label={t("shell.oversight.menu.close")}
               className="absolute inset-0 bg-black cursor-default"
               onClick={() => setOpen(false)}
             />
@@ -394,7 +408,7 @@ export function OversightShell({
             >
               <button
                 type="button"
-                aria-label="Tutup menu"
+                aria-label={t("shell.oversight.menu.close")}
                 className="absolute top-4 right-4 rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-800 transition-colors"
                 onClick={() => setOpen(false)}
               >
@@ -410,7 +424,7 @@ export function OversightShell({
       <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-gray-100 bg-white/95 px-4 backdrop-blur-md lg:hidden">
         <button
           type="button"
-          aria-label="Buka menu"
+          aria-label={t("shell.oversight.menu.open")}
           className="rounded-full p-2.5 text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition-colors"
           onClick={() => setOpen(true)}
         >
@@ -420,12 +434,12 @@ export function OversightShell({
         <span
           className={cn(
             "ml-auto inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase shadow-sm border",
-            role === "agrinas" 
+            role === "supplier" 
               ? "bg-[#e7fafc] text-[#0c6a78] border-[#c3f2f6]" 
               : "bg-soft-green text-emerald-950 border-soft-green/30",
           )}
         >
-          {role === "agrinas" ? "AGRINAS" : "PEMERINTAH"}
+          {role === "supplier" ? t("shell.oversight.supplier.label") : t("shell.oversight.pemerintah.label")}
         </span>
       </header>
 

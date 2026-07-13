@@ -57,7 +57,7 @@ export function CreateAgreementForm() {
   const catalog = data?.[1] ?? [];
   const priceRefs = data?.[2] ?? [];
   const yieldTable = data?.[3] ?? [];
-  const agrinas = data?.[4]?.agrinas ?? null;
+  const supplier = data?.[4]?.supplier ?? null;
 
   // Step 1: Farmer
   const [farmerId, setFarmerId] = useState<string | null>(null);
@@ -72,6 +72,8 @@ export function CreateAgreementForm() {
   const [markupPct, setMarkupPct] = useState(10);
   const [handlingPct, setHandlingPct] = useState(5);
   const [tolerancePct, setTolerancePct] = useState(20);
+  // Subsidy tier — controls which price column (HET for Subsidized, standard for Commercial)
+  const [subsidyTier, setSubsidyTier] = useState<"Subsidized" | "Commercial">("Subsidized");
 
   // TX (create_agreement, coop-signed)
   const { state: txState, txHash, error: txError, run: runTx, reset: resetTx } = useTx();
@@ -120,12 +122,12 @@ export function CreateAgreementForm() {
     [yieldTable, commodityCode],
   );
 
-  // Sum of (qty * basePriceAgrinas) for all selected items
+  // Sum of (qty * basePriceSupplier) for all selected items
   const basePrincipal = useMemo(
     () =>
       catalog.reduce((sum, cat) => {
         const qty = cart[cat.id] ?? 0;
-        return qty > 0 ? sum + cat.basePriceAgrinas * BigInt(qty) : sum;
+        return qty > 0 ? sum + cat.basePriceSupplier * BigInt(qty) : sum;
       }, 0n),
     [catalog, cart],
   );
@@ -152,7 +154,7 @@ export function CreateAgreementForm() {
     farmerId !== null &&
     basePrincipal > 0n &&
     selectedFarmer !== null &&
-    agrinas !== null &&
+    supplier !== null &&
     priceRef !== null &&
     expectedVolKg > 0 &&
     txState === "idle";
@@ -161,20 +163,21 @@ export function CreateAgreementForm() {
   // ─── Submit ────────────────────────────────────────────────────────────────
 
   function handleCreate() {
-    if (!selectedFarmer || !agrinas || !priceRef || basePrincipal <= 0n) return;
+    if (!selectedFarmer || !supplier || !priceRef || basePrincipal <= 0n) return;
     const expectedVolG = BigInt(expectedVolKg) * 1000n;
     runTx((coop) =>
       createAgreement({
         coop,
         farmer: selectedFarmer.walletAddress,
-        agrinas: agrinas.walletAddress,
+        supplier: supplier.walletAddress,
         commodity: {
           code: commodityCode,
           grade: GRADE_ESTIMATE,
           moistureBps: MOISTURE_BPS_ESTIMATE,
           hppVersion: HPP_VERSION,
         },
-        basePriceAgrinas: basePrincipal,
+        subsidyTier,
+        basePriceSupplier: basePrincipal,
         saprotanMarkupBps: markupBps,
         hppHandlingFeeBps: handlingBps,
         expectedVolG,
@@ -230,7 +233,7 @@ export function CreateAgreementForm() {
           <p className="text-sm leading-relaxed">
             Perjanjian untuk{" "}
             <span className="font-bold text-gray-900">{selectedFarmer?.name ?? "petani"}</span> telah dicatat
-            ke Stellar Testnet. Status saat ini: Dibuat. Menunggu pengiriman saprotan dari Agrinas
+            ke Stellar Testnet. Status saat ini: Dibuat. Menunggu pengiriman saprotan dari Supplier
             sebelum utang menjadi aktif.
           </p>
           <div className="mt-4 flex items-center gap-2 border-t border-gray-100 pt-3">
@@ -315,7 +318,7 @@ export function CreateAgreementForm() {
 
             <p className="flex items-center gap-1.5 px-1 pb-3 text-xs text-gray-400 font-semibold">
               <Lock size={12} className="shrink-0 text-gray-400" />
-              Harga pokok ditetapkan Agrinas, tidak dapat diubah KMP.
+              Harga pokok ditetapkan Supplier, tidak dapat diubah KMP.
             </p>
 
             {/* Fixed-height catalog list with custom slider. No horizontal
@@ -330,7 +333,7 @@ export function CreateAgreementForm() {
                   filteredCatalog.map((cat) => {
                     const qty = cart[cat.id] ?? 0;
                     const checked = qty > 0;
-                    const lineTotal = cat.basePriceAgrinas * BigInt(qty);
+                    const lineTotal = cat.basePriceSupplier * BigInt(qty);
                     return (
                       <li
                         key={cat.id}
@@ -354,7 +357,7 @@ export function CreateAgreementForm() {
                             {CATEGORY_LABEL[cat.category] ?? cat.category}
                           </span>
                           <span className="mt-0.5 block text-xs text-muted-foreground">
-                            <RupiahAmount smallest={cat.basePriceAgrinas} className="text-xs" /> per
+                            <RupiahAmount smallest={cat.basePriceSupplier} className="text-xs" /> per
                             satuan
                           </span>
                         </label>
@@ -403,7 +406,7 @@ export function CreateAgreementForm() {
 
             {/* Running total */}
             <div className="flex items-center justify-between border-t border-gray-100 px-1 py-4.5 mt-2">
-              <span className="text-sm font-bold text-gray-900">Total Pokok Agrinas</span>
+              <span className="text-sm font-bold text-gray-900">Total Pokok Supplier</span>
               <RupiahAmount smallest={basePrincipal} className="text-lg font-bold text-emerald-800" />
             </div>
           </CardContent>
@@ -486,6 +489,50 @@ export function CreateAgreementForm() {
                 <p className="mt-1 text-xs text-gray-400 font-semibold">{toleranceBps} bps</p>
               </div>
             </div>
+
+            {/* Subsidy tier toggle */}
+            <fieldset className="mt-5 space-y-2.5">
+              <legend className="block text-sm font-bold text-gray-900">Jenis Subsidi</legend>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setSubsidyTier("Subsidized")}
+                  className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-all ${
+                    subsidyTier === "Subsidized"
+                      ? "border-amber-400 bg-amber-50 text-amber-800 ring-2 ring-amber-200/50"
+                      : "border-gray-200 bg-white text-gray-500 hover:border-gray-300"
+                  }`}
+                >
+                  <span className={`h-3 w-3 rounded-full border-2 ${
+                    subsidyTier === "Subsidized"
+                      ? "border-amber-500 bg-amber-400"
+                      : "border-gray-300"
+                  }`} />
+                  Bersubsidi
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSubsidyTier("Commercial")}
+                  className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-all ${
+                    subsidyTier === "Commercial"
+                      ? "border-gray-400 bg-gray-100 text-gray-800 ring-2 ring-gray-200/50"
+                      : "border-gray-200 bg-white text-gray-500 hover:border-gray-300"
+                  }`}
+                >
+                  <span className={`h-3 w-3 rounded-full border-2 ${
+                    subsidyTier === "Commercial"
+                      ? "border-gray-500 bg-gray-400"
+                      : "border-gray-300"
+                  }`} />
+                  Komersial
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {subsidyTier === "Subsidized"
+                  ? "HET pemerintah berlaku. Petani menerima bantuan pupuk bersubsidi."
+                  : "Harga pasar komersial. Tidak ada HET."}
+              </p>
+            </fieldset>
           </CardContent>
         </Card>
       </div>
@@ -497,7 +544,7 @@ export function CreateAgreementForm() {
           <CardHeader title="Struktur Biaya" className="pb-3" />
           <CardContent className="space-y-3 pt-3">
             <div className="flex items-center justify-between text-sm font-semibold text-gray-700">
-              <span className="text-gray-400 font-medium">Harga Pokok Agrinas</span>
+              <span className="text-gray-400 font-medium">Harga Pokok Supplier</span>
               <RupiahAmount smallest={basePrincipal} className="text-gray-900 font-bold" />
             </div>
             <div className="flex items-center justify-between text-sm font-semibold text-gray-700">
@@ -515,7 +562,7 @@ export function CreateAgreementForm() {
               </div>
             </div>
             <p className="text-[11px] text-gray-400 font-semibold leading-relaxed pt-1">
-              Saat panen, utang ini dibagi menjadi residu pokok Agrinas dan margin KMP secara
+              Saat panen, utang ini dibagi menjadi residu pokok Supplier dan margin KMP secara
               otomatis oleh kontrak Soroban.
             </p>
           </CardContent>

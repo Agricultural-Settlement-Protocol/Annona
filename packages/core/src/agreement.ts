@@ -18,13 +18,13 @@ export interface Agreement {
   id: bigint;
   farmer: string; // Stellar G-address
   coop: string; // Stellar G-address — KMP, the pre-funded cash agent
-  agrinas: string; // Stellar G-address — operator, catalog + dispatch authority
+  supplier: string; // Stellar G-address — operator, catalog + dispatch authority
   commodity: Commodity;
 
   // ── price components (the four locked variables) ──
-  basePriceAgrinas: bigint; // Agrinas catalog cost = PRINCIPAL (read-only to KMP)
+  basePriceSupplier: bigint; // Supplier catalog cost = PRINCIPAL (read-only to KMP)
   saprotanMarkupBps: number; // KMP margin per contract, e.g. 1000 = 10%
-  inputDebt: bigint; // DERIVED = basePriceAgrinas * (10000 + saprotanMarkupBps) / 10000
+  inputDebt: bigint; // DERIVED = basePriceSupplier * (10000 + saprotanMarkupBps) / 10000
   hppHandlingFeeBps: number; // KMP handling cut on gross HPP at settle, e.g. 500 = 5%
 
   expectedVolG: bigint;
@@ -41,7 +41,7 @@ export interface Agreement {
   paidToFarmer: bigint;
   coopHandlingAccrued: bigint; // KMP handling cut realized (KMP keeps)
   coopMarginAccrued: bigint; // KMP markup margin realized (KMP keeps)
-  residuPrincipal: bigint; // Agrinas principal withheld in KMP cash (owed back)
+  residuPrincipal: bigint; // supplier principal withheld in KMP cash (owed back)
   residuStatus: ResiduStatus;
 }
 
@@ -85,15 +85,15 @@ export interface FundingRequest {
 }
 
 /** On-chain reputation counters (KMP). Mirrors `CoopReputation`.
- *  The trust signal Agrinas + Government + banks read: does this coop
- *  reliably remit Agrinas's principal residu? `frozen` is an indicator
+ *  The trust signal Supplier + Government + banks read: does this coop
+ *  reliably remit Supplier's principal residu? `frozen` is an indicator
  *  for human review after a dispute, never an automatic accusation. */
 export interface CoopReputation {
   coop: string;
   agreements: number;
   settlements: number;
   totalResiduPrincipal: bigint; // total principal that passed through KMP cash
-  totalResiduCleared: bigint; // principal Agrinas confirmed remitted
+  totalResiduCleared: bigint; // principal supplier confirmed remitted
   disputes: number;
   frozen: boolean;
 }

@@ -2,20 +2,19 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev, "fix/**", "feat/**"]
   pull_request:
-    branches: [main]
 
 env:
   PNPM_VERSION: 11.1.2
   NODE_VERSION: 22
 
 jobs:
-  ci:
-    name: Check, Lint & Build
+  # ── web2: types, lint, unit tests, build ──────────────────────────────
+  web:
+    name: Web2 — types, lint, test, build
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -28,13 +27,44 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
 
-      - run: pnpm install
+      - run: pnpm install --frozen-lockfile
 
-      - run: pnpm check-types
-        name: TypeScript check
+      - name: TypeScript check (all packages)
+        run: pnpm check-types
 
-      - run: pnpm lint
-        name: Biome lint
+      - name: Biome lint
+        run: pnpm lint
 
-      - run: pnpm build
-        name: Build
+      - name: Indexer reducer tests (pure)
+        run: pnpm --filter @annona/api test
+
+      - name: ScVal round-trip / envelope tests
+        run: pnpm --filter @annona/web test
+
+      - name: Build (all)
+        run: pnpm build
+
+  # ── web3: Soroban contract tests ──────────────────────────────────────
+  contract:
+    name: Web3 — cargo test
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: contracts
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32v1-none
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: contracts
+
+      - name: Contract unit tests
+        run: cargo test --locked
+
+      - name: WASM build (budget check)
+        run: cargo build --release --target wasm32v1-none -p offtake-registry

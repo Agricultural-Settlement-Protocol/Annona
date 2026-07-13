@@ -23,7 +23,7 @@ export const settlementsRoute = new Hono().get("/", async (c) => {
       gross: schema.settlement.gross,
       handlingCut: schema.settlement.handlingCut,
       debtNetted: schema.settlement.debtNetted,
-      principalToAgrinas: schema.settlement.principalToAgrinas,
+      principalToSupplier: schema.settlement.principalToSupplier,
       coopMargin: schema.settlement.coopMargin,
       netPaid: schema.settlement.netPaid,
       settledVolG: schema.settlement.settledVolG,

@@ -1,5 +1,5 @@
 /** Agreement lifecycle. Mirrors the Soroban `Status` enum (v3.0, PMK 15/2026).
- *  Created -> SupplyDispatched (Agrinas gate) -> Active (KMP gate) -> delivery -> settle. */
+ *  Created -> SupplyDispatched (Supplier gate) -> Active (KMP gate) -> delivery -> settle. */
 export type Status =
   | "Created"
   | "SupplyDispatched"
@@ -10,7 +10,7 @@ export type Status =
   | "Flagged"
   | "ForceMajeure";
 
-/** Residu (Agrinas principal held in KMP cash) reconciliation lifecycle.
+/** Residu (supplier principal held in KMP cash) reconciliation lifecycle.
  *  Mirrors the Soroban `ResiduStatus` enum. Never on-chain money movement,
  *  only the anchored record of an off-chain bank remittance. */
 export type ResiduStatus = "Pending" | "Remitted" | "Cleared" | "Disputed";

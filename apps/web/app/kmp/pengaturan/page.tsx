@@ -28,11 +28,13 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
+import { useI18n } from "@/lib/i18n/use-i18n";
 import { useState } from "react";
 
 // ─── Section 1: Profil Koperasi ──────────────────────────────────────────────
 
 function ProfilSection({ coop }: { coop: ApiCoop }) {
+  const { t } = useI18n();
   const [name, setName] = useState<string>(coop.name);
   const [kecamatan, setKecamatan] = useState<string>(coop.kecamatan);
   const [kabupaten, setKabupaten] = useState<string>(coop.kabupaten);
@@ -47,14 +49,14 @@ function ProfilSection({ coop }: { coop: ApiCoop }) {
   return (
     <Card className="rounded-[2rem] border-gray-100 bg-white shadow-sm overflow-hidden p-5 sm:p-6">
       <CardHeader
-        title="Profil Koperasi"
-        description="Informasi dasar koperasi. Disimpan lokal untuk demo."
+        title={t("page.kmp.pengaturan.profile")}
+        description={t("page.kmp.pengaturan.profile.desc")}
         action={<Settings size={18} className="text-emerald-700" />}
         className="pb-3"
       />
       <CardContent className="space-y-4 pt-3">
         <Input
-          label="Nama Koperasi"
+          label={t("page.kmp.pengaturan.profile.name")}
           name="koop-name"
           value={name}
           onChange={(e) => {
@@ -65,7 +67,7 @@ function ProfilSection({ coop }: { coop: ApiCoop }) {
         />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Input
-            label="Kecamatan"
+            label={t("page.kmp.perjanjian.detail.district")}
             name="koop-kecamatan"
             value={kecamatan}
             onChange={(e) => {
@@ -104,7 +106,7 @@ function ProfilSection({ coop }: { coop: ApiCoop }) {
             onClick={handleSave}
             className="rounded-full bg-primary-dark hover:bg-opacity-95 text-white px-5 py-2.5"
           >
-            Simpan Profil
+            {t("common.save")}
           </Button>
           {saved && (
             <Alert tone="success" className="py-1.5 px-3 text-sm rounded-xl">
@@ -120,6 +122,7 @@ function ProfilSection({ coop }: { coop: ApiCoop }) {
 // ─── Section 2: Dompet dan Jaringan ─────────────────────────────────────────
 
 function DompetSection({ coop }: { coop: ApiCoop }) {
+  const { t } = useI18n();
   const [disconnecting, setDisconnecting] = useState(false);
   const [disconnected, setDisconnected] = useState(false);
 
@@ -135,15 +138,15 @@ function DompetSection({ coop }: { coop: ApiCoop }) {
   return (
     <Card className="rounded-[2rem] border-gray-100 bg-white shadow-sm overflow-hidden p-5 sm:p-6">
       <CardHeader
-        title="Dompet dan Jaringan"
-        description="Dompet Freighter yang terhubung ke sesi ini."
+        title={t("page.kmp.pengaturan.wallet")}
+        description={t("page.kmp.pengaturan.wallet.desc")}
         action={<Wallet size={18} className="text-cyan-800" />}
         className="pb-3"
       />
       <CardContent className="space-y-4 pt-3">
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-gray-100 bg-gray-50/50 px-5 py-4 shadow-sm">
           <div>
-            <p className="text-xs font-bold text-gray-400">Alamat Dompet</p>
+            <p className="text-xs font-bold text-gray-400">{t("page.kmp.pengaturan.profile.wallet")}</p>
             <p
               className="mt-0.5 font-mono text-sm text-foreground"
               title={coop.walletAddress}
@@ -180,7 +183,7 @@ function DompetSection({ coop }: { coop: ApiCoop }) {
                 onClick={handleDisconnect}
                 className="rounded-full bg-red-600 hover:bg-opacity-95 text-white"
               >
-                Ya, Putuskan
+                {t("common.yes")}
               </Button>
               <Button
                 type="button"
@@ -189,7 +192,7 @@ function DompetSection({ coop }: { coop: ApiCoop }) {
                 onClick={() => setDisconnecting(false)}
                 className="rounded-full"
               >
-                Batal
+                {t("common.cancel")}
               </Button>
             </div>
           </div>
@@ -201,7 +204,7 @@ function DompetSection({ coop }: { coop: ApiCoop }) {
             onClick={handleDisconnect}
             className="rounded-full"
           >
-            Putuskan Dompet
+            {t("page.kmp.pengaturan.wallet.disconnected")}
           </Button>
         )}
       </CardContent>
@@ -212,6 +215,7 @@ function DompetSection({ coop }: { coop: ApiCoop }) {
 // ─── Section 3: Preferensi Perjanjian ───────────────────────────────────────
 
 function PreferensiSection() {
+  const { t } = useI18n();
   const [markup, setMarkup] = useState("10");
   const [handling, setHandling] = useState("5");
   const [toleransi, setToleransi] = useState("20");
@@ -225,15 +229,15 @@ function PreferensiSection() {
   return (
     <Card className="rounded-[2rem] border-gray-100 bg-white shadow-sm overflow-hidden p-5 sm:p-6">
       <CardHeader
-        title="Preferensi Perjanjian"
-        description="Nilai awal saat membuat perjanjian baru. Bisa diubah per perjanjian."
+        title={t("page.kmp.pengaturan.preferences")}
+        description={t("page.kmp.pengaturan.preferences.desc")}
         action={<Shield size={18} className="text-emerald-700" />}
         className="pb-3"
       />
       <CardContent className="space-y-4 pt-3">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Input
-            label="Markup Saprotan (%)"
+            label={t("page.kmp.perjanjian.detail.markup")}
             name="pref-markup"
             type="number"
             min="0"
@@ -290,7 +294,7 @@ function PreferensiSection() {
             onClick={handleSave}
             className="rounded-full bg-primary-dark hover:bg-opacity-95 text-white px-5 py-2.5"
           >
-            Simpan Preferensi
+            {t("common.save")}
           </Button>
           {saved && (
             <Alert tone="success" className="py-1.5 px-3 text-sm rounded-xl">
@@ -306,14 +310,15 @@ function PreferensiSection() {
 // ─── Section 4: Bahasa dan Tampilan ─────────────────────────────────────────
 
 function BahasaSection() {
+  const { t } = useI18n();
   const [language, setLanguage] = useState("id");
   const [theme, setTheme] = useState("light");
 
   return (
     <Card className="rounded-[2rem] border-gray-100 bg-white shadow-sm overflow-hidden p-5 sm:p-6">
       <CardHeader
-        title="Bahasa dan Tampilan"
-        description="Preferensi antarmuka. Bahasa Inggris tersedia via next-intl."
+        title={t("page.kmp.pengaturan.preferences")}
+        description={t("page.kmp.pengaturan.preferences.desc")}
         action={<Globe size={18} className="text-cyan-800" />}
         className="pb-3"
       />
@@ -324,7 +329,7 @@ function BahasaSection() {
               htmlFor="select-lang"
               className="mb-2 block text-sm font-bold text-gray-900"
             >
-              Bahasa
+              {t("page.kmp.pengaturan.preferences.language")}
             </label>
             <select
               id="select-lang"
@@ -332,12 +337,12 @@ function BahasaSection() {
               onChange={(e) => setLanguage(e.target.value)}
               className="h-12 w-full rounded-2xl border border-gray-100 bg-white px-4 text-sm font-semibold text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-ring transition-all"
             >
-              <option value="id">Bahasa Indonesia</option>
-              <option value="en">English</option>
+              <option value="id">{t("page.kmp.pengaturan.preferences.language.id")}</option>
+              <option value="en">{t("page.kmp.pengaturan.preferences.language.en")}</option>
             </select>
             {language === "en" && (
               <p className="mt-1.5 text-xs text-gray-500 font-semibold">
-                Terjemahan penuh segera tersedia lewat next-intl.
+                {t("page.kmp.pengaturan.preferences.languageNote")}
               </p>
             )}
           </div>
@@ -348,7 +353,7 @@ function BahasaSection() {
                 htmlFor="select-theme"
                 className="text-sm font-bold text-gray-900"
               >
-                Tema
+                {t("page.kmp.pengaturan.theme")}
               </label>
               <Badge tone="neutral" className="rounded-full font-bold">
                 Segera
@@ -361,9 +366,9 @@ function BahasaSection() {
               disabled
               className="h-12 w-full rounded-2xl border border-gray-100 bg-white px-4 text-sm font-semibold text-gray-900 shadow-sm focus:outline-none disabled:opacity-50"
             >
-              <option value="light">Terang</option>
-              <option value="dark">Gelap</option>
-              <option value="system">Sistem</option>
+              <option value="light">{t("page.kmp.pengaturan.theme.light")}</option>
+              <option value="dark">{t("page.kmp.pengaturan.theme.dark")}</option>
+              <option value="system">{t("page.kmp.pengaturan.theme.system")}</option>
             </select>
             <p className="mt-1.5 text-xs text-gray-400 font-semibold">
               Dukungan tema gelap sedang dikembangkan.
@@ -378,6 +383,7 @@ function BahasaSection() {
 // ─── Section 5: Notifikasi ───────────────────────────────────────────────────
 
 function NotifikasiSection() {
+  const { t } = useI18n();
   const [notifSetoran, setNotifSetoran] = useState(true);
   const [notifPanen, setNotifPanen] = useState(true);
   const [notifResidu, setNotifResidu] = useState(false);
@@ -385,8 +391,8 @@ function NotifikasiSection() {
   return (
     <Card className="rounded-[2rem] border-gray-100 bg-white shadow-sm overflow-hidden p-5 sm:p-6">
       <CardHeader
-        title="Notifikasi"
-        description="Pilih jenis notifikasi yang ingin diterima (lokal, demo)."
+        title={t("page.kmp.pengaturan.notifications")}
+        description={t("page.kmp.pengaturan.notifications.desc")}
         action={<Bell size={18} className="text-emerald-700" />}
         className="pb-3"
       />
@@ -409,7 +415,7 @@ function NotifikasiSection() {
           {
             id: "notif-residu",
             label: "Residu jatuh tempo",
-            hint: "Residu pokok Agrinas belum diremitkan lebih dari 14 hari",
+            hint: "Residu pokok Supplier belum diremitkan lebih dari 14 hari",
             checked: notifResidu,
             onChange: () => setNotifResidu((v) => !v),
           },
@@ -442,6 +448,7 @@ function NotifikasiSection() {
 // ─── Section 6: Tim Pengurus ─────────────────────────────────────────────────
 
 function TimSection() {
+  const { t } = useI18n();
   const TEAM = [
     { initials: "HU", name: "H. Usman", role: "Ketua" },
     { initials: "IS", name: "Ibu Sari", role: "Bendahara" },
@@ -450,8 +457,8 @@ function TimSection() {
   return (
     <Card className="rounded-[2rem] border-gray-100 bg-white shadow-sm overflow-hidden p-5 sm:p-6">
       <CardHeader
-        title="Tim Pengurus"
-        description="Daftar pengurus yang memiliki akses ke dasbor KMP ini."
+        title={t("page.kmp.pengaturan.security")}
+        description={t("page.kmp.pengaturan.security.desc")}
         action={<Users size={18} className="text-gray-400" />}
         className="pb-3"
       />
@@ -498,22 +505,23 @@ function TimSection() {
 // ─── Main page ───────────────────────────────────────────────────────────────
 
 export default function PengaturanPage() {
+  const { t } = useI18n();
   const { data, loading, error } = useApi(fetchCoop);
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Pengaturan"
-        description="Konfigurasi koperasi, dompet, preferensi, dan tim pengurus."
+        title={t("page.kmp.pengaturan.title")}
+        description={t("page.kmp.pengaturan.desc")}
       />
 
       {loading && (
         <p className="text-sm text-muted-foreground">
-          Memuat pengaturan koperasi...
+          {t("common.loading")}
         </p>
       )}
       {error && (
-        <Alert tone="warning" title="Gagal memuat data koperasi">
+        <Alert tone="warning" title={t("common.error")}>
           {error}
         </Alert>
       )}

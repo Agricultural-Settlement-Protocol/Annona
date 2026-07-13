@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Multi-session AI chat for the Oversight dashboard (Agrinas + Pemerintah).
+ * Multi-session AI chat for the Oversight dashboard (Supplier + Pemerintah).
  *
  * Layout: [SessionPanel (left, collapsible)] [ChatArea (right)]
  *
@@ -66,9 +66,9 @@ export interface GroundingSnapshot {
 // ---- Demo prompts per role --------------------------------------------------
 
 const DEMO_PROMPTS: Record<ChatRole, string[]> = {
-  agrinas: [
+  supplier: [
     "KMP mana yang paling banyak residu pokok belum disetor?",
-    "Berapa total residu Agrinas yang belum diverifikasi?",
+    "Berapa total residu Supplier yang belum diverifikasi?",
     "Berapa antrean dispatch yang masih menunggu?",
     "KMP mana yang sedang dibekukan reputasinya?",
   ],
@@ -190,10 +190,10 @@ function AttachmentChip({
 
 function MessageBubble({
   message,
-  isAgrinas,
+  isSupplier,
 }: {
   message: ChatMessage;
-  isAgrinas: boolean;
+  isSupplier: boolean;
 }) {
   const isUser = message.role === "user";
   return (
@@ -207,7 +207,7 @@ function MessageBubble({
         className={cn(
           "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold",
           isUser
-            ? isAgrinas
+            ? isSupplier
               ? "bg-aqua-100 text-aqua-700"
               : "bg-verdant-100 text-verdant-700"
             : "bg-surface-muted text-muted-foreground",
@@ -219,7 +219,7 @@ function MessageBubble({
         className={cn(
           "max-w-[82%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
           isUser
-            ? isAgrinas
+            ? isSupplier
               ? "rounded-tr-sm bg-aqua-600 text-white"
               : "rounded-tr-sm bg-verdant-600 text-white"
             : "rounded-tl-sm border border-border bg-surface text-foreground",
@@ -263,7 +263,7 @@ export function AiChat({
   viewRole: ChatRole;
   groundingSnapshot: GroundingSnapshot;
 }) {
-  const isAgrinas = role === "agrinas";
+  const isSupplier = role === "supplier";
 
   // Sessions state (initialised from localStorage)
   const [sessions, setSessions] = useState<Session[]>(() =>
@@ -563,24 +563,24 @@ export function AiChat({
 
   // ---- Colours per role ----------------------------------------------------
 
-  const accentSend = isAgrinas
+  const accentSend = isSupplier
     ? "bg-aqua-600 hover:bg-aqua-700 text-white"
     : "bg-verdant-600 hover:bg-verdant-700 text-white";
 
-  const accentChip = isAgrinas
+  const accentChip = isSupplier
     ? "border-aqua-200 bg-aqua-50 text-aqua-700 hover:bg-aqua-100"
     : "border-verdant-200 bg-verdant-50 text-verdant-700 hover:bg-verdant-100";
 
-  const accentHeader = isAgrinas
+  const accentHeader = isSupplier
     ? "bg-aqua-100 text-aqua-700"
     : "bg-verdant-100 text-verdant-700";
 
-  const headerScope = isAgrinas
+  const headerScope = isSupplier
     ? "Lingkup: residu, dispatch, kinerja koperasi"
     : "Lingkup: produksi, kinerja koperasi, antrean flag";
 
-  const headerName = isAgrinas
-    ? "Asisten AI Agrinas"
+  const headerName = isSupplier
+    ? "Asisten AI Supplier"
     : "Asisten AI Pengawasan Pemerintah";
 
   const showDemoPrompts =
@@ -641,7 +641,7 @@ export function AiChat({
           <span
             className={cn(
               "ml-auto inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
-              isAgrinas
+              isSupplier
                 ? "bg-aqua-50 text-aqua-700"
                 : "bg-verdant-50 text-verdant-700",
             )}
@@ -665,8 +665,8 @@ export function AiChat({
                     <Bot size={24} />
                   </div>
                   <p className="text-sm font-medium text-foreground">
-                    {isAgrinas
-                      ? "Asisten AI Agrinas siap membantu."
+                    {isSupplier
+                      ? "Asisten AI Supplier siap membantu."
                       : "Asisten AI Pengawasan siap membantu."}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
@@ -679,7 +679,7 @@ export function AiChat({
                 <MessageBubble
                   key={msg.id}
                   message={msg}
-                  isAgrinas={isAgrinas}
+                  isSupplier={isSupplier}
                 />
               ))}
 
@@ -841,17 +841,17 @@ export function AiChat({
             aria-hidden
             className={cn(
               "pointer-events-none absolute inset-0 z-30 flex flex-col items-center justify-center gap-2 rounded-r-lg border-2 border-dashed",
-              isAgrinas ? "border-aqua-400 bg-aqua-50/80" : "border-verdant-400 bg-verdant-50/80",
+              isSupplier ? "border-aqua-400 bg-aqua-50/80" : "border-verdant-400 bg-verdant-50/80",
             )}
           >
             <Paperclip
               size={32}
-              className={isAgrinas ? "text-aqua-600" : "text-verdant-600"}
+              className={isSupplier ? "text-aqua-600" : "text-verdant-600"}
             />
             <p
               className={cn(
                 "text-sm font-semibold",
-                isAgrinas ? "text-aqua-700" : "text-verdant-700",
+                isSupplier ? "text-aqua-700" : "text-verdant-700",
               )}
             >
               Lepaskan file untuk melampirkan

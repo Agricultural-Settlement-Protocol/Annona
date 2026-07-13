@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Logistik Saprotan (Agrinas view) — saprotan dispatch desk.
+ * Logistik Saprotan (Supplier view) — saprotan dispatch desk.
  *
  * Pending dispatch requests from KMPs (from buildDispatchRequests) shown as
  * responsive cards. Each dispatch records dispatch_supply on Stellar via useMockTx.
@@ -41,6 +41,7 @@ import {
   Truck,
   X,
 } from "lucide-react";
+import { useI18n } from "@/lib/i18n/use-i18n";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 // ─── Dispatch request card ────────────────────────────────────────────────────
@@ -52,6 +53,7 @@ function DispatchCard({
   request: DispatchRequest;
   onDispatched: (requestId: string, txHash: string) => void;
 }) {
+  const { t } = useI18n();
   const tx = useMockTx();
   const prevState = useRef(tx.state);
 
@@ -70,10 +72,10 @@ function DispatchCard({
         <div>
           <p className="font-semibold text-foreground">{request.coopName}</p>
           <p className="text-xs text-muted-foreground">
-            {request.kabupaten}, {request.agreementIds.length} perjanjian
+            {request.kabupaten}, {request.agreementIds.length}
           </p>
         </div>
-        <Badge tone="aqua">Menunggu Dispatch</Badge>
+        <Badge tone="aqua">{t("page.oversight.supplier.logistik.pending")}</Badge>
       </div>
 
       <div className="mt-4 flex-1 space-y-2">
@@ -92,7 +94,7 @@ function DispatchCard({
           </div>
         ))}
         <div className="flex items-center justify-between border-t border-aqua-200 pt-2 text-sm font-semibold">
-          <span>Total Pokok</span>
+          <span>{t("page.oversight.supplier.logistik.card.total")}</span>
           <RupiahAmount smallest={request.grandTotal} className="text-sm font-bold tabular-nums" />
         </div>
       </div>
@@ -110,7 +112,7 @@ function DispatchCard({
             ? "Menandatangani..."
             : tx.state === "submitting"
               ? "Mencatat di Stellar..."
-              : `Dispatch ke ${request.coopName}`}
+               : t("page.oversight.supplier.logistik.dispatch")}
         </Button>
       </div>
     </div>
@@ -126,6 +128,7 @@ function HistoryDetailSheet({
   row: DispatchHistoryRow | null;
   onClose: () => void;
 }) {
+  const { t } = useI18n();
   if (!row) return null;
   return (
     <>
@@ -133,18 +136,18 @@ function HistoryDetailSheet({
         type="button"
         className="fixed inset-0 z-40 bg-foreground/30 backdrop-blur-[1px]"
         onClick={onClose}
-        aria-label="Tutup detail"
+        aria-label={t("common.close")}
       />
       {/* biome-ignore lint/a11y/useSemanticElements: side-sheet uses role="dialog" on div; native <dialog> lacks the CSS positioning primitives needed for this fixed-right layout */}
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Detail riwayat dispatch"
+        aria-label={t("common.detail")}
         className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col bg-surface shadow-md overflow-hidden"
       >
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div>
-            <p className="font-semibold text-foreground">Detail Dispatch</p>
+            <p className="font-semibold text-foreground">{t("common.detail")}</p>
             <p className="text-xs text-muted-foreground">
               {row.coopName}, {row.kabupaten}
             </p>
@@ -163,7 +166,7 @@ function HistoryDetailSheet({
           {/* Status timeline */}
           <div className="space-y-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Alur
+              {t("page.oversight.supplier.logistik.card.items")}
             </p>
             <div className="flex items-center gap-3">
               <div className="flex flex-col items-center">
@@ -173,7 +176,7 @@ function HistoryDetailSheet({
                 <div className="mt-1 h-8 w-px bg-border" />
               </div>
               <div>
-                <p className="text-sm font-medium text-foreground">Dispatched oleh Agrinas</p>
+                <p className="text-sm font-medium text-foreground">{t("page.oversight.supplier.logistik.dispatch")}</p>
                 <p className="text-xs text-muted-foreground">{row.dispatchedAt}</p>
                 <TxHashLink hash={row.txHash} />
               </div>
@@ -184,12 +187,12 @@ function HistoryDetailSheet({
               </div>
               <div>
                 <p className={`text-sm font-medium ${row.status === "Diterima" ? "text-foreground" : "text-muted-foreground"}`}>
-                  Diterima oleh KMP
+                  {t("page.oversight.supplier.penerimaan.badge.diterima")}
                 </p>
                 {row.acceptedAt ? (
                   <p className="text-xs text-muted-foreground">{row.acceptedAt}</p>
                 ) : (
-                  <p className="text-xs text-amber-600">Menunggu accept_supply dari KMP</p>
+                  <p className="text-xs text-amber-600">{t("common.noData")}</p>
                 )}
               </div>
             </div>
@@ -213,7 +216,7 @@ function HistoryDetailSheet({
                 </div>
               ))}
               <div className="flex items-center justify-between px-4 py-3 text-sm font-semibold bg-surface-muted">
-                <span>Total Pokok</span>
+          <span>{t("page.oversight.supplier.logistik.card.total")}</span>
                 <RupiahAmount smallest={row.totalPokok} className="text-sm font-bold tabular-nums" />
               </div>
             </div>
@@ -227,6 +230,7 @@ function HistoryDetailSheet({
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function LogistikPage() {
+  const { t } = useI18n();
   const initialRequests = useMemo(() => buildDispatchRequests(), []);
   const [dispatchedMap, setDispatchedMap] = useState<Record<string, string>>({});
   const [localHistory, setLocalHistory] = useState<DispatchHistoryRow[]>(DISPATCH_HISTORY);
@@ -281,37 +285,37 @@ export default function LogistikPage() {
   return (
     <div className="space-y-8">
       <OversightPageHeader
-        title="Logistik Saprotan"
-        description="Proses permintaan gabungan saprotan dari koperasi. Setiap dispatch dicatat on-chain sebagai dispatch_supply di Stellar."
+        title={t("page.oversight.supplier.logistik.title")}
+        description={t("page.oversight.supplier.logistik.desc")}
       />
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatCard
-          label="Antrean Dispatch"
+          label={t("page.oversight.supplier.logistik.pending")}
           value={String(pendingRequests.length)}
-          hint="Permintaan KMP menunggu pengiriman"
+          hint={t("page.oversight.supplier.logistik.desc")}
           tone={pendingRequests.length > 0 ? "warn" : "good"}
           icon={<Truck size={18} />}
         />
         <StatCard
-          label="Nilai Antrean"
+          label={t("page.oversight.supplier.logistik.totalValue")}
           value={<RupiahAmount smallest={totalPending} className="text-3xl" />}
-          hint="Total pokok permintaan belum dispatch"
+          hint={t("page.oversight.supplier.logistik.desc")}
           tone={totalPending > 0n ? "warn" : "good"}
           icon={<Package size={18} />}
         />
         <StatCard
-          label="Dispatch Sesi Ini"
+          label={t("page.oversight.supplier.logistik.dispatch")}
           value={String(dispatchedCount)}
-          hint="Berhasil diproses sesi ini"
+          hint={t("page.oversight.supplier.logistik.desc")}
           tone={dispatchedCount > 0 ? "good" : "neutral"}
           icon={<CheckCircle2 size={18} />}
         />
         <StatCard
-          label="Total Riwayat"
+          label={t("page.oversight.supplier.logistik.dispatched")}
           value={String(localHistory.length)}
-          hint="Seluruh riwayat dispatch"
+          hint={t("page.oversight.supplier.logistik.desc")}
           icon={<Send size={18} />}
         />
       </div>
@@ -320,7 +324,7 @@ export default function LogistikPage() {
       {dispatchedCount > 0 && (
         <Alert
           tone="success"
-          title={`${dispatchedCount} permintaan berhasil di-dispatch`}
+          title={t("page.oversight.supplier.logistik.dispatch")}
         >
           <span className="text-sm">
             Koperasi akan menerima notifikasi dan mengkonfirmasi penerimaan saprotan.
@@ -337,9 +341,9 @@ export default function LogistikPage() {
       <div>
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <p className="font-semibold text-foreground">Permintaan Menunggu Dispatch</p>
+            <p className="font-semibold text-foreground">{t("page.oversight.supplier.logistik.pending")}</p>
             <p className="text-xs text-muted-foreground">
-              Setiap dispatch memanggil dispatch_supply dan dicatat di Stellar testnet.
+              {t("page.oversight.supplier.logistik.desc")}
             </p>
           </div>
         </div>
@@ -347,9 +351,9 @@ export default function LogistikPage() {
         {pendingRequests.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-[14px] border border-dashed border-border py-12 text-center">
             <CheckCircle2 size={36} className="mb-3 text-emerald-500" />
-            <p className="font-medium text-foreground">Semua permintaan telah diproses</p>
+            <p className="font-medium text-foreground">{t("common.noData")}</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Tidak ada antrean dispatch saat ini.
+              {t("page.oversight.supplier.logistik.desc")}
             </p>
           </div>
         ) : (
@@ -368,11 +372,11 @@ export default function LogistikPage() {
       {/* Riwayat Dispatch */}
       <div>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <p className="font-semibold text-foreground">Riwayat Dispatch</p>
+          <p className="font-semibold text-foreground">{t("page.oversight.supplier.logistik.dispatched")}</p>
           <div className="relative w-64">
             <input
               type="text"
-              placeholder="Cari KMP atau tx hash..."
+              placeholder={t("common.search")}
               value={historySearch}
               onChange={(e) => setHistorySearch(e.target.value)}
               className="w-full rounded-[10px] border border-border bg-surface py-1.5 pl-3 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
@@ -385,20 +389,20 @@ export default function LogistikPage() {
               <TableFrame>
                 <Table>
                   <THead>
-                    <Th>Tanggal</Th>
-                    <Th>KMP</Th>
+                    <Th>{t("common.date")}</Th>
+                    <Th>{t("page.oversight.supplier.logistik.card.coop")}</Th>
                     <Th>Kabupaten</Th>
-                    <Th>Item</Th>
-                    <Th className="text-right">Total Pokok</Th>
-                    <Th>Status</Th>
+                    <Th>{t("page.oversight.supplier.logistik.card.items")}</Th>
+                    <Th className="text-right">{t("page.oversight.supplier.logistik.card.total")}</Th>
+                    <Th>{t("common.status")}</Th>
                     <Th>Tx</Th>
-                    <Th>Detail</Th>
+                    <Th>{t("common.detail")}</Th>
                   </THead>
                   <TBody>
                     {filteredHistory.length === 0 ? (
                       <Tr>
                         <Td colSpan={8} className="py-8 text-center text-muted-foreground">
-                          Tidak ada riwayat dispatch.
+                          {t("page.oversight.supplier.logistik.desc")}
                         </Td>
                       </Tr>
                     ) : (
@@ -431,7 +435,7 @@ export default function LogistikPage() {
                                 className="flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:border-ring hover:text-foreground"
                               >
                                 <ChevronRight size={12} />
-                                Detail
+                                {t("common.detail")}
                               </button>
                             </Td>
                           </Tr>
@@ -449,8 +453,8 @@ export default function LogistikPage() {
       {/* Cara Kerja Dispatch — bottom full-width */}
       <Card>
         <CardHeader
-          title="Cara Kerja Dispatch Saprotan"
-          description="Alur logistik dari permintaan KMP hingga saprotan aktif di lapangan."
+          title={t("page.oversight.supplier.logistik.explanation.title")}
+          description={t("page.oversight.supplier.logistik.desc")}
         />
         <CardContent>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
@@ -459,12 +463,12 @@ export default function LogistikPage() {
                 {
                   step: 1,
                   title: "Permintaan dari KMP",
-                  desc: "KMP mengirim permintaan gabungan saprotan berdasarkan perjanjian aktif. Agrinas melihat total kebutuhan per koperasi.",
+                  desc: "KMP mengirim permintaan gabungan saprotan berdasarkan perjanjian aktif. Supplier melihat total kebutuhan per koperasi.",
                 },
                 {
                   step: 2,
-                  title: "Agrinas Dispatch",
-                  desc: "Operator Agrinas menekan Dispatch. Transaksi dispatch_supply dicatat di Stellar testnet dengan detail item dan nilai pokok.",
+                  title: "Supplier Dispatch",
+                  desc: "Operator Supplier menekan Dispatch. Transaksi dispatch_supply dicatat di Stellar testnet dengan detail item dan nilai pokok.",
                 },
                 {
                   step: 3,

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Screen I: Rekonsiliasi Residu (Agrinas view).
+ * Screen I: Rekonsiliasi Residu (Supplier view).
  *
  * Inter-institutional ledger: per-KMP residu collected, owed, remitted, cleared.
  * Drill into a KMP to see its individual residu rows.
@@ -13,7 +13,8 @@
 
 import { OversightPageHeader } from "@/components/oversight/page-header";
 import { TBody, THead, Table, TableFrame, Td, Th, Tr } from "@/components/kmp/table";
-import { useMockTx } from "@/components/kmp/use-mock-tx";
+import { useTx } from "@/components/kmp/use-tx";
+import { confirmRemittance, flagRemittanceDispute } from "@/lib/invocations";
 import { ScrollArea } from "@/components/scroll-area";
 import {
   MOCK_COOP_PROFILES,
@@ -47,6 +48,7 @@ import {
   ShieldCheck,
   X,
 } from "lucide-react";
+import { useI18n } from "@/lib/i18n/use-i18n";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 // ─── Per-row local state ──────────────────────────────────────────────────────
@@ -89,8 +91,9 @@ function RemittanceActionPanel({
   const [mode, setMode] = useState<"approve" | "dispute" | null>(null);
   const [disputeReason, setDisputeReason] = useState<string>("");
 
-  const txApprove = useMockTx();
-  const txDispute = useMockTx();
+  const { t } = useI18n();
+  const txApprove = useTx();
+  const txDispute = useTx();
 
   const prevApprove = useRef(txApprove.state);
   const prevDispute = useRef(txDispute.state);
@@ -146,7 +149,7 @@ function RemittanceActionPanel({
                 leftIcon={<CheckCircle2 size={13} />}
                 onClick={() => setMode("approve")}
               >
-                Setujui Remitansi
+                {t("page.oversight.supplier.residu.action.approve")}
               </Button>
               <Button
                 variant="outline"
@@ -155,10 +158,10 @@ function RemittanceActionPanel({
                 onClick={() => setMode("dispute")}
                 className="border-amber-300 text-amber-700 hover:bg-amber-50"
               >
-                Ajukan Sengketa
+                {t("page.oversight.supplier.residu.action.dispute")}
               </Button>
               <Button variant="ghost" size="sm" onClick={onClose}>
-                Batal
+                {t("page.oversight.supplier.residu.action.cancel")}
               </Button>
             </div>
           )}
@@ -166,9 +169,7 @@ function RemittanceActionPanel({
           {mode === "approve" && txApprove.state !== "success" && (
             <div className="space-y-3">
               <Alert tone="info">
-                Menyetujui remitansi akan mencatat{" "}
-                <span className="font-mono">confirm_remittance</span> di Stellar
-                dan mengubah status menjadi Terverifikasi.
+                <span className="text-sm">{t("page.oversight.supplier.residu.action.approveHint")}</span>
               </Alert>
               <div className="flex gap-2">
                 <Button
@@ -176,16 +177,20 @@ function RemittanceActionPanel({
                   size="sm"
                   leftIcon={<ShieldCheck size={13} />}
                   disabled={txApprove.state !== "idle"}
-                  onClick={() => txApprove.run()}
+                  onClick={() =>
+                    txApprove.run((signer) =>
+                      confirmRemittance(signer, BigInt(row.id.replace(/\D/g, "").slice(0, 9) || "0")),
+                    )
+                  }
                 >
                   {txApprove.state === "signing"
                     ? "Menandatangani..."
                     : txApprove.state === "submitting"
                       ? "Mencatat di Stellar..."
-                      : "Konfirmasi Terverifikasi"}
+                      : t("page.oversight.supplier.residu.action.confirm")}
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => setMode(null)}>
-                  Kembali
+                  {t("common.back")}
                 </Button>
               </div>
             </div>
@@ -194,16 +199,14 @@ function RemittanceActionPanel({
           {mode === "dispute" && txDispute.state !== "success" && (
             <div className="space-y-3">
               <Alert tone="warning" title="Ini hanya indikator untuk peninjauan manusia">
-                Mengajukan sengketa akan membekukan reputasi on-chain KMP sementara.
-                Ini bukan tuduhan otomatis. Keputusan diselesaikan oleh pihak berwenang
-                di luar sistem.
+                <span className="text-sm">{t("page.oversight.supplier.residu.action.disputeHint")}</span>
               </Alert>
               <div>
                 <label
                   htmlFor="dispute-reason"
                   className="mb-1 block text-sm font-medium text-foreground"
                 >
-                  Alasan sengketa
+                  {t("page.oversight.supplier.residu.disputeReason")}
                 </label>
                 <input
                   id="dispute-reason"
@@ -220,17 +223,21 @@ function RemittanceActionPanel({
                   size="sm"
                   leftIcon={<ShieldAlert size={13} />}
                   disabled={!disputeReason.trim() || txDispute.state !== "idle"}
-                  onClick={() => txDispute.run()}
+                  onClick={() =>
+                    txDispute.run((signer) =>
+                      flagRemittanceDispute(signer, BigInt(row.id.replace(/\D/g, "").slice(0, 9) || "0"), disputeReason.trim().slice(0, 32).toUpperCase()),
+                    )
+                  }
                   className="border-amber-300 text-amber-700 hover:bg-amber-50"
                 >
                   {txDispute.state === "signing"
                     ? "Menandatangani..."
                     : txDispute.state === "submitting"
                       ? "Mencatat di Stellar..."
-                      : "Ajukan Sengketa"}
+                      : t("page.oversight.supplier.residu.action.submitDispute")}
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => setMode(null)}>
-                  Kembali
+                  {t("common.back")}
                 </Button>
               </div>
             </div>
@@ -262,6 +269,7 @@ function CoopResiduSection({
   expanded: boolean;
   onToggle: () => void;
 }) {
+  const { t } = useI18n();
   const [activeRowId, setActiveRowId] = useState<string | null>(null);
   const coop = MOCK_COOP_PROFILES.find((c) => c.id === coopId);
 
@@ -322,15 +330,15 @@ function CoopResiduSection({
           <TableFrame className="rounded-none border-0 shadow-none">
             <Table>
               <THead>
-                <Th>Petani</Th>
-                <Th>Komoditas</Th>
-                <Th>Pokok Agrinas</Th>
-                <Th>Status</Th>
+                <Th>{t("page.kmp.perjanjian.colHeader.farmer")}</Th>
+                <Th>{t("page.kmp.perjanjian.colHeader.commodity")}</Th>
+                <Th>Pokok Supplier</Th>
+                <Th>{t("common.status")}</Th>
                 <Th>Ref Bank</Th>
                 <Th>Tgl Remit</Th>
                 <Th>Tgl Verif</Th>
                 <Th>Tx</Th>
-                <Th>Aksi</Th>
+                <Th>{t("page.kmp.permintaan.table.col.actions")}</Th>
               </THead>
               <TBody>
                 {rows.map((row) => {
@@ -380,13 +388,13 @@ function CoopResiduSection({
                                 setActiveRowId(isActive ? null : row.id)
                               }
                             >
-                              Tinjau
+                              {t("common.view")}
                             </Button>
                           )}
                           {currentStatus === "Cleared" && (
                             <span className="flex items-center gap-1 text-xs text-emerald-700">
                               <CheckCircle2 size={12} />
-                              Terverifikasi
+                              {t("badge.residu.Cleared")}
                             </span>
                           )}
                           {currentStatus === "Disputed" && (
@@ -432,6 +440,7 @@ function CoopResiduSection({
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function ResiduRekonsiliasiPage() {
+  const { t } = useI18n();
   const metrics = useMemo(() => protocolMetrics(), []);
 
   const [rowStates, setRowStates] = useState<Record<string, RowState>>(
@@ -520,13 +529,12 @@ export default function ResiduRekonsiliasiPage() {
   return (
     <div className="space-y-6">
       <OversightPageHeader
-        title="Rekonsiliasi Residu"
-        description="Ledger antar-lembaga: pokok Agrinas yang tersimpan di kas koperasi. Dual gate: KMP mencatat, Agrinas memverifikasi. Sengketa adalah indikator tinjauan manusia."
+        title={t("page.oversight.supplier.residu.title")}
+        description={t("page.oversight.supplier.residu.desc")}
       />
 
-      {/* Alert: residu is Agrinas's money */}
       <Alert tone="warning" title="Residu pokok bukan milik koperasi">
-        Ini adalah uang pokok saprotan Agrinas yang dikumpulkan saat panen dan
+        Ini adalah uang pokok saprotan Supplier yang dikumpulkan saat panen dan
         disimpan sementara di kas KMP. Verifikasi setelah menerima konfirmasi bank.
         Sengketa membekukan reputasi on-chain KMP sebagai indikator, bukan tuduhan.
       </Alert>
@@ -536,14 +544,14 @@ export default function ResiduRekonsiliasiPage() {
         <StatCard
           label="Belum Diterima"
           value={<RupiahAmount smallest={totalPending} className="text-3xl" />}
-          hint="KMP belum remit ke Agrinas"
+          hint="KMP belum remit ke Supplier"
           tone={totalPending > 0n ? "warn" : "good"}
           icon={<Landmark size={18} />}
         />
         <StatCard
           label="Menunggu Verifikasi"
           value={<RupiahAmount smallest={totalRemitted} className="text-3xl" />}
-          hint="KMP sudah remit, Agrinas perlu verifikasi"
+          hint="KMP sudah remit, Supplier perlu verifikasi"
           tone={totalRemitted > 0n ? "warn" : "good"}
           icon={<Building2 size={18} />}
         />
@@ -602,7 +610,7 @@ export default function ResiduRekonsiliasiPage() {
       <Card>
         <CardHeader
           title="Dual Gate Residu: Cara Kerja"
-          description="Dua tahap verifikasi melindungi Agrinas dan mendisiplinkan KMP."
+          description="Dua tahap verifikasi melindungi Supplier dan mendisiplinkan KMP."
           action={<ShieldCheck size={16} className="text-aqua-400" />}
         />
         <CardContent className="space-y-3">
@@ -624,9 +632,9 @@ export default function ResiduRekonsiliasiPage() {
                 2
               </span>
               <div>
-                <p className="font-medium">Agrinas Verifikasi</p>
+                <p className="font-medium">Supplier Verifikasi</p>
                 <p className="text-muted-foreground">
-                  Agrinas menekan Setujui Remitansi setelah mengkonfirmasi catatan
+                  Supplier menekan Setujui Remitansi setelah mengkonfirmasi catatan
                   bank. Status berubah ke Terverifikasi.{" "}
                   <span className="font-mono">confirm_remittance</span> dicatat di
                   Stellar.
@@ -640,7 +648,7 @@ export default function ResiduRekonsiliasiPage() {
               <div>
                 <p className="font-medium">Jika Ada Sengketa</p>
                 <p className="text-muted-foreground">
-                  Agrinas dapat Ajukan Sengketa jika ada selisih. Ini hanya indikator
+                  Supplier dapat Ajukan Sengketa jika ada selisih. Ini hanya indikator
                   untuk peninjauan manusia, bukan tuduhan otomatis. Reputasi on-chain
                   KMP dibekukan sementara. Penyelesaian dilakukan di luar sistem oleh
                   pihak berwenang.

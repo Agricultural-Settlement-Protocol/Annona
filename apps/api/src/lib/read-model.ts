@@ -17,7 +17,7 @@ export interface Sums {
   netPaid: bigint;
   handlingCut: bigint;
   coopMargin: bigint;
-  principalToAgrinas: bigint;
+  principalToSupplier: bigint;
   debtNetted: bigint;
   settledVolG: bigint;
 }
@@ -25,7 +25,7 @@ const ZERO: Sums = {
   netPaid: 0n,
   handlingCut: 0n,
   coopMargin: 0n,
-  principalToAgrinas: 0n,
+  principalToSupplier: 0n,
   debtNetted: 0n,
   settledVolG: 0n,
 };
@@ -39,7 +39,7 @@ async function settlementSums(db: Db, ids: string[]): Promise<Map<string, Sums>>
       netPaid: sql<string>`coalesce(sum(${schema.settlement.netPaid}),0)`,
       handlingCut: sql<string>`coalesce(sum(${schema.settlement.handlingCut}),0)`,
       coopMargin: sql<string>`coalesce(sum(${schema.settlement.coopMargin}),0)`,
-      principalToAgrinas: sql<string>`coalesce(sum(${schema.settlement.principalToAgrinas}),0)`,
+      principalToSupplier: sql<string>`coalesce(sum(${schema.settlement.principalToSupplier}),0)`,
       debtNetted: sql<string>`coalesce(sum(${schema.settlement.debtNetted}),0)`,
       settledVolG: sql<string>`coalesce(sum(${schema.settlement.settledVolG}),0)`,
     })
@@ -51,7 +51,7 @@ async function settlementSums(db: Db, ids: string[]): Promise<Map<string, Sums>>
       netPaid: BigInt(r.netPaid),
       handlingCut: BigInt(r.handlingCut),
       coopMargin: BigInt(r.coopMargin),
-      principalToAgrinas: BigInt(r.principalToAgrinas),
+      principalToSupplier: BigInt(r.principalToSupplier),
       debtNetted: BigInt(r.debtNetted),
       settledVolG: BigInt(r.settledVolG),
     });
@@ -96,11 +96,12 @@ function selectAgreements(db: Db) {
       onchainId: schema.agreement.onchainId,
       coopId: schema.agreement.coopId,
       farmerId: schema.agreement.farmerId,
-      agrinasId: schema.agreement.agrinasId,
+      supplierId: schema.agreement.supplierId,
       commodityCode: schema.agreement.commodityCode,
+      subsidyTier: schema.agreement.subsidyTier,
       grade: schema.agreement.grade,
       moistureBps: schema.agreement.moistureBps,
-      basePriceAgrinas: schema.agreement.basePriceAgrinas,
+      basePriceSupplier: schema.agreement.basePriceSupplier,
       saprotanMarkupBps: schema.agreement.saprotanMarkupBps,
       inputDebt: schema.agreement.inputDebt,
       hppHandlingFeeBps: schema.agreement.hppHandlingFeeBps,
@@ -128,9 +129,10 @@ export interface EnrichedAgreement {
   farmerId: string;
   farmerName: string | null;
   commodityCode: string;
+  subsidyTier: BaseRow["subsidyTier"];
   grade: string;
   moistureBps: number;
-  basePriceAgrinas: bigint;
+  basePriceSupplier: bigint;
   saprotanMarkupBps: number;
   inputDebt: bigint;
   hppHandlingFeeBps: number;
@@ -166,9 +168,10 @@ function enrich(
     farmerId: a.farmerId,
     farmerName: a.farmerName,
     commodityCode: a.commodityCode,
+    subsidyTier: a.subsidyTier,
     grade: a.grade,
     moistureBps: a.moistureBps,
-    basePriceAgrinas: a.basePriceAgrinas,
+    basePriceSupplier: a.basePriceSupplier,
     saprotanMarkupBps: a.saprotanMarkupBps,
     inputDebt: a.inputDebt,
     hppHandlingFeeBps: a.hppHandlingFeeBps,
@@ -185,7 +188,7 @@ function enrich(
     paidToFarmer: s.netPaid,
     coopHandlingAccrued: s.handlingCut,
     coopMarginAccrued: s.coopMargin,
-    residuPrincipal: s.principalToAgrinas,
+    residuPrincipal: s.principalToSupplier,
     residuStatus: a.residuStatus,
     createdAt: a.createdAt,
     createTxHash: createTx ?? null,

@@ -1,3 +1,4 @@
+import { Providers } from "@/lib/i18n/providers";
 import type { Metadata } from "next";
 import { Fraunces, JetBrains_Mono, Manrope, Plus_Jakarta_Sans } from "next/font/google";
 import type { ReactNode } from "react";
@@ -55,7 +56,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           rel="stylesheet"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

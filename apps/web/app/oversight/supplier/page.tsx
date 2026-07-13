@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Agrinas Ringkasan (Screen: Home) — protocol-level health at a glance.
+ * Supplier Ringkasan (Screen: Home) — protocol-level health at a glance.
  *
  * StatCards: total pokok aktif seluruh KMP, residu tertunda, antrean dispatch,
  * KMP bermasalah count. Activity feed + quick-access buttons.
@@ -10,7 +10,7 @@
 import { OversightPageHeader } from "@/components/oversight/page-header";
 import { ScrollArea } from "@/components/scroll-area";
 import {
-  AGRINAS_ACTIVITY,
+  SUPPLIER_ACTIVITY,
   MOCK_COOP_PROFILES,
   OVERSIGHT_SHIPMENTS,
   buildDispatchRequests,
@@ -42,6 +42,7 @@ import {
   Wifi,
 } from "lucide-react";
 import Link from "next/link";
+import { useI18n } from "@/lib/i18n/use-i18n";
 import { useMemo } from "react";
 
 type KindKey = "dispatch" | "remittance" | "cleared" | "dispute" | "created" | "frozen";
@@ -73,7 +74,8 @@ const KIND_META: Record<KindKey, { icon: React.ReactNode; color: string }> = {
 };
 const FALLBACK_META = { icon: <Package size={14} />, color: "text-ink-400" };
 
-export default function AgrinasHomePage() {
+export default function SupplierHomePage() {
+  const { t } = useI18n();
   const metrics = useMemo(() => protocolMetrics(), []);
   const pendingRequests = useMemo(
     () => buildDispatchRequests().filter((r) => r.status === "Menunggu"),
@@ -87,28 +89,28 @@ export default function AgrinasHomePage() {
   return (
     <div>
       <OversightPageHeader
-        title="Ringkasan Operator Agrinas"
-        description="Kesehatan protokol offtake di seluruh jaringan koperasi. Data real-time dari Stellar testnet."
+        title={t("page.oversight.supplier.ringkasan.title")}
+        description={t("page.oversight.supplier.ringkasan.desc")}
         actions={
           <>
-            <Link href="/oversight/agrinas/katalog">
+            <Link href="/oversight/supplier/katalog">
               <Button variant="outline" size="sm" leftIcon={<Package size={14} />}>
-                Katalog
+                {t("page.oversight.supplier.katalog.title")}
               </Button>
             </Link>
-            <Link href="/oversight/agrinas/logistik">
+            <Link href="/oversight/supplier/logistik">
               <Button variant="outline" size="sm" leftIcon={<Truck size={14} />}>
-                Logistik
+                {t("page.oversight.supplier.logistik.title")}
               </Button>
             </Link>
-            <Link href="/oversight/agrinas/penerimaan">
+            <Link href="/oversight/supplier/penerimaan">
               <Button variant="outline" size="sm" leftIcon={<Inbox size={14} />}>
-                Penerimaan
+                {t("page.oversight.supplier.penerimaan.title")}
               </Button>
             </Link>
-            <Link href="/oversight/agrinas/residu">
+            <Link href="/oversight/supplier/residu">
               <Button variant="accent" size="sm" leftIcon={<Landmark size={14} />}>
-                Rekonsiliasi Residu
+                {t("page.oversight.supplier.residu.title")}
               </Button>
             </Link>
           </>
@@ -123,16 +125,16 @@ export default function AgrinasHomePage() {
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-foreground">
-              {frozenCoops.length} koperasi dibekukan on-chain
+              {t("page.oversight.supplier.ringkasan.activeCoops")}
             </p>
             <p className="mt-0.5 text-sm text-muted-foreground">
               {frozenCoops.map((c) => c.name).join(", ")} memerlukan tindak lanjut
               rekonsiliasi residu. Ini indikator untuk peninjauan manusia.
             </p>
           </div>
-          <Link href="/oversight/agrinas/residu">
+          <Link href="/oversight/supplier/residu">
             <Button variant="outline" size="sm" rightIcon={<ArrowRight size={13} />}>
-              Tinjau Residu
+               {t("page.oversight.supplier.residu.title")}
             </Button>
           </Link>
         </div>
@@ -141,41 +143,41 @@ export default function AgrinasHomePage() {
       {/* Hero stat cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          label="Total Pokok Aktif"
+          label={t("page.oversight.supplier.ringkasan.activeAgreements")}
           value={
             <RupiahAmount
               smallest={metrics.totalPrincipalOutstanding}
               className="text-3xl"
             />
           }
-          hint="Nilai saprotan sedang berjalan di seluruh KMP"
+          hint={t("page.oversight.supplier.ringkasan.desc")}
           icon={<Scale size={18} />}
         />
         <StatCard
-          label="Residu Belum Diterima"
+          label={t("page.oversight.supplier.ringkasan.residuOwed")}
           value={
             <RupiahAmount
               smallest={metrics.residuPending + metrics.residuRemitted}
               className="text-3xl"
             />
           }
-          hint="Pokok Agrinas di kas KMP, belum diverifikasi"
+          hint={t("page.oversight.supplier.ringkasan.desc")}
           tone={
             metrics.residuPending + metrics.residuRemitted > 0n ? "warn" : "good"
           }
           icon={<Landmark size={18} />}
         />
         <StatCard
-          label="Antrean Dispatch"
+          label={t("page.oversight.supplier.ringkasan.dispatch")}
           value={String(pendingRequests.length)}
-          hint="Permintaan saprotan KMP menunggu pengiriman"
+          hint={t("page.oversight.supplier.ringkasan.desc")}
           tone={pendingRequests.length > 0 ? "warn" : "good"}
           icon={<Truck size={18} />}
         />
         <StatCard
-          label="KMP Bermasalah"
+          label={t("page.oversight.supplier.ringkasan.activeCoops")}
           value={String(metrics.bermasalahCoops + metrics.frozenCoops)}
-          hint="Settlement rate rendah atau reputasi dibekukan"
+          hint={t("page.oversight.supplier.ringkasan.desc")}
           tone={metrics.bermasalahCoops + metrics.frozenCoops > 0 ? "bad" : "good"}
           icon={<AlertTriangle size={18} />}
         />
@@ -183,13 +185,13 @@ export default function AgrinasHomePage() {
 
       {/* Quick-link cards: Katalog / Logistik / Penerimaan */}
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Link href="/oversight/agrinas/katalog" className="group block">
+        <Link href="/oversight/supplier/katalog" className="group block">
           <div className="flex items-center gap-4 rounded-[14px] border border-border bg-surface p-4 shadow-sm transition-shadow group-hover:shadow-md">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-verdant-100 text-verdant-700">
               <Package size={18} />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="font-semibold text-foreground">Katalog Saprotan</p>
+              <p className="font-semibold text-foreground">{t("page.oversight.supplier.katalog.title")}</p>
               <p className="text-xs text-muted-foreground">
                 {catalog.length} item,{" "}
                 {stokHabis > 0 ? (
@@ -202,13 +204,13 @@ export default function AgrinasHomePage() {
             <ArrowRight size={16} className="shrink-0 text-muted-foreground group-hover:text-foreground" />
           </div>
         </Link>
-        <Link href="/oversight/agrinas/logistik" className="group block">
+        <Link href="/oversight/supplier/logistik" className="group block">
           <div className="flex items-center gap-4 rounded-[14px] border border-border bg-surface p-4 shadow-sm transition-shadow group-hover:shadow-md">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-aqua-100 text-aqua-700">
               <Truck size={18} />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="font-semibold text-foreground">Logistik Saprotan</p>
+              <p className="font-semibold text-foreground">{t("page.oversight.supplier.logistik.title")}</p>
               <p className="text-xs text-muted-foreground">
                 {pendingRequests.length > 0 ? (
                   <span className="text-amber-600 font-medium">
@@ -222,13 +224,13 @@ export default function AgrinasHomePage() {
             <ArrowRight size={16} className="shrink-0 text-muted-foreground group-hover:text-foreground" />
           </div>
         </Link>
-        <Link href="/oversight/agrinas/penerimaan" className="group block">
+        <Link href="/oversight/supplier/penerimaan" className="group block">
           <div className="flex items-center gap-4 rounded-[14px] border border-border bg-surface p-4 shadow-sm transition-shadow group-hover:shadow-md">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-verdant-100 text-verdant-700">
               <Inbox size={18} />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="font-semibold text-foreground">Penerimaan Panen</p>
+              <p className="font-semibold text-foreground">{t("page.oversight.supplier.penerimaan.title")}</p>
               <p className="text-xs text-muted-foreground">
                 {kirimanMenunggu > 0 ? (
                   <span className="text-amber-600 font-medium">
@@ -250,8 +252,8 @@ export default function AgrinasHomePage() {
           {/* Protocol summary */}
           <Card>
             <CardHeader
-              title="Ringkasan Protokol"
-              description="Agregat seluruh 6 koperasi yang terdaftar."
+          title={t("page.oversight.supplier.ringkasan.title")}
+          description={t("page.oversight.supplier.ringkasan.desc")}
               action={<Wifi size={16} className="text-aqua-400" />}
             />
             <CardContent>
@@ -317,12 +319,12 @@ export default function AgrinasHomePage() {
           {/* Dispatch queue */}
           <Card>
             <CardHeader
-              title="Antrean Dispatch Saprotan"
-              description="Permintaan gabungan KMP menunggu konfirmasi pengiriman dari Agrinas."
+              title={t("page.oversight.supplier.ringkasan.dispatch")}
+              description={t("page.oversight.supplier.ringkasan.desc")}
               action={
-                <Link href="/oversight/agrinas/logistik">
+                <Link href="/oversight/supplier/logistik">
                   <Button variant="ghost" size="sm" rightIcon={<ArrowRight size={13} />}>
-                    Kelola
+                    {t("common.view")}
                   </Button>
                 </Link>
               }
@@ -330,7 +332,7 @@ export default function AgrinasHomePage() {
             <CardContent className="space-y-3">
               {pendingRequests.length === 0 ? (
                 <p className="py-4 text-center text-sm text-muted-foreground">
-                  Tidak ada antrean dispatch saat ini.
+                  {t("page.oversight.supplier.ringkasan.dispatch.empty")}
                 </p>
               ) : (
                 pendingRequests.map((req) => (
@@ -350,14 +352,14 @@ export default function AgrinasHomePage() {
                         Total pokok: {formatRupiah(req.grandTotal)}
                       </p>
                     </div>
-                    <Link href="/oversight/agrinas/logistik">
+                    <Link href="/oversight/supplier/logistik">
                       <Button
                         variant="accent"
                         size="sm"
                         leftIcon={<Send size={13} />}
                         rightIcon={<ArrowRight size={13} />}
                       >
-                        Dispatch
+                        {t("page.oversight.supplier.ringkasan.dispatch.go")}
                       </Button>
                     </Link>
                   </div>
@@ -371,13 +373,13 @@ export default function AgrinasHomePage() {
         <div className="relative min-h-96 lg:col-span-2">
           <Card className="flex h-full flex-col lg:absolute lg:inset-0">
             <CardHeader
-              title="Aktivitas Terbaru"
-              description="Event on-chain: dispatch, remitansi, verifikasi, pembekuan."
+              title={t("page.oversight.supplier.ringkasan.activity")}
+              description={t("page.oversight.supplier.ringkasan.desc")}
             />
             <CardContent className="min-h-0 flex-1 p-0">
               <ScrollArea viewportClassName="h-full px-5 pt-2" className="h-full">
                 <div className="space-y-4 pb-5">
-                  {AGRINAS_ACTIVITY.map((act) => {
+                  {SUPPLIER_ACTIVITY.map((act) => {
                     const meta =
                       KIND_META[act.kind as KindKey] ?? FALLBACK_META;
                     return (

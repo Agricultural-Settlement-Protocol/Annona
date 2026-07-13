@@ -28,7 +28,7 @@ export function FarmerPaymentCard({ agreement, farmer, onClick }: FarmerPaymentC
     hppPerKg: agreement.hppPerKg,
     remainingDebt: agreement.remainingDebt,
     hppHandlingFeeBps: agreement.hppHandlingFeeBps,
-    basePriceAgrinas: agreement.basePriceAgrinas,
+    basePriceSupplier: agreement.basePriceSupplier,
     inputDebt: agreement.inputDebt,
   });
 

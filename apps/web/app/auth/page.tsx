@@ -3,29 +3,33 @@
 /**
  * /auth — single sign-in page for all three roles (MVP: Supabase email +
  * password, seeded demo accounts). Role is looked up in app_user and routes
- * to /kmp, /oversight/agrinas, or /oversight/pemerintah.
+ * to /kmp, /oversight/supplier, or /oversight/pemerintah.
  */
 
+import { useI18n } from "@/lib/i18n/use-i18n";
 import { DEMO_ACCOUNTS } from "@/lib/mock-data";
 import { ROLE_HOME, getSupabase, resolveRole } from "@/lib/supabase";
 import { Alert, Button, Input, Logo } from "@annona/ui";
-import { Building2, Landmark, LogIn, ShieldCheck, Wheat } from "lucide-react";
+import { Banknote, Building2, Landmark, LogIn, ShieldCheck, Wheat } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 const ROLE_ICON = {
   kmp: Wheat,
-  agrinas: Building2,
+  supplier: Building2,
   pemerintah: Landmark,
+  financier: Banknote,
 } as const;
 
 const DEMO_PASSWORDS: Record<string, string> = {
   "kmp@annona.id": "AnnonaKMP2026!",
-  "agrinas@annona.id": "AnnonaAgrinas2026!",
+  "pupukindonesia@annona.id": "AnnonaSupplier2026!",
   "pemerintah@annona.id": "AnnonaGov2026!",
+  "financier@annona.id": "AnnonaFinancier2026!",
 };
 
 export default function AuthPage() {
+  const { t } = useI18n();
   const router = useRouter();
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -51,13 +55,13 @@ export default function AuthPage() {
       password,
     });
     if (authError) {
-      setError("Email atau kata sandi salah. Periksa kembali kredensial Anda.");
+      setError(t("page.auth.errorCredentials"));
       setLoading(false);
       return;
     }
     const role = await resolveRole();
     if (!role) {
-      setError("Akun ini belum memiliki peran. Hubungi administrator.");
+      setError(t("page.auth.errorNoRole"));
       setLoading(false);
       return;
     }
@@ -70,10 +74,9 @@ export default function AuthPage() {
         <div className="flex flex-col items-center gap-3 text-center">
           <Logo className="h-9 w-auto" />
           <div>
-            <h1 className="text-xl font-bold text-foreground">Masuk ke Annona</h1>
+            <h1 className="text-xl font-bold text-foreground">{t("page.auth.title")}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Satu pintu untuk KMP, Agrinas, dan Pemerintah. Peran Anda menentukan dasbor yang
-              terbuka.
+              {t("page.auth.descDetailed")}
             </p>
           </div>
         </div>
@@ -83,21 +86,21 @@ export default function AuthPage() {
           className="space-y-4 rounded-xl border border-border bg-surface p-6 shadow-sm"
         >
           <Input
-            label="Email"
+            label={t("page.auth.email")}
             type="email"
             name="email"
             autoComplete="email"
-            placeholder="nama@annona.id"
+            placeholder={t("page.auth.emailPlaceholder")}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             disabled={loading}
           />
           <Input
-            label="Kata Sandi"
+            label={t("page.auth.password")}
             type="password"
             name="password"
             autoComplete="current-password"
-            placeholder="Masukkan kata sandi"
+            placeholder={t("page.auth.passwordPlaceholder")}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             disabled={loading}
@@ -111,14 +114,14 @@ export default function AuthPage() {
             leftIcon={<LogIn size={16} />}
             disabled={loading || !email.trim() || !password}
           >
-            {loading ? "Memeriksa..." : "Masuk"}
+            {loading ? t("page.auth.checking") : t("page.auth.login")}
           </Button>
         </form>
 
         <div className="rounded-xl border border-border bg-surface-muted/60 p-4">
           <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
             <ShieldCheck size={13} />
-            Akun demo (testnet). Klik untuk mengisi otomatis:
+            {t("page.auth.demoLabel")}
           </p>
           <div className="space-y-1.5">
             {DEMO_ACCOUNTS.map((acc) => {

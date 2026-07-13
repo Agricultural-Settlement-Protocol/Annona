@@ -29,7 +29,7 @@ PMK 15/2026 splits the ecosystem into a **commercial rail** and a **regulatory r
 - **Government** (Dinas Koperasi / Bupati / Desa) is **read-only**: macro food-security oversight + force-majeure/subsidy intervention. Never touches supply-chain operations.
 - **Warehouse Operator** (e.g. PT Agrinas Pangan Nusantara) builds/operates the gerai + gudang and receives forwarded harvest off-chain. **Infra only — signs nothing on-chain, not in the settlement loop.**
 
-**Dashboards (3 shells, not 5):** KMP dashboard · Oversight dashboard (RBAC → Supplier + Financier share a "Mitra" view; Government regulator view) · Farmer view. Supplier and Financier are roles inside the oversight app, not separate products.
+**Dashboards (4 shells):** KMP dashboard · Oversight dashboard (RBAC → Supplier operator view + Government regulator view) · **Financier dashboard** (`/financier`, own shell) · Farmer view. Supplier and Government are roles inside the one oversight app; Financier gets its own shell because it shares no screens with them (portfolio + approval queue, not supply-chain oversight).
 
 ---
 
@@ -52,8 +52,9 @@ Mirrors Stellar's canonical Execution → Abstraction → User model (judges rew
 │  USER LAYER  (apps/web — Next.js 15 + Tailwind v4 + Freighter)     │
 │  ┌────────────────┐ ┌─────────────────────────┐ ┌──────────────┐  │
 │  │ KMP Dashboard  │ │ Oversight Dash + AI      │ │ Farmer View  │  │
-│  │ (koperasi)     │ │ RBAC: Mitra | Government │ │ (petani,     │  │
-│  │                │ │ (supplier+financier|gov) │ │  mobile)     │  │
+│  │ (koperasi)     │ │ RBAC: Supplier|Government│ │ (petani,     │  │
+│  │                │ │ (operator | regulator)   │ │  mobile)     │  │
+│  │  + FINANCIER   │ │  (own shell: /financier) │ │              │  │
 │  └────────────────┘ └─────────────────────────┘ └──────────────┘  │
 └───────────────┬───────────────────────────────────┬───────────────┘
                 │ HTTPS (REST + @annona/sdk)         │ wallet sign (Freighter)
@@ -96,7 +97,8 @@ annona/
 │   ├── web/                    # Next.js 15 — all 3 dashboards (role-routed)
 │   │   ├── app/
 │   │   │   ├── (kmp)/          # koperasi operational cockpit (Screens A–F)
-│   │   │   ├── (oversight)/    # RBAC: Mitra=supplier+financier (M, I) + Government (G) + AI (H)
+│   │   │   ├── (oversight)/    # RBAC: Supplier (M, I) + Government (G) + AI (H)
+│   │   │   ├── financier/     # Financier shell — funding queue, portfolio
 │   │   │   ├── (farmer)/       # mobile farmer view (J–L)
 │   │   │   └── api/            # thin route handlers (BFF) if needed
 │   │   ├── components/         # screen-specific
@@ -158,7 +160,7 @@ annona/
         └─► api stores input-basket detail off-chain (linked by onchain_id)
 
 3. DISPATCH (gate 1 — Supplier)
-   web(Oversight/Mitra) ─sign─► dispatch_supply()   Created → SupplyDispatched
+   web(Oversight/Supplier) ─sign─► dispatch_supply()   Created → SupplyDispatched
         └─► emits SupplyDispatched ─► KMP inbound-cargo monitor updates
 
 4. ACCEPT SUPPLY (gate 2 — KMP)
@@ -180,7 +182,7 @@ annona/
 
 7. RESIDU RECONCILIATION (KMP → Supplier)
    web(KMP) remits principal off-chain (bank) ─sign─► mark_residu_remitted(ref)
-   api verifies bank mutation ─► web(Oversight/Mitra) ─sign─► confirm_remittance()
+   api verifies bank mutation ─► web(Oversight/Supplier) ─sign─► confirm_remittance()
         └─► ResiduStatus Cleared + CoopReputationUpdated
         └─► mismatch ─► flag_remittance_dispute() freezes coop reputation
 
@@ -194,8 +196,8 @@ annona/
 
 ```
 F1. REQUEST   web(KMP) ─sign─► request_funding(proof)          → FundingRequested
-F2. APPROVE   web(Oversight/Mitra=financier) ─sign─► approve_funding / reject_funding
-F3. DISBURSE  financier ─sign─► disburse_funding()  (real dIDR: financier → coop)  → FundingDisbursed
+F2. APPROVE   web(Financier) ─sign─► approve_funding / reject_funding
+F3. DISBURSE  web(Financier) ─sign─► disburse_funding()  (real dIDR: financier → coop) → FundingDisbursed
 F4. RECONCILE at settlement, coop ─sign─► reconcile_funding()  (repay, capped at disbursed) → FundingReconciled
 ```
 

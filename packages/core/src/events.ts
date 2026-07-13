@@ -20,7 +20,7 @@ export type AnnonaEventType =
   | "RemittanceResolved"
   | "ReputationUpdated"
   | "CoopReputationUpdated"
-  // ── offtake financing (§B) ──
+  // v4.0 — offtake financing lifecycle (SMART-CONTRACT.md §B / §7).
   | "FundingRequested"
   | "FundingApproved"
   | "FundingRejected"
@@ -41,8 +41,12 @@ export interface AgreementCreatedData {
   farmer: string;
   coop: string;
   supplier: string;
-  subsidyTier: SubsidyTier;
   commodity: Commodity;
+  /** v4.0: which price tier the snapshotted base_price came from (chain mirror). */
+  subsidyTier: SubsidyTier;
+  /** WIRE name. The contract emits `base_price` (no party suffix); the DB/read-model
+   *  column is `base_price_supplier`. The reducer bridges the two — do not "align"
+   *  this to the column name or the decoder (deepCamel of `base_price`) breaks. */
   basePrice: bigint;
   saprotanMarkupBps: number;
   inputDebt: bigint;
@@ -140,24 +144,25 @@ export interface CoopReputationUpdatedData {
   frozen: boolean;
 }
 
-/* ── Offtake financing (§B). Parallel lifecycle; references backing agreements
- *    only off-chain via `backingHash`. No read-model persistence in MVP — the
- *    reducer logs these to event_log like Flagged/HarvestReceiptMinted until the
- *    funding read-model tables land (deferred DB phase). ── */
+/* ── Offtake financing (§B). Parallel to the agreement state machine. ── */
 
+/** KMP submits a proof-backed advance request. `id`/`coop` are topics on-chain;
+ *  carried in data here so the reducer can resolve both parties. */
 export interface FundingRequestedData {
   id: bigint;
   coop: string;
   financier: string;
+  /** sum(kg_expected_or_delivered * hpp) across the backing agreements */
   projectedSettlement: bigint;
   amountRequested: bigint;
+  /** hex sha-256 of the off-chain Bukti Offtake packet (agreement ids + receipts) */
   backingHash: string;
 }
 
 export interface FundingApprovedData {
   id: bigint;
   financier: string;
-  amountApproved: bigint;
+  amountApproved: bigint; // <= amountRequested
 }
 
 export interface FundingRejectedData {
@@ -169,10 +174,13 @@ export interface FundingRejectedData {
 export interface FundingDisbursedData {
   id: bigint;
   financier: string;
-  amountDisbursed: bigint;
   coop: string;
+  amountDisbursed: bigint;
 }
 
+/** Input-principal collected at settlement repaid part/all of the advance.
+ *  `amountReconciled` is CUMULATIVE (the on-chain running total); `remaining`
+ *  is `amountDisbursed - amountReconciled`. */
 export interface FundingReconciledData {
   id: bigint;
   coop: string;

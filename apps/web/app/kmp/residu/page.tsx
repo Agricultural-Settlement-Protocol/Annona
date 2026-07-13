@@ -1,18 +1,18 @@
 "use client";
 
 /**
- * Screen: Residu Agrinas — manage principal remittances owed back to Agrinas.
+ * Screen: Residu Supplier — manage principal remittances owed back to Supplier.
  *
- * Key constraint: residu pokok is Agrinas's money, not KMP's. KMP holds it
+ * Key constraint: residu pokok is Supplier's money, not KMP's. KMP holds it
  * in pre-funded cash until remitted. The dual gate (KMP submits evidence,
- * Agrinas verifies) is the anti-moral-hazard mechanism.
+ * Supplier verifies) is the anti-moral-hazard mechanism.
  *
  * No automatic accusation. Disputed status = human review freezes reputation
  * pending resolution. This page: record off-chain bank transfer + watch
  * status updates. No gradient button here.
  */
 
-import { fetchResidu } from "@/lib/api";
+import { fetchPayableOverview, fetchResidu } from "@/lib/api";
 import { PageHeader } from "@/components/kmp/page-header";
 import { TBody, THead, Table, TableFrame, Td, Th, Tr } from "@/components/kmp/table";
 import { useTx } from "@/components/kmp/use-tx";
@@ -35,6 +35,7 @@ import {
 } from "@annona/ui";
 import { Building2, CheckCircle2, Landmark, ShieldCheck, X } from "lucide-react";
 import Link from "next/link";
+import { useI18n } from "@/lib/i18n/use-i18n";
 import { useMemo, useState } from "react";
 
 interface ResiduRowState {
@@ -42,6 +43,58 @@ interface ResiduRowState {
   bankRef: string | null;
   remittedAt: string | null;
   txHash: string | null;
+}
+
+/** Payable panel — shows running trade payable KMP owes to Supplier. */
+function PayablePanel() {
+  const { data, loading, error } = useApi(fetchPayableOverview);
+  const { t } = useI18n();
+  if (loading) return null;
+  if (error || !data) return null;
+  const totals = data.totals;
+  return (
+    <Card className="rounded-[2rem] border border-gray-100 bg-white shadow-sm overflow-hidden p-5 sm:p-6">
+      <CardHeader
+        title={t("page.kmp.residu.payable.title")}
+        description={t("page.kmp.residu.payable.desc")}
+        action={<Building2 size={18} className="text-cyan-800" />}
+        className="pb-3"
+      />
+      <CardContent>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+          <StatCard
+            label={t("page.kmp.residu.payable.accrued")}
+            value={<RupiahAmount smallest={totals.totalAccrued} className="text-2xl font-bold" />}
+            hint={t("page.kmp.residu.payable.accruedHint")}
+            icon={<Landmark size={16} />}
+          />
+          <StatCard
+            label={t("page.kmp.residu.payable.settled")}
+            value={<RupiahAmount smallest={totals.totalSettled} className="text-2xl font-bold" />}
+            hint={t("page.kmp.residu.payable.settledHint")}
+            tone="good"
+            icon={<CheckCircle2 size={16} />}
+          />
+          <StatCard
+            label={t("page.kmp.residu.payable.outstanding")}
+            value={<RupiahAmount smallest={totals.totalOutstanding} className="text-2xl font-bold" />}
+            hint={t("page.kmp.residu.payable.outstandingHint")}
+            tone={totals.totalOutstanding > 0n ? "warn" : "good"}
+            icon={<Landmark size={16} />}
+          />
+          <StatCard
+            label={t("page.kmp.residu.payable.status")}
+            value={
+              <span className="text-2xl font-bold">
+                {totals.byStatus.Outstanding}/{totals.count}
+              </span>
+            }
+            hint={t("page.kmp.residu.payable.statusHint")}
+          />
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function ResiduPage() {
@@ -58,6 +111,9 @@ export default function ResiduPage() {
   const [activeRowId, setActiveRowId] = useState<string | null>(null);
   const [bankRefInput, setBankRefInput] = useState("");
   const [fileName, setFileName] = useState("");
+
+  /* ── I18n ──────────────────────────────────────────────────────────────── */
+  const { t } = useI18n();
 
   /* ── TX hook for the remit action (mark_residu_remitted, coop-signed) ── */
   const txRemit = useTx();
@@ -108,53 +164,54 @@ export default function ResiduPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Residu Agrinas"
-        description="Residu pokok adalah uang Agrinas yang dikumpulkan saat panen, disimpan sementara di kas KMP, dan wajib disetor balik."
+        title={t("page.kmp.residu.title")}
+        description={t("page.kmp.residu.desc")}
       />
 
-      {loading && <Alert tone="info">Memuat ledger residu...</Alert>}
+      {loading && <Alert tone="info">{t("common.loading")}</Alert>}
       {error && (
-        <Alert tone="warning" title="Gagal memuat ledger residu">
+        <Alert tone="warning" title={t("common.error")}>
           {error}
         </Alert>
       )}
 
       {/* Top alert: mandatory, prominent */}
       <Alert tone="warning" title="Residu pokok bukan milik koperasi" className="rounded-xl">
-        Uang ini adalah pokok saprotan Agrinas yang dikembalikan saat panen. KMP hanya memegang
-        sementain. Segera remitkan ke rekening Agrinas setelah pembayaran panen selesai.
-        Keterlambatan dapat membekukan reputasi on-chain koperasi.
+        {t("page.kmp.residu.alert")}
       </Alert>
 
       {/* 3 Stat cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard
-          label="Belum Disetor"
+          label={t("page.kmp.residu.pending")}
           value={<RupiahAmount smallest={stats.pending} className="text-3xl font-bold" />}
-          hint="Residu yang belum diremitkan ke Agrinas"
+          hint={t("page.kmp.residu.pendingHint")}
           tone={stats.pending > 0n ? "warn" : "good"}
           icon={<Landmark size={18} />}
         />
         <StatCard
-          label="Menunggu Verifikasi"
+          label={t("page.kmp.residu.remitted")}
           value={<RupiahAmount smallest={stats.remitted} className="text-3xl font-bold" />}
-          hint="Transfer terkirim, menunggu konfirmasi Agrinas"
+          hint={t("page.kmp.residu.remittedHint")}
           icon={<Building2 size={18} />}
         />
         <StatCard
-          label="Terverifikasi"
+          label={t("page.kmp.residu.cleared")}
           value={<RupiahAmount smallest={stats.cleared} className="text-3xl font-bold" />}
-          hint="Residu diterima dan dikonfirmasi Agrinas"
+          hint={t("page.kmp.residu.clearedHint")}
           tone="good"
           icon={<ShieldCheck size={18} />}
         />
       </div>
 
+      {/* Utang ke Supplier panel — payable overview */}
+      <PayablePanel />
+
       {/* Ledger table */}
       <Card className="rounded-[2rem] border border-gray-100 bg-white shadow-sm overflow-hidden p-5 sm:p-6">
         <CardHeader
-          title="Ledger Residu"
-          description="Satu baris per perjanjian yang menghasilkan residu pokok. Tandai Disetor untuk mencatat bukti transfer."
+          title={t("page.kmp.residu.ledger")}
+          description={t("page.kmp.residu.ledger.desc")}
           action={<Landmark size={18} className="text-cyan-800" />}
           className="pb-3"
         />
@@ -162,15 +219,15 @@ export default function ResiduPage() {
           <TableFrame>
             <Table>
               <THead>
-                <Th>Perjanjian</Th>
-                <Th>Petani</Th>
-                <Th>Pokok Agrinas</Th>
-                <Th>Status</Th>
-                <Th>Ref Bank</Th>
-                <Th>Tanggal Setor</Th>
-                <Th>Tanggal Verifikasi</Th>
-                <Th>Tx</Th>
-                <Th>Aksi</Th>
+                          <Th>Perjanjian</Th>
+                                <Th>{t("page.kmp.petani.table.col.name")}</Th>
+                                <Th>{t("common.amount")}</Th>
+                                <Th>{t("common.status")}</Th>
+                                <Th>Ref Bank</Th>
+                                <Th>Tanggal Setor</Th>
+                                <Th>Tanggal Verifikasi</Th>
+                                <Th>Tx</Th>
+                                <Th>Aksi</Th>
               </THead>
               <TBody>
                 {rows.map((row) => {
@@ -224,14 +281,14 @@ export default function ResiduPage() {
                               onClick={() => handleOpenRemit(row.id)}
                               className="rounded-full bg-[#0c6a78] hover:bg-[#0c6a78]/95 text-white"
                             >
-                              Tandai Disetor
+                              {t("page.kmp.residu.reconcile.submit")}
                             </Button>
                           )}
                           {currentStatus === "Pending" && isActiveRow && (
                             <span className="text-xs text-gray-500 font-semibold">Sedang diisi...</span>
                           )}
                           {currentStatus === "Remitted" && (
-                            <span className="text-xs text-gray-500 font-semibold">Menunggu Agrinas</span>
+                            <span className="text-xs text-gray-500 font-semibold">Menunggu Supplier</span>
                           )}
                           {currentStatus === "Cleared" && (
                             <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-800">
@@ -250,7 +307,7 @@ export default function ResiduPage() {
                               <div className="space-y-4">
                                 <div className="flex items-center justify-between">
                                   <p className="font-bold text-[#0c6a78]">
-                                    Tandai Disetor ke Agrinas
+                                    {t("page.kmp.residu.reconcile.submit")}
                                   </p>
                                   <button
                                     type="button"
@@ -261,13 +318,11 @@ export default function ResiduPage() {
                                   </button>
                                 </div>
                                 <Alert tone="info" className="rounded-xl">
-                                  Masukkan referensi transfer bank dan unggah bukti transfer.
-                                  Agrinas akan memverifikasi dan mengkonfirmasi via sistem mereka.
-                                  Catatan ini dikunci di blockchain sebagai komitmen KMP.
+                                  {t("page.kmp.residu.reconcile.desc")}
                                 </Alert>
                                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                   <Input
-                                    label="Referensi Transfer Bank"
+                                    label={t("page.kmp.residu.reconcile.ref")}
                                     name="bank-ref"
                                     placeholder="Contoh: BCA-20260704-123"
                                     value={bankRefInput}
@@ -280,13 +335,13 @@ export default function ResiduPage() {
                                       htmlFor={`file-${row.id}`}
                                       className="mb-2 block text-sm font-bold text-gray-900"
                                     >
-                                      Bukti Transfer
+                                      {t("page.kmp.residu.reconcile.proof")}
                                     </label>
                                     <label
                                       htmlFor={`file-${row.id}`}
                                       className="flex h-12 w-full cursor-pointer items-center gap-3 rounded-2xl border border-gray-150 bg-white px-4 text-sm font-semibold text-gray-500 hover:border-emerald-600 transition-all shadow-sm"
                                     >
-                                      {fileName ? fileName : "Pilih file bukti transfer..."}
+                                      {fileName ? fileName : t("page.kmp.residu.reconcile.noFile")}
                                       <input
                                         id={`file-${row.id}`}
                                         type="file"
@@ -314,13 +369,13 @@ export default function ResiduPage() {
                                     className="rounded-full bg-[#0c6a78] hover:bg-[#0c6a78]/95 text-white"
                                   >
                                     {txRemit.state === "signing"
-                                      ? "Menandatangani..."
+                                      ? t("page.kmp.permintaanDana.signing")
                                       : txRemit.state === "submitting"
-                                        ? "Mencatat di Stellar..."
+                                        ? t("page.kmp.permintaanDana.submitting")
                                         : "Konfirmasi Disetor"}
                                   </Button>
                                   <Button type="button" variant="ghost" size="sm" onClick={handleCloseRemit} className="rounded-full">
-                                    Batal
+                                    {t("common.cancel")}
                                   </Button>
                                 </div>
                               </div>
@@ -362,7 +417,7 @@ export default function ResiduPage() {
       <Card className="rounded-[2rem] border border-gray-100 bg-white shadow-sm overflow-hidden p-5 sm:p-6">
         <CardHeader
           title="Cara Kerja Dual Gate Residu"
-          description="Dua tahap verifikasi melindungi Agrinas dan memastikan KMP tidak mengklaim residu sebagai milik sendiri."
+          description="Dua tahap verifikasi melindungi Supplier dan memastikan KMP tidak mengklaim residu sebagai milik sendiri."
           action={<ShieldCheck size={18} className="text-emerald-700" />}
           className="pb-3"
         />
@@ -385,9 +440,9 @@ export default function ResiduPage() {
                 2
               </span>
               <div>
-                <p className="font-bold text-gray-900">Agrinas Verifikasi</p>
+                <p className="font-bold text-gray-900">Supplier Verifikasi</p>
                 <p className="text-xs text-gray-500 font-semibold leading-relaxed mt-0.5">
-                  Agrinas mengkonfirmasi penerimaan transfer. Status berubah menjadi Terverifikasi.
+                  Supplier mengkonfirmasi penerimaan transfer. Status berubah menjadi Terverifikasi.
                   Kewajiban KMP selesai.
                 </p>
               </div>
@@ -399,7 +454,7 @@ export default function ResiduPage() {
               <div>
                 <p className="font-bold text-gray-900">Jika Ada Sengketa</p>
                 <p className="text-xs text-gray-500 font-semibold leading-relaxed mt-0.5">
-                  Agrinas dapat menandai sebagai Bermasalah jika ada perbedaan. Ini hanya indikator
+                  Supplier dapat menandai sebagai Bermasalah jika ada perbedaan. Ini hanya indikator
                   untuk peninjauan manusia. Reputasi on-chain KMP dibekukan sementara. Keputusan
                   diselesaikan di luar sistem oleh pihak yang berwenang.
                 </p>
@@ -422,6 +477,7 @@ function RemitSuccess({
   bankRef: string;
   onDone: () => void;
 }) {
+  const { t } = useI18n();
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-3.5 rounded-2xl border border-[#c3f2f6] bg-[#e7fafc]/45 px-5 py-4 shadow-sm">
@@ -429,13 +485,13 @@ function RemitSuccess({
         <div className="flex-1">
           <p className="text-sm font-bold text-gray-900">Remitansi residu tercatat di chain</p>
           <p className="text-xs text-gray-500 font-semibold mt-0.5">
-            Ref: {bankRef}. Menunggu verifikasi Agrinas.
+            Ref: {bankRef}. Menunggu verifikasi Supplier.
           </p>
         </div>
         <TxHashLink hash={txHash} />
       </div>
       <Button type="button" variant="ghost" size="sm" onClick={onDone} className="rounded-full">
-        Tutup
+        {t("common.close")}
       </Button>
     </div>
   );

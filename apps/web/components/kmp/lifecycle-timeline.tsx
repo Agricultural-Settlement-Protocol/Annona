@@ -9,7 +9,7 @@ import { Check } from "lucide-react";
 
 const STEPS: { key: Status; label: string; hint: string }[] = [
   { key: "Created", label: "Dibuat", hint: "Pesanan kolektif tercatat" },
-  { key: "SupplyDispatched", label: "Saprotan Dikirim", hint: "Agrinas melepas logistik" },
+  { key: "SupplyDispatched", label: "Saprotan Dikirim", hint: "Supplier melepas logistik" },
   { key: "Active", label: "Berjalan", hint: "KMP terima barang, utang aktif" },
   { key: "Delivered", label: "Panen Disetor", hint: "Hasil masuk gudang" },
   { key: "Settled", label: "Lunas", hint: "Split tiga arah selesai" },

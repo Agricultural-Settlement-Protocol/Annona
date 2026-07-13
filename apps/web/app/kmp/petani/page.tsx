@@ -29,6 +29,7 @@ import {
 import { ChevronDown, ChevronUp, Search, UserPlus, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useI18n } from "@/lib/i18n/use-i18n";
 import { Fragment, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -81,6 +82,7 @@ function PetaniPageSkeleton() {
 
 /** Inner component reads useSearchParams — must be inside Suspense. */
 function PetaniPageInner() {
+  const { t } = useI18n();
   const searchParams = useSearchParams();
   const fokusId = searchParams.get("fokus") ?? null;
 
@@ -141,8 +143,8 @@ function PetaniPageInner() {
   return (
     <div>
       <PageHeader
-        title="Petani"
-        description="Daftar petani yang terdaftar di KMP Sukamaju. Klik baris untuk melihat detail dan perjanjian."
+        title={t("page.kmp.petani.title")}
+        description={t("page.kmp.petani.desc")}
         actions={
           <Button
             variant="primary"
@@ -153,7 +155,7 @@ function PetaniPageInner() {
             }}
             className="rounded-full bg-primary-dark hover:bg-opacity-95 text-white"
           >
-            Daftarkan Petani
+            {t("page.kmp.petani.register")}
           </Button>
         }
       />
@@ -162,7 +164,7 @@ function PetaniPageInner() {
 
       {loading ? <PetaniPageSkeleton /> : null}
       {error ? (
-        <Alert tone="warning" title="Gagal memuat daftar petani" className="mb-6">
+        <Alert tone="warning" title={t("common.error")} className="mb-6">
           {error}
         </Alert>
       ) : null}
@@ -182,7 +184,7 @@ function PetaniPageInner() {
       <div className="mb-4 max-w-xs">
         <Input
           name="farmer-search"
-          placeholder="Cari nama atau kecamatan..."
+          placeholder={t("page.kmp.petani.search")}
           leading={<Search size={15} />}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -192,11 +194,11 @@ function PetaniPageInner() {
       {filtered.length === 0 ? (
         <EmptyState
           icon={<UserPlus size={32} />}
-          title="Tidak ada petani ditemukan"
+          title={t("common.notFound")}
           description={
             search
               ? `Tidak ada petani yang cocok dengan pencarian "${search}".`
-              : "Belum ada petani terdaftar."
+              : t("common.noData")
           }
           action={
             <Button
@@ -205,7 +207,7 @@ function PetaniPageInner() {
               onClick={() => setShowRegister(true)}
               className="rounded-full"
             >
-              Daftarkan Petani
+              {t("page.kmp.petani.register")}
             </Button>
           }
         />
@@ -213,13 +215,13 @@ function PetaniPageInner() {
         <TableFrame>
           <Table>
             <THead>
-              <Th>Nama</Th>
-              <Th>Kecamatan</Th>
-              <Th>Lahan (ha)</Th>
-              <Th>Komoditas</Th>
-              <Th>Perjanjian Aktif</Th>
-              <Th>Reputasi</Th>
-              <Th>Utang Berjalan</Th>
+              <Th>{t("page.kmp.petani.table.col.name")}</Th>
+              <Th>{t("page.kmp.petani.table.col.district")}</Th>
+              <Th>{t("page.kmp.petani.table.col.area")}</Th>
+              <Th>{t("page.kmp.petani.table.col.commodity")}</Th>
+              <Th>{t("page.kmp.petani.table.col.status")}</Th>
+              <Th>{t("page.kmp.petani.table.col.reputation")}</Th>
+              <Th>{t("page.kmp.petani.table.col.debt")}</Th>
               <Th className="w-10" />
             </THead>
             <TBody>
@@ -378,7 +380,7 @@ function PetaniPageInner() {
       )}
 
       <p className="mt-3 text-xs text-muted-foreground">
-        {filtered.length} dari {allFarmers.length} petani ditampilkan.
+        {t("common.view")}: {filtered.length}/{allFarmers.length}
       </p>
         </>
       ) : null}

@@ -1,19 +1,32 @@
 /**
- * Typed builders for the six KMP-signed offtake-registry fns. Each returns an
- * `Invocation` (method + positional ScVal args) whose arg order EXACTLY matches
- * the Rust fn signature (minus `env`). Getting a ScVal type wrong here compiles
- * and lints clean but produces a wrong on-chain call, so lib/invocations.test.ts
- * round-trips every builder (scValToNative) as an offline guard.
+ * Typed builders for offtake-registry contract fns (KMP-, supplier-, and
+ * financier-signed). Each returns an `Invocation` (method + positional ScVal
+ * args) whose arg order EXACTLY matches the Rust fn signature (minus `env`).
+ * Getting a ScVal type wrong here compiles and lints clean but produces a wrong
+ * on-chain call, so lib/invocations.test.ts round-trips every builder
+ * (scValToNative) as an offline guard.
  *
- * Contract signatures (contracts/offtake-registry/src/lib.rs):
- *   create_agreement(coop, farmer, agrinas, commodity, base_price_agrinas: i128,
- *     saprotan_markup_bps: u32, hpp_handling_fee_bps: u32, expected_vol_g: i128,
- *     hpp_per_kg: i128, tolerance_bps: u32, ktp_hash: BytesN<32>)
- *   accept_supply(coop, id: u64)
- *   record_delivery(coop, id: u64, volume_g: i128, grade: Symbol)
- *   settle(caller, id: u64)
- *   mark_force_majeure(coop, id: u64, reason: Symbol)
- *   mark_residu_remitted(coop, id: u64, ref_hash: BytesN<32>)
+ * Contract signatures (SMART-CONTRACT.md §A, §B, §C):
+ *   KMP (coop) signed:
+ *     create_agreement(coop, farmer, supplier, commodity, subsidy_tier: Symbol,
+ *       base_price: i128, saprotan_markup_bps: u32, hpp_handling_fee_bps: u32,
+ *       expected_vol_g: i128, hpp_per_kg: i128, tolerance_bps: u32, ktp_hash: BytesN<32>)
+ *     accept_supply(coop, id: u64)
+ *     record_delivery(coop, id: u64, volume_g: i128, grade: Symbol)
+ *     settle(caller, id: u64)
+ *     mark_force_majeure(coop, id: u64, reason: Symbol)
+ *     mark_residu_remitted(coop, id: u64, ref_hash: BytesN<32>)
+ *     request_funding(coop, financier, backing_hash: BytesN<32>,
+ *       projected_settlement: i128, amount_requested: i128)
+ *     reconcile_funding(coop, id: u64, principal_collected: i128)
+ *   Supplier signed:
+ *     dispatch_supply(supplier, id: u64)
+ *     confirm_remittance(supplier, id: u64)
+ *     flag_remittance_dispute(supplier, id: u64, reason: Symbol)
+ *   Financier signed:
+ *     approve_funding(financier, id: u64, amount_approved: i128)
+ *     reject_funding(financier, id: u64, reason: Symbol)
+ *     disburse_funding(financier, id: u64)
  */
 import { Address, nativeToScVal, xdr } from "@stellar/stellar-sdk";
 import type { Invocation } from "./tx";
@@ -74,9 +87,11 @@ function commodity(c: CommodityArg): xdr.ScVal {
 export interface CreateAgreementArgs {
   coop: string;
   farmer: string;
-  agrinas: string;
+  supplier: string;
   commodity: CommodityArg;
-  basePriceAgrinas: bigint;
+  /** "Subsidized" | "Commercial" — passed as a Soroban Symbol. */
+  subsidyTier: string;
+  basePriceSupplier: bigint;
   saprotanMarkupBps: number;
   hppHandlingFeeBps: number;
   expectedVolG: bigint;
@@ -91,9 +106,10 @@ export function createAgreement(a: CreateAgreementArgs): Invocation {
     args: [
       addr(a.coop),
       addr(a.farmer),
-      addr(a.agrinas),
+      addr(a.supplier),
       commodity(a.commodity),
-      i128(a.basePriceAgrinas),
+      sym(a.subsidyTier),
+      i128(a.basePriceSupplier),
       u32(a.saprotanMarkupBps),
       u32(a.hppHandlingFeeBps),
       i128(a.expectedVolG),
@@ -127,4 +143,114 @@ export function markForceMajeure(coop: string, id: bigint, reason: string): Invo
 
 export function markResiduRemitted(coop: string, id: bigint, refHashHex: string): Invocation {
   return { method: "mark_residu_remitted", args: [addr(coop), u64(id), bytes32(refHashHex)] };
+}
+
+// ─── Funding — KMP (coop) signed ─────────────────────────────────────────────
+
+export interface RequestFundingArgs {
+  coop: string;
+  financier: string;
+  /** hex sha-256 of the off-chain Bukti Offtake packet. */
+  backingHash: string;
+  projectedSettlement: bigint;
+  amountRequested: bigint;
+}
+
+/** request_funding: KMP submits a proof-backed advance request. */
+export function requestFunding(a: RequestFundingArgs): Invocation {
+  return {
+    method: "request_funding",
+    args: [
+      addr(a.coop),
+      addr(a.financier),
+      bytes32(a.backingHash),
+      i128(a.projectedSettlement),
+      i128(a.amountRequested),
+    ],
+  };
+}
+
+/** reconcile_funding: KMP reports collected input-principal repaying an advance. */
+export function reconcileFunding(
+  coop: string,
+  id: bigint,
+  principalCollected: bigint,
+): Invocation {
+  return {
+    method: "reconcile_funding",
+    args: [addr(coop), u64(id), i128(principalCollected)],
+  };
+}
+
+// ─── Funding — Financier signed ──────────────────────────────────────────────
+
+/** approve_funding: financier approves an amount (<= amount_requested). */
+export function approveFunding(
+  financier: string,
+  id: bigint,
+  amountApproved: bigint,
+): Invocation {
+  return {
+    method: "approve_funding",
+    args: [addr(financier), u64(id), i128(amountApproved)],
+  };
+}
+
+/** reject_funding: financier declines the request. Reason is a short Symbol. */
+export function rejectFunding(
+  financier: string,
+  id: bigint,
+  reason: string,
+): Invocation {
+  return {
+    method: "reject_funding",
+    args: [addr(financier), u64(id), sym(reason)],
+  };
+}
+
+/** disburse_funding: financier disburses approved amount (dIDR transfer). */
+export function disburseFunding(
+  financier: string,
+  id: bigint,
+): Invocation {
+  return {
+    method: "disburse_funding",
+    args: [addr(financier), u64(id)],
+  };
+}
+
+// ─── Supply — Supplier signed ────────────────────────────────────────────────
+
+/** dispatch_supply: Supplier releases logistics for an agreement's saprotan. */
+export function dispatchSupply(
+  supplier: string,
+  id: bigint,
+): Invocation {
+  return {
+    method: "dispatch_supply",
+    args: [addr(supplier), u64(id)],
+  };
+}
+
+/** confirm_remittance: Supplier verifies real bank mutation → ResiduStatus Cleared. */
+export function confirmRemittance(
+  supplier: string,
+  id: bigint,
+): Invocation {
+  return {
+    method: "confirm_remittance",
+    args: [addr(supplier), u64(id)],
+  };
+}
+
+/** flag_remittance_dispute: Supplier flags a mismatch → ResiduStatus Disputed. */
+export function flagRemittanceDispute(
+  supplier: string,
+  id: bigint,
+  reason: string,
+): Invocation {
+  return {
+    method: "flag_remittance_dispute",
+    args: [addr(supplier), u64(id), sym(reason)],
+  };
 }
