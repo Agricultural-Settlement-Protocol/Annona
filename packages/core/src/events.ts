@@ -76,6 +76,18 @@ export interface DeliveryRecordedData {
   deliveredTotalG: bigint;
 }
 
+/** The immutable per-delivery harvest receipt. Decoded + logged to `event_log`,
+ *  never projected to a read-model table (same as Flagged) — the receipt is
+ *  reconstructed from `delivery` rows for display. */
+export interface HarvestReceiptMintedData {
+  id: bigint;
+  farmer: string;
+  seq: number;
+  volumeG: bigint;
+  grade: string;
+  timestamp: bigint;
+}
+
 /** Settled (v4.0, three-way split). */
 export interface SettledData {
   id: bigint;
