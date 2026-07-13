@@ -98,6 +98,7 @@ function selectAgreements(db: Db) {
       farmerId: schema.agreement.farmerId,
       supplierId: schema.agreement.supplierId,
       commodityCode: schema.agreement.commodityCode,
+      subsidyTier: schema.agreement.subsidyTier,
       grade: schema.agreement.grade,
       moistureBps: schema.agreement.moistureBps,
       basePriceSupplier: schema.agreement.basePriceSupplier,
@@ -128,6 +129,7 @@ export interface EnrichedAgreement {
   farmerId: string;
   farmerName: string | null;
   commodityCode: string;
+  subsidyTier: BaseRow["subsidyTier"];
   grade: string;
   moistureBps: number;
   basePriceSupplier: bigint;
@@ -166,6 +168,7 @@ function enrich(
     farmerId: a.farmerId,
     farmerName: a.farmerName,
     commodityCode: a.commodityCode,
+    subsidyTier: a.subsidyTier,
     grade: a.grade,
     moistureBps: a.moistureBps,
     basePriceSupplier: a.basePriceSupplier,

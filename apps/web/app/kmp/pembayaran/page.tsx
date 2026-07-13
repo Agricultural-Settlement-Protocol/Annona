@@ -42,6 +42,7 @@ import {
   Landmark,
 } from "lucide-react";
 import Link from "next/link";
+import { useI18n } from "@/lib/i18n/use-i18n";
 import { useRef, useState } from "react";
 
 /** Statuses that can appear in the payment picker. Flagged included but
@@ -53,6 +54,9 @@ const PAYABLE_STATUSES: Status[] = [
 ];
 
 export default function PembayaranPage() {
+  /* ── I18n ──────────────────────────────────────────────────────────────── */
+  const { t } = useI18n();
+
   /* ── Live data ───────────────────────────────────────────────────────── */
   const { data, loading, error } = useApi(
     () => Promise.all([fetchAgreements(), fetchFarmers()]),
@@ -148,8 +152,8 @@ export default function PembayaranPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Pembayaran"
-        description="Selesaikan pembayaran panen dengan split tiga arah: petani terima tunai, residu pokok Supplier dikunci di kas, margin KMP tercatat."
+        title={t("page.kmp.pembayaran.title")}
+        description={t("page.kmp.pembayaran.desc")}
         actions={
           <Button
             variant="outline"
@@ -157,18 +161,18 @@ export default function PembayaranPage() {
             leftIcon={<History size={15} />}
             onClick={handleToggleHistory}
           >
-            Riwayat Pembayaran
+            {t("page.kmp.pembayaran.history")}
           </Button>
         }
       />
 
       {loading && (
         <p className="text-sm text-muted-foreground">
-          Memuat perjanjian siap bayar...
+          {t("common.loading")}
         </p>
       )}
       {error && (
-        <Alert tone="warning" title="Gagal memuat perjanjian">
+        <Alert tone="warning" title={t("common.error")}>
           {error}
         </Alert>
       )}
@@ -176,8 +180,8 @@ export default function PembayaranPage() {
       {/* Step 1: Pilih perjanjian */}
       <Card>
         <CardHeader
-          title="Pilih Perjanjian"
-          description="Hanya perjanjian dengan volume yang sudah disetor dan belum dibayar yang ditampilkan. Perjanjian Perlu Ditinjau memerlukan peninjauan petugas terlebih dulu."
+          title={t("page.kmp.pembayaran.selectAgreement")}
+          description={t("page.kmp.pembayaran.desc")}
           action={<Banknote size={18} className="text-aqua-400" />}
         />
         <CardContent>
@@ -185,15 +189,15 @@ export default function PembayaranPage() {
             className="mb-1.5 block text-sm font-medium text-foreground"
             htmlFor="payment-agreement-select"
           >
-            Perjanjian siap bayar
+            {t("page.kmp.pembayaran.payable")}
           </label>
           <SearchSelect
             items={selectItems}
             value={selectedId}
             onChange={handleSelectAgreement}
-            placeholder="Pilih perjanjian..."
+            placeholder={t("page.kmp.pembayaran.selectAgreement")}
             searchPlaceholder="Cari nama petani, komoditas, atau kecamatan..."
-            emptyText="Tidak ada perjanjian siap dibayar."
+            emptyText={t("page.kmp.pembayaran.payable")}
           />
 
           {/* Selected agreement quick info */}
@@ -226,7 +230,7 @@ export default function PembayaranPage() {
       {split && agreement && !showLunas && (
         <Card>
           <CardHeader
-            title="Prakiraan Pembagian Kas"
+            title={t("page.kmp.pembayaran.splitTitle")}
             description={`HPP ${formatRupiah(agreement.hppPerKg)}/kg, ${formatKg(unsettledKg)} volume. Formula transparan, sumber Inpres HPP.`}
             action={<Banknote size={18} className="text-aqua-400" />}
           />
@@ -279,8 +283,8 @@ export default function PembayaranPage() {
       {agreement && split && !showLunas && (
         <Card>
           <CardHeader
-            title="Selesaikan Pembayaran"
-            description="Tindakan ini mencatat split tiga arah di blockchain Stellar. Tanda tangan Freighter diperlukan."
+            title={t("page.kmp.pembayaran.settle")}
+            description={t("page.kmp.pembayaran.confirm.desc")}
           />
           <CardContent className="space-y-3">
             <Button
@@ -295,11 +299,11 @@ export default function PembayaranPage() {
                 ? "Menandatangani..."
                 : txSettle.state === "submitting"
                   ? "Mencatat di Stellar..."
-                  : "Selesaikan Pembayaran"}
+                  : t("page.kmp.pembayaran.settle")}
             </Button>
             {txSettle.state === "signing" && (
               <p className="text-xs text-muted-foreground">
-                Konfirmasi tanda tangan di Freighter. Jangan tutup jendela.
+                {t("page.kmp.permintaanDana.signHint")}
               </p>
             )}
             {txSettle.state === "submitting" && (
@@ -322,11 +326,10 @@ export default function PembayaranPage() {
               </span>
               <div>
                 <h3 className="text-lg font-bold text-foreground">
-                  Pembayaran Tercatat
+                  {t("page.kmp.pembayaran.success")}
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  Catatan anti-manipulasi di Stellar. Kas keluar dari BRILink
-                  atau BRI, split tiga arah dikunci on-chain.
+                  {t("page.kmp.pembayaran.splitTitle")}
                 </p>
               </div>
             </div>
@@ -375,7 +378,7 @@ export default function PembayaranPage() {
                 leftIcon={<Landmark size={16} />}
                 rightIcon={<ArrowRight size={16} />}
               >
-                Kelola Residu
+                {t("page.kmp.residu.reconcile.submit")}
               </Button>
             </Link>
             <Button
@@ -397,7 +400,7 @@ export default function PembayaranPage() {
         <div ref={historyRef}>
           <Card>
             <CardHeader
-              title="Riwayat Pembayaran"
+              title={t("page.kmp.pembayaran.history")}
               description="Semua pembayaran panen yang telah diselesaikan. Cari berdasarkan nama petani atau nomor perjanjian."
               action={<History size={18} className="text-aqua-400" />}
             />
@@ -415,7 +418,7 @@ export default function PembayaranPage() {
             onClick={handleToggleHistory}
             className="text-sm text-accent hover:underline"
           >
-            Tampilkan Riwayat Pembayaran
+            {t("page.kmp.pembayaran.history")}
           </button>
         </div>
       )}

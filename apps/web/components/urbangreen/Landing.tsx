@@ -197,22 +197,22 @@ const RegisterFarmerAnimation = () => {
         {/* Dynamic Fields */}
         <div className="space-y-2 pt-1 border-t border-gray-900/5">
           <div className="flex justify-between items-center text-[9px] font-mono text-gray-500">
-            <span>DATA PRIBADI</span>
+            <span>PERSONAL DATA</span>
             <span className="text-emerald-700 font-bold flex items-center gap-0.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />{" "}
-              TERENKRIPSI
+              ENCRYPTED
             </span>
           </div>
           <div className="flex justify-between items-center text-[10px] font-medium text-gray-800">
-            <span>Luas Lahan:</span>
+            <span>Land Acreage:</span>
             <span className="font-mono bg-white px-2 py-0.5 rounded border border-gray-100 text-[9px]">
               2.4 Ha
             </span>
           </div>
           <div className="flex justify-between items-center text-[10px] font-medium text-gray-800">
-            <span>Komoditas:</span>
+            <span>Commodity:</span>
             <span className="font-mono bg-white px-2 py-0.5 rounded border border-gray-100 text-emerald-800 text-[9px]">
-              Padi
+              Paddy
             </span>
           </div>
         </div>
@@ -237,10 +237,10 @@ const LockCreditAnimation = () => {
             </div>
             <div className="text-center">
               <span className="text-[7px] font-mono text-gray-400 block uppercase">
-                SAPROTAN
+                INPUTS
               </span>
               <span className="text-[9px] font-bold text-gray-900 leading-none">
-                PUPUK
+                FERTILIZER
               </span>
             </div>
           </motion.div>
@@ -282,10 +282,10 @@ const LockCreditAnimation = () => {
             </svg>
 
             <span className="text-[7px] font-mono text-emerald-200 tracking-wider font-bold">
-              KONTRAK
+              CONTRACT
             </span>
             <span className="text-[9px] font-bold text-emerald-300 font-mono">
-              DIKUNCI
+              LOCKED
             </span>
           </motion.div>
 
@@ -327,7 +327,7 @@ const RecordHarvestAnimation = () => {
           <div className="w-1.5 h-1.5 bg-white/20 rounded-full mb-1" />
           <span className="text-[14px] font-bold leading-none">🌾</span>
           <span className="text-[8px] font-mono tracking-wider uppercase mt-1">
-            PANEN
+            HARVEST
           </span>
         </motion.div>
 
@@ -353,7 +353,7 @@ const RecordHarvestAnimation = () => {
             className="bg-primary-dark text-white border border-emerald-950 rounded-xl px-2.5 py-1.5 shadow-md text-[8px] font-mono flex flex-col"
           >
             <span className="text-[7px] text-emerald-300">
-              TERTULIS STELLAR
+              RECORDED ON STELLAR
             </span>
             <span className="font-bold">TX#OK</span>
           </motion.div>
@@ -370,8 +370,8 @@ const AutoDeductAnimation = () => {
         {/* Math Calculation visual bar */}
         <div className="space-y-1 bg-white p-2.5 rounded-2xl border border-gray-100 shadow-sm">
           <div className="flex justify-between items-center text-[9px] font-mono text-gray-400">
-            <span>NETTING NILAI</span>
-            <span className="text-emerald-700 font-bold">100% SINKRON</span>
+            <span>NETTING VALUE</span>
+            <span className="text-emerald-700 font-bold">100% SYNCED</span>
           </div>
           <div className="w-full h-6 bg-gray-100 rounded-lg overflow-hidden flex relative border border-gray-50">
             {/* Debt repayment portion (Left) */}
@@ -380,7 +380,7 @@ const AutoDeductAnimation = () => {
               transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
               className="h-full bg-red-400 flex items-center justify-center text-white text-[8px] font-mono font-bold shrink-0"
             >
-              Utang
+              Debt
             </motion.div>
 
             {/* Farmer profit portion (Right) */}
@@ -389,7 +389,7 @@ const AutoDeductAnimation = () => {
               transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
               className="h-full bg-emerald-500 flex items-center justify-center text-white text-[8px] font-mono font-bold"
             >
-              Sisa
+              Net Profit
             </motion.div>
           </div>
         </div>
@@ -397,8 +397,8 @@ const AutoDeductAnimation = () => {
         {/* Coins flying into balance wallet */}
         <div className="flex justify-between items-center px-1">
           <div className="text-[10px] font-bold text-gray-800">
-            Pencairan:{" "}
-            <span className="font-mono text-emerald-800">Rp 7.2Jt</span>
+            Disbursement:{" "}
+            <span className="font-mono text-emerald-800">Rp 7.2M</span>
           </div>
 
           {/* Balance wallet with glowing coin flow */}
@@ -581,7 +581,7 @@ export default function Landing() {
                   : "text-gray-600 hover:bg-gray-200/30"
               }`}
             >
-              Beranda
+              Home
               <Globe className="w-3.5 h-3.5" />
             </button>
             <button
@@ -595,7 +595,7 @@ export default function Landing() {
                   : "text-gray-600 hover:bg-gray-200/30"
               }`}
             >
-              Cara Kerja Protokol
+              Protocol Workflow
               <Sprout className="w-3.5 h-3.5" />
             </button>
             <button
@@ -609,7 +609,7 @@ export default function Landing() {
                   : "text-gray-600 hover:bg-gray-200/30"
               }`}
             >
-              Dampak & Skala Riil
+              Impact & Scale
               <Cpu className="w-3.5 h-3.5" />
             </button>
             <button
@@ -618,7 +618,7 @@ export default function Landing() {
               }}
               className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all text-gray-600 hover:bg-gray-200/30"
             >
-              Dashboard KUD
+              Cooperative Dashboard
               <Activity className="w-3.5 h-3.5" />
             </button>
           </nav>
@@ -639,7 +639,7 @@ export default function Landing() {
               className="bg-primary-dark text-white px-5 py-2.5 rounded-full text-sm font-medium hover:bg-opacity-90 transition-all shadow-sm hover:shadow active:scale-95"
               id="contact-us-header-btn"
             >
-              Ajukan Kemitraan
+              Apply for Partnership
             </button>
           </div>
         </header>
@@ -689,10 +689,10 @@ export default function Landing() {
 
               <div>
                 <span className="text-lg font-semibold text-gray-900 block">
-                  Pengurus & Penasihat
+                  Board & Advisors
                 </span>
                 <span className="text-xs text-gray-700 font-light mt-0.5 block">
-                  Klik foto untuk profil lengkap
+                  Click avatar for full profile
                 </span>
               </div>
 
@@ -759,7 +759,7 @@ export default function Landing() {
                 <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
               </svg>
               <p className="text-xl font-medium leading-tight text-gray-900 max-w-[180px] tracking-tight">
-                Kedaulatan Finansial untuk Koperasi Desa
+                Financial Sovereignty for Rural Cooperatives
               </p>
             </div>
           </aside>
@@ -771,14 +771,14 @@ export default function Landing() {
           >
             <div className="max-w-4xl mb-12 text-center lg:text-left">
               <h1 className="text-4xl sm:text-6xl lg:text-7xl font-medium tracking-tight leading-[1.1] text-gray-900">
-                Pupuk Diterima Awal,{" "}
+                Fertilizer Received Early,{" "}
                 <span className="inline-block relative my-1">
                   <span className="relative z-10 px-6 sm:px-8 py-1 sm:py-2 text-primary-dark">
-                    Bayar Saat Panen.
+                    Pay at Harvest.
                   </span>
                   <span className="absolute inset-0 bg-[#e2f1e1] rounded-full -z-0 border border-soft-green/30" />
                 </span>{" "}
-                Tercatat Transparan.
+                Transparently Recorded.
               </h1>
             </div>
 
@@ -802,10 +802,10 @@ export default function Landing() {
               {/* Overlay Tags */}
               <div className="absolute top-6 left-6 sm:top-8 sm:left-8 flex flex-wrap gap-2 z-20">
                 <span className="bg-white/20 backdrop-blur-md border border-white/30 text-white px-4 py-1.5 rounded-full text-xs font-medium tracking-wide">
-                  Koperasi
+                  Cooperative
                 </span>
                 <span className="bg-white/20 backdrop-blur-md border border-white/30 text-white px-4 py-1.5 rounded-full text-xs font-medium tracking-wide">
-                  Transparan
+                  Transparent
                 </span>
                 <span className="bg-white/20 backdrop-blur-md border border-white/30 text-white px-4 py-1.5 rounded-full text-xs font-medium tracking-wide">
                   Blockchain
@@ -831,10 +831,10 @@ export default function Landing() {
               {/* Video Telemetry caption */}
               <div className="absolute bottom-6 left-6 sm:bottom-8 sm:left-10 text-white z-10">
                 <span className="text-[10px] font-mono tracking-widest text-emerald-300 block mb-0.5">
-                  PANEL REAL-TIME
+                  REAL-TIME PANEL
                 </span>
                 <h3 className="text-lg sm:text-xl font-medium tracking-tight">
-                  Monitor Transaksi Koperasi (KUD)
+                  Monitor Cooperative (KUD) Transactions
                 </h3>
               </div>
             </div>
@@ -845,14 +845,14 @@ export default function Landing() {
                 onClick={() => scrollToSection("solutions-section")}
                 className="w-full sm:w-auto px-6 py-3 rounded-full border border-gray-300 text-gray-800 font-medium hover:bg-gray-50 hover:border-gray-400 flex items-center justify-center gap-2 transition-all active:scale-98"
               >
-                Jelajahi Solusi Koperasi
+                Explore Cooperative Solutions
                 <ArrowUpRight className="w-4 h-4 rotate-45" />
               </button>
               <button
                 onClick={() => setIsProposalOpen(true)}
                 className="w-full sm:w-auto px-6 py-3 rounded-full bg-primary-dark text-white font-medium hover:bg-opacity-90 shadow-sm flex items-center justify-center gap-2 transition-all active:scale-98"
               >
-                Ajukan Kemitraan
+                Apply for Partnership
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
@@ -880,7 +880,7 @@ export default function Landing() {
                 src="https://lh3.googleusercontent.com/aida-public/AB6AXuAvLBvg1VJwMLmcrw1zi-CNQ_Ds-3DopWEZTL_doAlsgJAKYwWXS1l3TXko4cbcS1CXUPrahPt__Acs0B8-PelQ-62jonKE4C25iz-2FiRv5y_fm1J67Q5kI3V7z_QYu79yuZ1wEogfmzIrLVhJwbWNQ7ELMOSFtsiDIlN7cKFQnh_C7sSOXB1uOsBBTpYNX7EkEMJ9P4AQJWhuifiRwHdWqWHdC3GyCZ_ucZVRoHz1xLVxVYuQQn84"
               />
               <span className="text-3xl sm:text-4xl md:text-5xl font-medium text-gray-900">
-                Stellar Network Protokol
+                Stellar Network Protocol
               </span>
               <img
                 alt="Leaf separator"
@@ -910,7 +910,7 @@ export default function Landing() {
                 src="https://lh3.googleusercontent.com/aida-public/AB6AXuAvLBvg1VJwMLmcrw1zi-CNQ_Ds-3DopWEZTL_doAlsgJAKYwWXS1l3TXko4cbcS1CXUPrahPt__Acs0B8-PelQ-62jonKE4C25iz-2FiRv5y_fm1J67Q5kI3V7z_QYu79yuZ1wEogfmzIrLVhJwbWNQ7ELMOSFtsiDIlN7cKFQnh_C7sSOXB1uOsBBTpYNX7EkEMJ9P4AQJWhuifiRwHdWqWHdC3GyCZ_ucZVRoHz1xLVxVYuQQn84"
               />
               <span className="text-3xl sm:text-4xl md:text-5xl font-medium text-gray-900">
-                Stellar Network Protokol
+                Stellar Network Protocol
               </span>
               <img
                 alt="Leaf separator"
@@ -929,7 +929,7 @@ export default function Landing() {
           <div className="max-w-7xl mx-auto px-4 md:px-12">
             <div className="flex items-center gap-4 mb-12">
               <h2 className="text-3xl sm:text-5xl font-light text-gray-900 tracking-tight">
-                Jelajahi Solusi Kami
+                Explore Our Solutions
               </h2>
               <ArrowRight className="w-8 h-8 text-gray-400 rotate-45" />
             </div>
@@ -939,14 +939,14 @@ export default function Landing() {
               <div className="lg:col-span-7 relative">
                 <div className="relative rounded-[2rem] rounded-tr-[5rem] overflow-hidden bg-gray-100 aspect-[4/3] w-full border border-gray-100 shadow-sm">
                   <img
-                    alt="Koperasi Unit Desa Modern"
+                    alt="Modern Village Cooperative"
                     className="w-full h-full object-cover"
                     src="https://images.unsplash.com/photo-1500937386664-56d1dfef3854?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80"
                   />
                 </div>
                 {/* Decorative element bottom left */}
                 <div className="absolute -bottom-8 -left-8 w-28 h-28 bg-[#e2f1e1] rounded-full flex items-center justify-center overflow-hidden border border-[#d2e3d1]">
-                  <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center -ml-5">
+                  <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center -mr-5">
                     <div className="w-8 h-8 bg-[#e2f1e1] rounded-full" />
                   </div>
                 </div>
@@ -1007,22 +1007,22 @@ export default function Landing() {
                   <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
                   <div className="relative z-10">
                     <span className="text-[10px] font-mono tracking-widest text-emerald-800 block mb-1">
-                      METRIK KUALITAS
+                      QUALITY METRIC
                     </span>
                     <h3 className="text-3xl sm:text-4xl font-medium text-gray-900 mb-4 tracking-tight leading-tight">
-                      {energyEfficiency}% Rasio Netting Otomatis
+                      {energyEfficiency}% Automated Netting Ratio
                     </h3>
                     <p className="text-gray-700 text-sm leading-relaxed max-w-sm">
-                      Algoritma netting otomatis Annona mencocokkan setoran
-                      hasil panen langsung dengan tagihan pupuk. Sesuaikan
-                      parameter di atas untuk melihat peningkatan efisiensi
-                      modal dibanding metode penagihan manual.
+                      Annona's automated netting algorithm matches harvest
+                      deposits directly with fertilizer invoices. Adjust the
+                      parameters above to simulate capital efficiency gains
+                      compared to manual billing.
                     </p>
                   </div>
                   <button
                     onClick={() => setIsTechSpecsOpen(true)}
                     className="absolute bottom-6 right-6 w-11 h-11 rounded-full border border-gray-900 flex items-center justify-center hover:bg-gray-900 hover:text-white active:scale-90 transition-all shadow-sm"
-                    title="Lihat Spesifikasi Teknis"
+                    title="View Technical Specs"
                   >
                     <ArrowUpRight className="w-5 h-5" />
                   </button>
@@ -1039,13 +1039,13 @@ export default function Landing() {
                   />
                   <div className="bg-white border border-gray-100 rounded-[2rem] rounded-bl-sm p-5 ml-[-12px] flex-grow shadow-sm z-0 pl-7">
                     <p className="text-gray-900 text-sm font-medium leading-relaxed mb-3">
-                      "Misi kami adalah memberdayakan koperasi unit desa melalui
-                      teknologi finansial terpercaya demi kesejahteraan petani
-                      Indonesia."
+                      "Our mission is to empower rural cooperatives through
+                      trusted financial technology to improve farmers'
+                      livelihoods."
                     </p>
                     <div className="flex justify-between items-center">
                       <p className="text-xs text-gray-900 font-bold">
-                        Camilla Hoff, Kemitraan Koperasi
+                        Camilla Hoff, Cooperative Partnerships
                       </p>
                       <span className="text-[10px] text-gray-400 font-mono">
                         ANNONA 2026
@@ -1068,10 +1068,10 @@ export default function Landing() {
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16">
               <div className="flex items-center gap-4">
                 <h2 className="text-3xl sm:text-5xl font-light text-gray-900 tracking-tight flex flex-wrap items-center gap-2">
-                  Cara Kerja{" "}
+                  Protocol{" "}
                   <span className="inline-block relative">
                     <span className="relative z-10 px-6 py-1 text-primary-dark font-medium">
-                      Protokol
+                      Workflow
                     </span>
                     <span className="absolute inset-0 bg-pale-mint rounded-full -z-0 border border-soft-green/30" />
                   </span>
@@ -1081,7 +1081,7 @@ export default function Landing() {
                 </div>
               </div>
               <p className="text-gray-500 font-mono text-xs tracking-widest max-w-sm">
-                INTEGRASI LEDGER STELLAR & KONTRAK PINTAR SOROBAN
+                STELLAR LEDGER & SOROBAN SMART CONTRACT INTEGRATION
               </p>
             </div>
 
@@ -1101,18 +1101,17 @@ export default function Landing() {
                       </span>
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                       <span className="text-[10px] font-mono text-emerald-700 font-bold uppercase">
-                        SINKRONISASI AKTIF
+                        ACTIVE SYNC
                       </span>
                     </div>
                     <h3 className="text-2xl sm:text-3xl font-medium text-gray-900 tracking-tight">
-                      Terotomatisasi di Soroban secara transparan
+                      Transparently automated on Soroban
                     </h3>
                     <p className="text-gray-700 text-sm leading-relaxed max-w-2xl font-light">
-                      Semua aturan, perhitungan penalti, dan rasio netting
-                      dieksekusi secara instan dan otonom oleh jaringan
-                      terdesentralisasi Stellar Soroban. Tidak ada intervensi
-                      manual, menghapus bias, dan menghemat biaya operasional
-                      secara radikal.
+                      All rules, netting ratios, and automated calculations are
+                      executed instantly and autonomously by the decentralized
+                      Stellar Soroban network, eliminating manual intervention,
+                      reducing bias, and drastically lowering operational costs.
                     </p>
                   </div>
                 </div>
@@ -1127,15 +1126,15 @@ export default function Landing() {
 
                   <div className="space-y-3">
                     <span className="inline-block px-3.5 py-1 bg-white border border-gray-100 rounded-full text-[10px] font-mono tracking-widest text-emerald-800 font-bold uppercase">
-                      Langkah I
+                      Step I
                     </span>
                     <h3 className="text-2xl font-medium text-gray-900 tracking-tight">
-                      Daftar Petani
+                      Farmer Registration
                     </h3>
                     <p className="text-gray-800 text-sm leading-relaxed font-light">
-                      Koperasi mendaftarkan petani, luas lahan, dan komoditas.
-                      Data pribadi tetap aman terenkripsi secara kriptografis,
-                      tidak ikut dipublikasikan di catatan publik global.
+                      The cooperative registers the farmer, land acreage, and
+                      crop type. Personal identity data remains cryptographically
+                      secured and encrypted, never exposed on the public ledger.
                     </p>
                   </div>
                 </div>
@@ -1150,16 +1149,15 @@ export default function Landing() {
 
                   <div className="space-y-3">
                     <span className="inline-block px-3.5 py-1 bg-[#ebf5e9] border border-soft-green/40 rounded-full text-[10px] font-mono tracking-widest text-emerald-800 font-bold uppercase">
-                      Langkah II
+                      Step II
                     </span>
                     <h3 className="text-2xl font-medium text-gray-900 tracking-tight">
-                      Kunci Kredit Saprotan
+                      Lock Input Credit
                     </h3>
                     <p className="text-gray-700 text-sm leading-relaxed font-light">
-                      Pupuk dan benih (saprotan) diberikan di awal musim tanam.
-                      Nilai utang modal serta harga kesepakatan beli minimal
-                      (HPP) langsung dikunci erat dalam kontrak digital yang
-                      sah.
+                      Fertilizer and seed inputs are distributed at the start of the
+                      planting season. The input credit value and the minimum floor
+                      purchase price are locked in the smart contract.
                     </p>
                   </div>
                 </div>
@@ -1174,16 +1172,15 @@ export default function Landing() {
 
                   <div className="space-y-3">
                     <span className="inline-block px-3.5 py-1 bg-white border border-gray-100 rounded-full text-[10px] font-mono tracking-widest text-emerald-800 font-bold uppercase">
-                      Langkah III
+                      Step III
                     </span>
                     <h3 className="text-2xl font-medium text-gray-900 tracking-tight">
-                      Catat Hasil Panen
+                      Record Harvest Yield
                     </h3>
                     <p className="text-gray-800 text-sm leading-relaxed font-light">
-                      Saat hasil panen disetorkan, berat dan kualitas mutunya
-                      dicatat secara digital. Bukti tanda terima panen langsung
-                      terbit permanen di ledger Stellar dan selamanya tidak bisa
-                      diubah.
+                      Upon harvest delivery, the crop weight and quality parameters
+                      are recorded digitally. A permanent, immutable receipt is
+                      immediately minted on the Stellar ledger.
                     </p>
                   </div>
                 </div>
@@ -1198,16 +1195,16 @@ export default function Landing() {
 
                   <div className="space-y-3">
                     <span className="inline-block px-3.5 py-1 bg-[#ebf5e9] border border-soft-green/40 rounded-full text-[10px] font-mono tracking-widest text-emerald-800 font-bold uppercase">
-                      Langkah IV
+                      Step IV
                     </span>
                     <h3 className="text-2xl font-medium text-gray-900 tracking-tight">
-                      Potong Utang Otomatis
+                      Automated Netting Settlement
                     </h3>
                     <p className="text-gray-700 text-sm leading-relaxed font-light">
-                      Nilai panen dihitung otomatis, saldo utang saprotan
-                      terpotong otomatis lewat netting, dan sisa keuntungan
-                      bersih langsung ditransfer ke rekening petani. Semua pihak
-                      melihat angka transparan yang sama.
+                      The crop value is calculated, the input credit balance is
+                      automatically deducted, and the remaining net profit is
+                      instantly transferred to the farmer. All parties view the
+                      same transparent ledger.
                     </p>
                   </div>
                 </div>
@@ -1224,10 +1221,10 @@ export default function Landing() {
           <div className="max-w-7xl mx-auto px-4 md:px-12">
             <div className="flex items-center gap-4 mb-12">
               <h2 className="text-3xl sm:text-5xl font-light text-gray-900 tracking-tight flex flex-wrap items-center gap-2">
-                Integrasi{" "}
+                Technology{" "}
                 <span className="inline-block relative">
                   <span className="relative z-10 px-6 py-1.5 text-primary-dark">
-                    Teknologi
+                    Integration
                   </span>
                   <span className="absolute inset-0 bg-[#e2f1e1] rounded-full -z-0 border border-soft-green/30" />
                 </span>
@@ -1240,7 +1237,7 @@ export default function Landing() {
               <div className="lg:col-span-7 relative">
                 <div className="relative rounded-[2.5rem] rounded-tr-[5rem] overflow-hidden bg-gray-100 aspect-[4/3] w-full border border-gray-100 shadow-sm">
                   <img
-                    alt="Koperasi Unit Desa Timbangan Pintar"
+                    alt="Modern Cooperative Digital Scale"
                     className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
                     src="https://images.unsplash.com/photo-1582407947304-fd86f028f716?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80"
                   />
@@ -1308,15 +1305,15 @@ export default function Landing() {
                           transition={{ duration: 0.2 }}
                         >
                           <span className="text-[9px] font-mono text-emerald-700 uppercase tracking-wider block mb-1">
-                            MODUL 01 • SMART CONTRACT
+                            MODULE 01 • SMART CONTRACT
                           </span>
                           <h4 className="text-sm font-semibold text-gray-900 mb-1">
-                            Kontrak Pintar Stellar Soroban
+                            Stellar Soroban Smart Contracts
                           </h4>
                           <p className="text-xs text-gray-600 leading-relaxed">
-                            Kontrak pintar Stellar Soroban mengunci perjanjian
-                            digital antara koperasi, petani, dan penyedia sarana
-                            produksi tani secara terdesentralisasi.
+                            Stellar Soroban smart contracts secure the digital
+                            agreement between cooperatives, farmers, and input
+                            suppliers in a decentralized manner.
                           </p>
                         </motion.div>
                       )}
@@ -1329,15 +1326,15 @@ export default function Landing() {
                           transition={{ duration: 0.2 }}
                         >
                           <span className="text-[9px] font-mono text-sky-700 uppercase tracking-wider block mb-1">
-                            MODUL 02 • IOT EDGE VERIFICATION
+                            MODULE 02 • IOT EDGE VERIFICATION
                           </span>
                           <h4 className="text-sm font-semibold text-gray-900 mb-1">
-                            Timbangan Digital IoT
+                            IoT Digital Scales
                           </h4>
                           <p className="text-xs text-gray-600 leading-relaxed">
-                            Timbangan berat komoditas terkoneksi internet
-                            mengirimkan data hasil panen riil ke ledger secara
-                            instan, mencegah manipulasi berat.
+                            Internet-connected scales transmit real-time crop
+                            weight directly to the ledger, preventing weight
+                            tampering or manual entry errors.
                           </p>
                         </motion.div>
                       )}
@@ -1350,15 +1347,15 @@ export default function Landing() {
                           transition={{ duration: 0.2 }}
                         >
                           <span className="text-[9px] font-mono text-blue-700 uppercase tracking-wider block mb-1">
-                            MODUL 03 • SETTLEMENT GATEWAY
+                            MODULE 03 • SETTLEMENT GATEWAY
                           </span>
                           <h4 className="text-sm font-semibold text-gray-900 mb-1">
-                            Dompet Digital dIDR
+                            dIDR Digital Wallet
                           </h4>
                           <p className="text-xs text-gray-600 leading-relaxed">
-                            Fasilitas pencairan dIDR langsung ke rekening petani
-                            mitra setelah pemotongan netting otomatis dengan
-                            transparansi penuh.
+                            Direct dIDR payouts are routed to the partner farmer's
+                            account following automated netting deduction, with
+                            complete transparency.
                           </p>
                         </motion.div>
                       )}
@@ -1368,7 +1365,7 @@ export default function Landing() {
 
                 {/* Decorative design sphere behind the card */}
                 <div className="absolute -bottom-8 -right-8 w-28 h-28 bg-[#e2f1e1] rounded-full flex items-center justify-center overflow-hidden border border-[#d2e3d1]">
-                  <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center -ml-5">
+                  <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center -mr-5">
                     <div className="w-8 h-8 bg-[#e2f1e1] rounded-full" />
                   </div>
                 </div>
@@ -1429,22 +1426,21 @@ export default function Landing() {
                   <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none" />
                   <div className="relative z-10">
                     <span className="text-[10px] font-mono tracking-widest text-emerald-800 block mb-1">
-                      TINGKAT REPUTASI MINIMAL
+                      MINIMUM REPUTATION SCORE
                     </span>
                     <h3 className="text-3xl sm:text-4xl font-medium text-gray-900 mb-4 tracking-tight leading-tight">
-                      {canopyDensity}% Target Riwayat Pelunasan
+                      {canopyDensity}% Repayment History Target
                     </h3>
                     <p className="text-gray-700 text-sm leading-relaxed max-w-sm">
-                      Menentukan batas minimal reputasi melindungi dana
-                      likuiditas koperasi dari risiko gagal bayar. Sesuaikan
-                      slider di atas untuk melihat simulasi penyesuaian
-                      otomatis.
+                      Setting a minimum reputation threshold protects the cooperative's
+                      liquidity pool from defaults. Adjust the slider above to
+                      simulate dynamic credit adjustments.
                     </p>
                   </div>
                   <button
                     onClick={() => setIsTechSpecsOpen(true)}
                     className="absolute bottom-6 right-6 w-11 h-11 rounded-full border border-gray-900 flex items-center justify-center hover:bg-gray-900 hover:text-white active:scale-90 transition-all shadow-sm"
-                    title="Lihat Spesifikasi Teknis"
+                    title="View Technical Specs"
                   >
                     <ArrowUpRight className="w-5 h-5" />
                   </button>
@@ -1461,13 +1457,13 @@ export default function Landing() {
                   />
                   <div className="bg-white border border-gray-100 rounded-[2rem] rounded-bl-sm p-5 ml-[-12px] flex-grow shadow-sm z-0 pl-7">
                     <p className="text-gray-900 text-sm font-medium leading-relaxed mb-3">
-                      "Arsitektur Stellar Soroban yang tangguh memproses ribuan
-                      transaksi penimbangan harian dengan biaya gas kurang dari
-                      sepeser Rupiah per transaksi."
+                      "The robust Stellar Soroban architecture processes thousands
+                      of weighing transactions daily with gas fees costing fractions
+                      of a cent per transaction."
                     </p>
                     <div className="flex justify-between items-center">
                       <p className="text-xs text-gray-900 font-bold">
-                        Elena Rostova, Kepala Teknologi Ledger
+                        Elena Rostova, Lead Ledger Architect
                       </p>
                       <span className="text-[10px] text-gray-400 font-mono">
                         STELLAR ANCHOR
@@ -1488,10 +1484,10 @@ export default function Landing() {
           <div className="max-w-7xl mx-auto px-4 md:px-12">
             <div className="flex items-center gap-4 mb-12">
               <h2 className="text-3xl sm:text-5xl font-light text-gray-900 tracking-tight flex flex-wrap items-center gap-2">
-                Protokol{" "}
+                Financial{" "}
                 <span className="inline-block relative">
                   <span className="relative z-10 px-6 py-1.5 text-primary-dark">
-                    Keuangan
+                    Protocol
                   </span>
                   <span className="absolute inset-0 bg-[#e2f1e1] rounded-full -z-0 border border-soft-green/30" />
                 </span>
@@ -1555,22 +1551,21 @@ export default function Landing() {
                   <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none" />
                   <div className="relative z-10">
                     <span className="text-[10px] font-mono tracking-widest text-emerald-800 block mb-1">
-                      SKOR KREDIT REPUTASI
+                      REPUTATION CREDIT SCORE
                     </span>
                     <h3 className="text-3xl sm:text-4xl font-medium text-gray-900 mb-4 tracking-tight leading-tight">
-                      Skor {samplingRate * 5 + 250} Reputasi Minimal
+                      Minimum Reputation: {samplingRate * 5 + 250}
                     </h3>
                     <p className="text-gray-700 text-sm leading-relaxed max-w-sm">
-                      Menentukan ambang skor kredit minimum untuk mengakses
-                      alokasi modal pupuk tanpa jaminan konvensional. Sesuaikan
-                      slider di atas untuk melihat penyesuaian otomatis
-                      kelayakan risiko.
+                      Setting a minimum credit score threshold to access
+                      collateral-free fertilizer capital. Adjust the slider
+                      above to simulate automated risk-eligibility adjustments.
                     </p>
                   </div>
                   <button
                     onClick={() => setIsTechSpecsOpen(true)}
                     className="absolute bottom-6 right-6 w-11 h-11 rounded-full border border-gray-900 flex items-center justify-center hover:bg-gray-900 hover:text-white active:scale-90 transition-all shadow-sm"
-                    title="Lihat Spesifikasi Teknis"
+                    title="View Technical Specs"
                   >
                     <ArrowUpRight className="w-5 h-5" />
                   </button>
@@ -1587,13 +1582,13 @@ export default function Landing() {
                   />
                   <div className="bg-white border border-gray-100 rounded-[2rem] rounded-bl-sm p-5 ml-[-12px] flex-grow shadow-sm z-0 pl-7">
                     <p className="text-gray-900 text-sm font-medium leading-relaxed mb-3">
-                      "Menggunakan machine learning untuk mengolah data panen
-                      historis menjadi skor reputasi terpercaya secara instan
-                      tanpa birokrasi berbelit."
+                      "Leveraging machine learning to convert historical harvest
+                      data into trusted reputation scores instantly without
+                      bureaucratic overhead."
                     </p>
                     <div className="flex justify-between items-center">
                       <p className="text-xs text-gray-900 font-bold">
-                        Aaron Veridias, Penasihat Kredit Fintek
+                        Aaron Veridias, Fintech Credit Advisor
                       </p>
                       <span className="text-[10px] text-gray-400 font-mono">
                         ML MODEL
@@ -1617,16 +1612,16 @@ export default function Landing() {
                       </div>
                       <div>
                         <span className="text-[9px] font-mono text-gray-400 block uppercase">
-                          MONITOR TRANSAKSI LEDGER
+                          LEDGER TRANSACTION MONITOR
                         </span>
                         <p className="text-xs font-semibold text-gray-900 font-mono">
-                          Blok Transaksi #{samplingRate}02
+                          Transaction Block #{samplingRate}02
                         </p>
                       </div>
                     </div>
                     <div className="flex gap-2">
                       <span className="text-[9px] font-mono bg-[#ebf5e9] text-emerald-800 border border-soft-green/30 px-2.5 py-1 rounded-md">
-                        JARINGAN: STELLAR MAINNET
+                        NETWORK: STELLAR MAINNET
                       </span>
                     </div>
                   </div>
@@ -1635,35 +1630,35 @@ export default function Landing() {
                   <div className="relative z-10 grid grid-cols-3 gap-3 my-4">
                     <div className="bg-[#ebf5e9]/40 border border-soft-green/15 rounded-xl p-3 text-center">
                       <span className="text-[9px] font-mono text-emerald-800/80 block uppercase mb-1">
-                        MODAL DISALURKAN
+                        CAPITAL DISBURSED
                       </span>
-                      <p className="text-lg font-mono font-bold text-emerald-900">
-                        Rp 1.48 Miliar
+                      <p className="text-lg font-mono font-bold text-emerald-900 font-sans">
+                        1.48B IDR
                       </p>
-                      <span className="text-[8px] font-mono text-emerald-700/80 block mt-0.5">
-                        KUOTA KUD
+                      <span className="text-[8px] font-mono text-emerald-700/80 block mt-0.5 font-sans">
+                        COOPERATIVE LIMIT
                       </span>
                     </div>
                     <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 text-center">
                       <span className="text-[9px] font-mono text-gray-400 block uppercase mb-1">
-                        SUKU BUNGA NETTING
+                        NETTING INTEREST
                       </span>
                       <p className="text-lg font-mono font-bold text-gray-950 font-sans">
                         0.0%
                       </p>
                       <span className="text-[8px] font-mono text-emerald-600 block mt-0.5 font-bold">
-                        TANPA BUNGA
+                        INTEREST-FREE
                       </span>
                     </div>
                     <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 text-center">
                       <span className="text-[9px] font-mono text-gray-400 block uppercase mb-1">
-                        MITRA PETANI AKTIF
+                        ACTIVE FARMERS
                       </span>
                       <p className="text-lg font-mono font-bold text-gray-950 font-sans">
-                        142 PETANI
+                        142 FARMERS
                       </p>
                       <span className="text-[8px] font-mono text-orange-600 block mt-0.5 font-bold">
-                        KUD CIANJUR
+                        CIANJUR COOP
                       </span>
                     </div>
                   </div>
@@ -1700,7 +1695,7 @@ export default function Landing() {
 
                   {/* Simulated Carbon and active counts footer */}
                   <div className="relative z-10 flex items-center justify-between border-t border-gray-100 pt-3 text-[10px] font-mono text-gray-400">
-                    <span>MODEL KREDIT: ANNONA-V1.2</span>
+                    <span>CREDIT MODEL: ANNONA-V1.2</span>
                     <span className="text-emerald-700 flex items-center gap-1 font-mono font-semibold">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                       PULSE RATE: {samplingRate} Hz
@@ -1727,7 +1722,7 @@ export default function Landing() {
           <div className="max-w-7xl mx-auto px-4 md:px-12">
             <div className="flex items-center gap-4 mb-12">
               <h2 className="text-3xl sm:text-5xl font-light text-gray-900 tracking-tight">
-                Dampak Keberlanjutan
+                Sustainability Impact
               </h2>
               <div className="w-10 h-10 rounded-full bg-pale-mint/80 border border-soft-green/30 flex items-center justify-center text-primary-dark shadow-sm">
                 <Sprout className="w-5 h-5" />
@@ -1745,10 +1740,10 @@ export default function Landing() {
                   />
                   <div className="absolute bottom-6 left-6 bg-white/80 backdrop-blur-md rounded-2xl p-4 shadow-sm border border-white/40 z-10">
                     <span className="text-[9px] font-mono text-gray-500 uppercase tracking-wider block">
-                      KEMITRAAN KUD
+                      COOP PARTNERSHIP
                     </span>
                     <p className="text-xs font-semibold text-gray-900">
-                      Digitalisasi Rantai Nilai Beras Cianjur
+                      Digitalizing the Cianjur Rice Value Chain
                     </p>
                   </div>
                 </div>
@@ -1765,27 +1760,26 @@ export default function Landing() {
                   <div className="absolute top-0 right-0 w-32 h-32 bg-gray-50 rounded-full blur-2xl" />
                   <div>
                     <span className="text-[10px] font-mono tracking-widest text-emerald-800 block mb-1">
-                      ALOKASI MODAL AKTIF
+                      ACTIVE CAPITAL ALLOCATION
                     </span>
                     <h3 className="text-xl font-medium text-gray-900 mb-3 tracking-tight">
-                      Penyaluran Modal Kerja
+                      Working Capital Disbursement
                     </h3>
                     <div className="flex items-baseline gap-2 mb-4">
                       <span className="text-5xl font-mono font-bold text-gradient">
-                        Rp{" "}
+                        IDR{" "}
                         {(carbonCounter * 12).toLocaleString(undefined, {
                           minimumFractionDigits: 1,
                           maximumFractionDigits: 1,
                         })}
                       </span>
                       <span className="text-base text-gray-500 font-light font-mono">
-                        Juta
+                        M
                       </span>
                     </div>
                     <p className="text-gray-700 text-xs leading-relaxed max-w-sm">
-                      Total modal kerja bergulir tanpa agunan fisik yang
-                      disalurkan secara transparan ke kelompok tani mitra
-                      koperasi lewat smart contract Stellar.
+                      Total revolving working capital disbursed transparently to partner
+                      farming groups via Stellar smart contracts without physical collateral.
                     </p>
                   </div>
                 </div>
@@ -1795,18 +1789,17 @@ export default function Landing() {
                   <div className="absolute top-0 right-0 w-32 h-32 bg-white/40 rounded-full -mr-16 -mt-16 blur-2xl" />
                   <div className="relative z-10">
                     <span className="text-[10px] font-mono tracking-widest text-emerald-800 block mb-1">
-                      EFISIENSI OPERASIONAL
+                      OPERATIONAL EFFICIENCY
                     </span>
                     <h3 className="text-4xl font-mono font-bold text-gray-950 mb-2 leading-none">
                       30%
                     </h3>
                     <p className="text-sm font-semibold text-gray-800 mb-1">
-                      Peningkatan Margin Petani
+                      Farmer Margin Increase
                     </p>
                     <p className="text-gray-700 text-xs leading-relaxed">
-                      Pengurangan rantai tengkulak tradisional melalui
-                      pencocokan harga dIDR otomatis dan jaminan pembelian
-                      langsung oleh mitra korporasi.
+                      Eliminating traditional intermediary margins through automated dIDR
+                      price matching and guaranteed direct purchase contracts.
                     </p>
                   </div>
                 </div>
@@ -1815,16 +1808,15 @@ export default function Landing() {
                 <div className="bg-primary-dark text-white rounded-[2.5rem] p-8 flex flex-col justify-center border border-emerald-950/40 shadow-sm relative overflow-hidden">
                   <div className="absolute bottom-0 right-0 w-24 h-24 bg-white/5 rounded-full blur-xl pointer-events-none" />
                   <p className="text-base font-medium italic leading-relaxed mb-4 text-gray-100">
-                    "Kami tidak hanya membangun teknologi keuangan digital; kami
-                    memperkuat kedaulatan pangan nasional langsung dari akar
-                    rumput."
+                    "We are not just building digital financial technology; we are
+                    strengthening local food security directly from the grassroots."
                   </p>
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center">
                       <Award className="w-4 h-4 text-soft-green" />
                     </div>
                     <span className="text-xs font-semibold text-gray-300 font-mono">
-                      Dewan Pengawas Koperasi Mitra
+                      Cooperative Supervisory Board
                     </span>
                   </div>
                 </div>
@@ -1841,7 +1833,7 @@ export default function Landing() {
           <div className="max-w-7xl mx-auto px-4 md:px-12">
             <div className="flex items-center gap-4 mb-12">
               <h2 className="text-3xl sm:text-5xl font-light text-gray-900 tracking-tight">
-                Solusi Interaktif
+                Interactive Simulator
               </h2>
               <div className="w-10 h-10 rounded-full bg-pale-mint/80 border border-soft-green/30 flex items-center justify-center text-primary-dark shadow-sm">
                 <Sprout className="w-5 h-5" />
@@ -1853,16 +1845,15 @@ export default function Landing() {
               <div className="lg:col-span-7 bg-[#E2F1E1] rounded-[2.5rem] p-8 sm:p-12 flex flex-col justify-between relative overflow-hidden border border-[#d2e3d1] shadow-sm">
                 <div className="relative z-10 max-w-xl">
                   <span className="text-[10px] font-mono tracking-widest text-emerald-800 block mb-1">
-                    KREDIT & REPUTASI
+                    CREDIT & REPUTATION
                   </span>
                   <h3 className="text-3xl sm:text-4xl font-medium text-gray-900 mb-4 tracking-tight leading-tight">
-                    Simulasi Skor & Limit Modal
+                    Score & Capital Limit Simulation
                   </h3>
                   <p className="text-gray-800 text-sm leading-relaxed mb-6">
-                    Atur variabel riwayat pelunasan, kapasitas hasil panen, dan
-                    harga pasar komoditas di bawah ini untuk melihat bagaimana
-                    algoritma menghitung skor kredit dan limit modal kerja
-                    secara langsung.
+                    Adjust the repayment history, harvest yield capacity, and market price variables
+                    below to simulate how the algorithm calculates credit scores and working
+                    capital limits in real time.
                   </p>
                 </div>
 
@@ -1872,10 +1863,10 @@ export default function Landing() {
                 {/* Status footer chips */}
                 <div className="mt-8 flex flex-wrap gap-2.5 relative z-10">
                   <span className="px-4 py-1.5 rounded-full bg-white/40 border border-emerald-950/10 text-xs font-medium text-emerald-950">
-                    Perhitungan Instan
+                    Instant Calculation
                   </span>
                   <span className="px-4 py-1.5 rounded-full bg-white/40 border border-emerald-950/10 text-xs font-medium text-emerald-950">
-                    Aman & Transparan
+                    Secure & Transparent
                   </span>
                 </div>
               </div>
@@ -1887,15 +1878,15 @@ export default function Landing() {
                   <div className="absolute top-0 right-0 w-32 h-32 bg-gray-50 rounded-full blur-2xl" />
                   <div>
                     <span className="text-[10px] font-mono tracking-widest text-emerald-800 block mb-1">
-                      NETTING OTOMATIS
+                      AUTOMATED NETTING
                     </span>
                     <h3 className="text-2xl font-semibold text-gray-900 mb-3">
-                      Penyelesaian Instan dIDR
+                      Instant dIDR Settlement
                     </h3>
                     <p className="text-gray-700 text-xs leading-relaxed mb-6">
-                      Mekanisme netting instan yang melunasi modal pupuk dan
-                      bibit secara otomatis saat timbangan digital hasil panen
-                      terverifikasi terunggah ke Stellar Soroban ledger.
+                      An instant netting mechanism that automatically settles fertilizer and
+                      seed capital when verified harvest digital weights are uploaded to the
+                      Stellar Soroban ledger.
                     </p>
                   </div>
 
@@ -1919,15 +1910,15 @@ export default function Landing() {
                         <Check className="w-4 h-4 text-emerald-500" />
                       )}
                       {irrigationStatus === "watering"
-                        ? "MELAKUKAN NETTING dIDR..."
+                        ? "PERFORMING dIDR NETTING..."
                         : irrigationStatus === "completed"
-                          ? "NETTING SELESAI (SENGKETA 0%!)"
-                          : "SIMULASIKAN NETTING MANUAL"}
+                          ? "NETTING COMPLETE (0% DISPUTES!)"
+                          : "SIMULATE MANUAL NETTING"}
                     </button>
                     <p className="text-[10px] text-gray-400 font-mono text-center">
                       {irrigationStatus === "watering"
-                        ? "Mengirim instruksi settlement ke Soroban Smart Contract..."
-                        : "Sistem siap memproses data timbangan digital."}
+                        ? "Broadcasting settlement transaction to Soroban Smart Contract..."
+                        : "System ready to ingest digital scale telemetry."}
                     </p>
                   </div>
                 </div>
@@ -1936,15 +1927,14 @@ export default function Landing() {
                 <div className="bg-white border border-gray-100 rounded-[2.5rem] p-8 flex flex-col justify-between shadow-sm">
                   <div>
                     <span className="text-[10px] font-mono tracking-widest text-emerald-800 block mb-1">
-                      KUD TELEMETRY
+                      COOPERATIVE TELEMETRY
                     </span>
                     <h3 className="text-2xl font-semibold text-gray-900 mb-3">
-                      Arus Kas & Transaksi Live
+                      Cash Flow & Live Transactions
                     </h3>
                     <p className="text-gray-700 text-xs leading-relaxed mb-6">
-                      Akses dashboard monitor transaksi untuk memantau dana
-                      netting terkunci, rasio keberhasilan panen, dan performa
-                      indeks reputasi mitra di berbagai wilayah KUD.
+                      Access the transaction monitor dashboard to track locked netting funds,
+                      harvest success rates, and partner reputation indexes across cooperatives.
                     </p>
                   </div>
                   <div>
@@ -1955,7 +1945,7 @@ export default function Landing() {
                       }}
                       className="px-5 py-2.5 rounded-full border border-gray-300 text-xs font-medium hover:bg-gray-50 hover:border-gray-400 flex items-center gap-2 transition-all active:scale-95"
                     >
-                      Buka Monitor KUD
+                      Open Coop Monitor
                       <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -1977,9 +1967,9 @@ export default function Landing() {
           <div className="max-w-7xl mx-auto px-4 md:px-12 relative z-10">
             <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5 mb-16">
               <h2 className="text-4xl sm:text-6xl font-medium tracking-tight leading-none text-gray-900">
-                Peta{" "}
+                Protocol{" "}
                 <span className="inline-block relative">
-                  <span className="relative z-10 px-6 py-1">Jalan</span>
+                  <span className="relative z-10 px-6 py-1">Roadmap</span>
                   <span className="absolute inset-0 bg-[#e2f1e1] rounded-full -z-0 border border-soft-green/30" />
                 </span>
               </h2>
@@ -2007,7 +1997,7 @@ export default function Landing() {
                         L1 Horizon
                       </span>
                       <span className="text-[11px] font-mono text-emerald-700 font-semibold flex items-center gap-1">
-                        <Check className="w-3.5 h-3.5" /> AKTIF
+                        <Check className="w-3.5 h-3.5" /> ACTIVE
                       </span>
                     </div>
                     <h3 className="text-2xl font-semibold text-gray-900 mb-3">
@@ -2028,7 +2018,7 @@ export default function Landing() {
                         className="mt-6 pt-5 border-t border-gray-200/60 text-xs font-mono text-gray-600 space-y-2"
                       >
                         <p className="font-semibold text-gray-800">
-                          MILISTONE TERCAPAI:
+                          MILESTONES ACHIEVED:
                         </p>
                         {ROADMAP_ITEMS[0]!.details.map((detail, idx) => (
                           <div key={idx} className="flex gap-2">
@@ -2058,7 +2048,7 @@ export default function Landing() {
                         L3 Horizon
                       </span>
                       <span className="text-[11px] font-mono text-orange-600 font-semibold flex items-center gap-1 animate-pulse">
-                        • DALAM PENGEMBANGAN
+                        • IN ACTIVE DEVELOPMENT
                       </span>
                     </div>
                     <h3 className="text-2xl font-semibold text-gray-900 mb-3">
@@ -2079,7 +2069,7 @@ export default function Landing() {
                         className="mt-6 pt-5 border-t border-gray-200/60 text-xs font-mono text-gray-600 space-y-2"
                       >
                         <p className="font-semibold text-gray-800">
-                          SPRINT AKTIF:
+                          ACTIVE SPRINTS:
                         </p>
                         {ROADMAP_ITEMS[2]!.details.map((detail, idx) => (
                           <div key={idx} className="flex gap-2">
@@ -2111,7 +2101,7 @@ export default function Landing() {
                         L2 Horizon
                       </span>
                       <span className="text-[11px] font-mono text-emerald-950 font-semibold flex items-center gap-1">
-                        <Check className="w-3.5 h-3.5" /> AKTIF
+                        <Check className="w-3.5 h-3.5" /> ACTIVE
                       </span>
                     </div>
                     <h3 className="text-2xl font-semibold text-gray-900 mb-3">
@@ -2132,7 +2122,7 @@ export default function Landing() {
                         className="mt-6 pt-5 border-t border-gray-200/60 text-xs font-mono text-emerald-950 space-y-2"
                       >
                         <p className="font-semibold text-emerald-900">
-                          MILESTONE TERCAPAI:
+                          MILESTONES ACHIEVED:
                         </p>
                         {ROADMAP_ITEMS[1]!.details.map((detail, idx) => (
                           <div key={idx} className="flex gap-2">
@@ -2162,7 +2152,7 @@ export default function Landing() {
                         L4 Horizon
                       </span>
                       <span className="text-[11px] font-mono text-gray-500 font-semibold flex items-center gap-1">
-                        • RENCANA MASA DEPAN
+                        • FUTURE HORIZON
                       </span>
                     </div>
                     <h3 className="text-2xl font-semibold text-gray-900 mb-3">
@@ -2183,7 +2173,7 @@ export default function Landing() {
                         className="mt-6 pt-5 border-t border-gray-200/60 text-xs font-mono text-gray-600 space-y-2"
                       >
                         <p className="font-semibold text-gray-800">
-                          CAKUPAN PENGEMBANGAN:
+                          DEVELOPMENT SCOPE:
                         </p>
                         {ROADMAP_ITEMS[3]!.details.map((detail, idx) => (
                           <div key={idx} className="flex gap-2">
@@ -2217,11 +2207,11 @@ export default function Landing() {
 
               <div className="relative z-10 max-w-3xl mx-auto space-y-8">
                 <h2 className="text-3xl sm:text-6xl font-medium text-white tracking-tight leading-tight">
-                  Siap Memperkuat Koperasi Anda?
+                  Ready to Empower Your Cooperative?
                 </h2>
                 <p className="text-lg text-white/80 max-w-lg mx-auto font-light leading-relaxed">
-                  Mulai digitalisasi transaksi, kembangkan skor reputasi tanpa
-                  agunan fisik, dan nikmati efisiensi netting otomatis bersama
+                  Begin digitalizing transactions, establishing reputation scores without
+                  physical collateral, and leveraging automated netting efficiency with
                   Annona.
                 </p>
 
@@ -2230,13 +2220,13 @@ export default function Landing() {
                     onClick={() => setIsProposalOpen(true)}
                     className="w-full sm:w-auto px-8 py-4 bg-[#d8ead0] hover:bg-white text-primary-dark rounded-full font-semibold text-base transition-all active:scale-95 shadow"
                   >
-                    Ajukan Kemitraan KUD
+                    Apply for Coop Partnership
                   </button>
                   <button
                     onClick={() => setIsTechSpecsOpen(true)}
                     className="w-full sm:w-auto px-8 py-4 border border-white/30 text-white rounded-full font-semibold text-base hover:bg-white/10 transition-all active:scale-95"
                   >
-                    Lihat Spesifikasi Protokol
+                    View Protocol Specs
                   </button>
                 </div>
               </div>
@@ -2260,8 +2250,8 @@ export default function Landing() {
                 </span>
               </div>
               <p className="text-gray-700 text-sm leading-relaxed max-w-[220px]">
-                Infrastruktur finansial digital dan netting otomatis untuk
-                Koperasi Unit Desa.
+                Digital financial infrastructure and automated netting for
+                rural agricultural cooperatives.
               </p>
             </div>
 
@@ -2276,7 +2266,7 @@ export default function Landing() {
                     onClick={() => scrollToSection("solutions-section")}
                     className="text-gray-600 hover:text-primary-dark hover:underline transition-colors text-left"
                   >
-                    Solusi Koperasi
+                    Cooperative Solutions
                   </button>
                 </li>
                 <li>
@@ -2284,7 +2274,7 @@ export default function Landing() {
                     onClick={() => scrollToSection("how-it-works-section")}
                     className="text-gray-600 hover:text-primary-dark hover:underline transition-colors text-left"
                   >
-                    Cara Kerja Protokol
+                    Protocol Workflow
                   </button>
                 </li>
                 <li>
@@ -2292,7 +2282,7 @@ export default function Landing() {
                     onClick={() => scrollToSection("sustainability-section")}
                     className="text-gray-600 hover:text-primary-dark hover:underline transition-colors text-left"
                   >
-                    Dampak Keberlanjutan
+                    Sustainability Impact
                   </button>
                 </li>
                 <li>
@@ -2300,7 +2290,7 @@ export default function Landing() {
                     onClick={() => scrollToSection("tech-section")}
                     className="text-gray-600 hover:text-primary-dark hover:underline transition-colors text-left"
                   >
-                    Protokol Keuangan
+                    Financial Protocol
                   </button>
                 </li>
                 <li>
@@ -2308,7 +2298,7 @@ export default function Landing() {
                     onClick={() => scrollToSection("roadmap-section")}
                     className="text-gray-600 hover:text-primary-dark hover:underline transition-colors text-left"
                   >
-                    Peta Jalan
+                    Roadmap
                   </button>
                 </li>
               </ul>
@@ -2316,7 +2306,7 @@ export default function Landing() {
 
             <div>
               <h4 className="text-xs font-bold text-gray-900 uppercase tracking-widest font-mono mb-5">
-                Kemitraan
+                Partnerships
               </h4>
               <ul className="flex flex-col gap-3 text-sm">
                 <li>
@@ -2324,7 +2314,7 @@ export default function Landing() {
                     onClick={() => scrollToSection("team-showcase-card")}
                     className="text-gray-600 hover:text-primary-dark hover:underline transition-colors text-left"
                   >
-                    Tim Spesialis
+                    Specialist Team
                   </button>
                 </li>
                 <li>
@@ -2332,7 +2322,7 @@ export default function Landing() {
                     onClick={() => setIsProposalOpen(true)}
                     className="text-gray-600 hover:text-primary-dark hover:underline transition-colors text-left"
                   >
-                    Ajukan Kemitraan
+                    Apply for Partnership
                   </button>
                 </li>
                 <li>
@@ -2340,7 +2330,7 @@ export default function Landing() {
                     href="#"
                     className="text-gray-600 hover:text-primary-dark hover:underline transition-colors"
                   >
-                    Hubungi Kami
+                    Contact Us
                   </a>
                 </li>
               </ul>
@@ -2349,17 +2339,16 @@ export default function Landing() {
             {/* Subscribe newsletter column */}
             <div>
               <h4 className="text-xs font-bold text-gray-900 uppercase tracking-widest font-mono mb-5">
-                Tetap Terhubung
+                Stay Connected
               </h4>
               <p className="text-gray-700 text-xs leading-relaxed mb-4">
-                Dapatkan pembaruan terbaru mengenai spesifikasi protokol dan
-                integrasi KUD.
+                Get the latest updates on protocol specifications and coop integrations.
               </p>
 
               {newsletterSubscribed ? (
                 <div className="bg-pale-mint/50 border border-soft-green/30 rounded-2xl p-3 text-center">
                   <p className="text-xs font-semibold text-emerald-800">
-                    Berhasil Berlangganan!
+                    Successfully Subscribed!
                   </p>
                 </div>
               ) : (
@@ -2367,7 +2356,7 @@ export default function Landing() {
                   <input
                     type="email"
                     required
-                    placeholder="Alamat email"
+                    placeholder="Email address"
                     value={newsletterEmail}
                     onChange={(e) => setNewsletterEmail(e.target.value)}
                     className="flex-grow px-4 py-2.5 rounded-full border border-gray-200 text-xs focus:outline-none focus:border-primary-dark focus:ring-1 focus:ring-primary-dark"
@@ -2386,13 +2375,13 @@ export default function Landing() {
 
           {/* Bottom links copyright */}
           <div className="pt-8 border-t border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-gray-500 font-mono">
-            <span>© 2026 Annona Protocol. Hak Cipta Dilindungi.</span>
+            <span>© 2026 Annona Protocol. All Rights Reserved.</span>
             <div className="flex gap-6">
               <a href="#" className="hover:text-gray-900">
-                Kebijakan Privasi
+                Privacy Policy
               </a>
               <a href="#" className="hover:text-gray-900">
-                Ketentuan Layanan
+                Terms of Service
               </a>
             </div>
           </div>

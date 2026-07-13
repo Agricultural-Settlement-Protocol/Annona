@@ -10,6 +10,7 @@
 import { PageHeader } from "@/components/kmp/page-header";
 import { TBody, THead, Table, TableFrame, Td, Th, Tr } from "@/components/kmp/table";
 import { fetchFinancierDetail, type FundingStatus, type RiskBadge as RiskBadgeType } from "@/lib/api";
+import { useI18n } from "@/lib/i18n/use-i18n";
 import { useApi } from "@/lib/use-api";
 import {
   Alert,
@@ -37,30 +38,31 @@ const STATUS_ORDER: FundingStatus[] = [
   "Reconciled",
 ];
 
-const STATUS_LABEL: Record<FundingStatus, string> = {
-  Requested: "Diajukan",
-  Approved: "Disetujui",
-  Rejected: "Ditolak",
-  Disbursed: "Dicairkan",
-  Reconciled: "Direkonsiliasi",
+const STATUS_LABEL_KEYS: Record<FundingStatus, string> = {
+  Requested: "page.financier.detail.header.requested",
+  Approved: "page.financier.detail.header.approved",
+  Rejected: "badge.funding.Rejected",
+  Disbursed: "page.financier.detail.header.disbursed",
+  Reconciled: "page.financier.detail.header.reconciled",
 };
 
-function FundingStatusBadge({ status }: { status: FundingStatus }) {
-  const map: Record<FundingStatus, string> = {
-    Requested: "bg-gray-100 text-gray-600 border-gray-200",
-    Approved: "bg-amber-50 text-amber-700 border-amber-200",
-    Rejected: "bg-red-50 text-red-700 border-red-200",
-    Disbursed: "bg-blue-50 text-blue-700 border-blue-200",
-    Reconciled: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  };
+const FUNDING_BADGE_STYLES: Record<FundingStatus, string> = {
+  Requested: "bg-gray-100 text-gray-600 border-gray-200",
+  Approved: "bg-amber-50 text-amber-700 border-amber-200",
+  Rejected: "bg-red-50 text-red-700 border-red-200",
+  Disbursed: "bg-blue-50 text-blue-700 border-blue-200",
+  Reconciled: "bg-emerald-50 text-emerald-700 border-emerald-200",
+};
+
+function FundingStatusBadge({ status, t }: { status: FundingStatus; t: (key: string) => string }) {
   return (
-    <span className={`inline-flex items-center rounded-full border px-3 py-0.5 text-sm font-semibold ${map[status]}`}>
-      {STATUS_LABEL[status]}
+    <span className={`inline-flex items-center rounded-full border px-3 py-0.5 text-sm font-semibold ${FUNDING_BADGE_STYLES[status]}`}>
+      {t(STATUS_LABEL_KEYS[status])}
     </span>
   );
 }
 
-function RiskPill({ badge }: { badge: RiskBadgeType }) {
+function RiskPill({ badge, t }: { badge: RiskBadgeType; t: (key: string, params?: Record<string, string | number>) => string }) {
   const cls =
     badge === "Rendah"
       ? "bg-emerald-50 text-emerald-700 border-emerald-200"
@@ -69,7 +71,7 @@ function RiskPill({ badge }: { badge: RiskBadgeType }) {
         : "bg-red-50 text-red-700 border-red-200";
   return (
     <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${cls}`}>
-      Risiko: {badge}
+      {t("page.financier.portofolio.badge.risiko", { level: badge })}
     </span>
   );
 }
@@ -77,9 +79,11 @@ function RiskPill({ badge }: { badge: RiskBadgeType }) {
 function StatusTimeline({
   current,
   rejected,
+  t,
 }: {
   current: FundingStatus;
   rejected: boolean;
+  t: (key: string) => string;
 }) {
   const steps = rejected ? ["Requested", "Rejected"] : STATUS_ORDER;
   const currentIdx = steps.indexOf(current);
@@ -115,7 +119,7 @@ function StatusTimeline({
                       : "text-gray-300",
                 ].join(" ")}
               >
-                {STATUS_LABEL[step as FundingStatus]}
+                {t(STATUS_LABEL_KEYS[step as FundingStatus])}
               </span>
             </div>
             {!isLast && (
@@ -136,6 +140,7 @@ function StatusTimeline({
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function FundingDetailPage() {
+  const { t } = useI18n();
   const { id } = useParams<{ id: string }>();
 
   const { data, loading, error } = useApi(
@@ -154,35 +159,36 @@ export default function FundingDetailPage() {
           className="flex items-center gap-1.5 text-sm font-semibold text-gray-500 hover:text-amber-700"
         >
           <ArrowLeft size={14} />
-          Portofolio
+          {t("page.financier.portofolio.title")}
         </Link>
       </div>
 
       <PageHeader
-        title={req ? req.coopName : "Detail Permohonan"}
-        description={req ? `Permohonan dana offtake, diajukan ${req.createdAt.slice(0, 10)}` : "Memuat..."}
+        title={req ? req.coopName : t("page.financier.detail.title")}
+        description={req ? `Permohonan dana offtake, ${t("badge.funding.Requested").toLowerCase()} ${req.createdAt.slice(0, 10)}` : t("common.loading")}
       />
 
       {error && (
-        <Alert tone="warning" title="Gagal memuat detail">
+        <Alert tone="warning" title={t("common.error")}>
           {error}
         </Alert>
       )}
 
       {loading && (
-        <p className="py-8 text-center text-sm text-gray-400">Memuat detail permohonan...</p>
+        <p className="py-8 text-center text-sm text-gray-400">{t("common.loading")}</p>
       )}
 
       {req && (
         <>
           {/* Status timeline */}
           <Card className="rounded-2xl border-gray-100 bg-white shadow-sm overflow-x-auto">
-            <CardHeader title="Status Permohonan" />
+            <CardHeader title={t("page.financier.detail.timeline")} />
             <CardContent>
               <div className="overflow-x-auto pb-2">
                 <StatusTimeline
                   current={req.status}
                   rejected={req.status === "Rejected"}
+                  t={t}
                 />
               </div>
             </CardContent>
@@ -192,25 +198,25 @@ export default function FundingDetailPage() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Card className="rounded-2xl border-gray-100 bg-white shadow-sm">
               <CardContent className="pt-5 pb-5">
-                <p className="text-xs font-medium text-gray-500 mb-1">Status</p>
-                <FundingStatusBadge status={req.status} />
+                <p className="text-xs font-medium text-gray-500 mb-1">{t("common.status")}</p>
+                <FundingStatusBadge status={req.status} t={t} />
                 <p className="mt-3 text-xs font-medium text-gray-500 mb-1">Penilaian Risiko</p>
-                <RiskPill badge={req.riskBadge} />
+                <RiskPill badge={req.riskBadge} t={t} />
               </CardContent>
             </Card>
 
             <Card className="rounded-2xl border-gray-100 bg-white shadow-sm">
               <CardContent className="pt-5 pb-5 space-y-3">
                 <div>
-                  <p className="text-xs font-medium text-gray-500 mb-0.5">Proyeksi Panen</p>
+                  <p className="text-xs font-medium text-gray-500 mb-0.5">{t("page.financier.antrean.projected")}</p>
                   <RupiahAmount smallest={req.projectedSettlement} className="text-xl font-bold" />
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-gray-500 mb-0.5">Rasio Cakupan</p>
+                  <p className="text-xs font-medium text-gray-500 mb-0.5">{t("page.financier.antrean.coverage")}</p>
                   <p className="text-xl font-bold tabular-nums text-gray-900">
                     {(req.coverageRatioBps / 100).toFixed(1)}%
                   </p>
-                  <p className="text-[11px] text-gray-400">lebih rendah lebih aman</p>
+                  <p className="text-[11px] text-gray-400">{t("page.financier.antrean.coverageHint")}</p>
                 </div>
               </CardContent>
             </Card>
@@ -219,10 +225,10 @@ export default function FundingDetailPage() {
               <CardContent className="pt-5 pb-5 space-y-2">
                 {(
                   [
-                    ["Diminta", req.amountRequested],
-                    ["Disetujui", req.amountApproved],
-                    ["Dicairkan", req.amountDisbursed],
-                    ["Direkonsiliasi", req.amountReconciled],
+                    [t("page.financier.detail.header.requested"), req.amountRequested],
+                    [t("page.financier.detail.header.approved"), req.amountApproved],
+                    [t("page.financier.detail.header.disbursed"), req.amountDisbursed],
+                    [t("page.financier.detail.header.reconciled"), req.amountReconciled],
                   ] as const
                 ).map(([label, val]) => (
                   <div key={label} className="flex items-center justify-between text-sm">
@@ -231,7 +237,7 @@ export default function FundingDetailPage() {
                   </div>
                 ))}
                 <div className="flex items-center justify-between text-sm border-t border-gray-100 pt-2 mt-2">
-                  <span className="font-semibold text-gray-700">Sisa Talangan</span>
+                  <span className="font-semibold text-gray-700">{t("page.financier.ringkasan.outstanding")}</span>
                   <RupiahAmount
                     smallest={
                       req.amountDisbursed > req.amountReconciled
@@ -249,7 +255,7 @@ export default function FundingDetailPage() {
           {/* Proof hash */}
           <Card className="rounded-2xl border-gray-100 bg-white shadow-sm">
             <CardHeader
-              title="Bukti Offtake On-Chain"
+              title={t("page.financier.detail.proofTitle")}
               description="Hash yang mencerminkan saldo perjanjian offtake yang menjadi jaminan permohonan ini."
             />
             <CardContent>
@@ -274,16 +280,16 @@ export default function FundingDetailPage() {
           {/* Backing lines */}
           <div>
             <h2 className="mb-3 text-lg font-semibold text-gray-900">
-              Perjanjian Offtake yang Dijaminkan
+              {t("page.financier.detail.backingTitle")}
             </h2>
             <TableFrame>
               <Table>
                 <THead>
-                  <Th>Perjanjian</Th>
-                  <Th>Petani</Th>
-                  <Th>Komoditas</Th>
-                  <Th>Status Perjanjian</Th>
-                  <Th className="text-right">Nilai Jaminan</Th>
+                  <Th>{t("page.financier.detail.backing.col.agreement")}</Th>
+                  <Th>{t("page.financier.detail.backing.col.farmer")}</Th>
+                  <Th>{t("page.financier.detail.backing.col.commodity")}</Th>
+                  <Th>{t("page.financier.detail.backing.col.status")}</Th>
+                  <Th className="text-right">{t("page.financier.detail.backing.col.value")}</Th>
                 </THead>
                 <TBody>
                   {lines.length === 0 ? (
@@ -329,7 +335,7 @@ export default function FundingDetailPage() {
 
           {/* Financier info */}
           <p className="text-xs text-gray-400">
-            Pemodal: {req.financierName}.
+            {t("shell.financier.label")}: {req.financierName}.
             ID On-Chain: {req.onchainId || "Belum dikonfirmasi"}.
           </p>
         </>

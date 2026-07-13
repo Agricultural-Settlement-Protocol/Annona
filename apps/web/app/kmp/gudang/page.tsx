@@ -33,6 +33,7 @@ import {
   Truck,
   Warehouse,
 } from "lucide-react";
+import { useI18n } from "@/lib/i18n/use-i18n";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 /** Parse a string like "19.150 kg" or "4.580 kg" to a number (ID locale: dots = thousands). */
@@ -62,6 +63,7 @@ function InboundCard({
   isDone: boolean;
   doneTxHash: string | null;
 }) {
+  const { t } = useI18n();
   const isMine = state !== "idle" && !isDone;
 
   if (isDone) {
@@ -156,6 +158,7 @@ function InboundCard({
 }
 
 export default function GudangPage() {
+  const { t } = useI18n();
   const { data: overview } = useApi(fetchOverview);
   const inbound = overview?.inboundSupply ?? [];
 
@@ -207,27 +210,27 @@ export default function GudangPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Gudang dan Pasokan"
-        description="Kiriman saprotan masuk (on-chain) dan stok fisik gudang (catatan lokal)."
+        title={t("page.kmp.gudang.title")}
+        description={t("page.kmp.gudang.desc")}
       />
 
       {/* Summary stat strip */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard
-          label="Kargo Menunggu"
+          label={t("page.kmp.logistik.badge.inTransit")}
           value={String(inbound.length)}
           hint="Kiriman saprotan dari Supplier menunggu konfirmasi penerimaan"
           icon={<Truck size={18} />}
           tone={inbound.length > 0 ? "warn" : "good"}
         />
         <StatCard
-          label="Panen Diterima"
+          label={t("page.kmp.gudang.stats.totalStock")}
           value={`${totalPanenDiterima.toLocaleString("id-ID")} kg`}
           hint="Total hasil panen yang diterima di gudang"
           icon={<Package size={18} />}
         />
         <StatCard
-          label="Diteruskan ke Gudang Agrinas"
+          label={t("page.kmp.gudang.stats.readyShip")}
           value={`${totalDiteruskan.toLocaleString("id-ID")} kg`}
           hint="Total yang sudah dikirim ke gudang Agrinas"
           icon={<ArrowUpFromLine size={18} />}
@@ -237,7 +240,7 @@ export default function GudangPage() {
       {/* Zone 1: On-chain inbound supply */}
       <Card className="rounded-[2rem] border-gray-100 bg-white shadow-sm overflow-hidden p-5 sm:p-6">
         <CardHeader
-          title="Kargo Masuk dari Supplier"
+          title={t("page.kmp.gudang.title")}
           description="Barang dalam perjalanan menunggu konfirmasi penerimaan fisik. Konfirmasi Anda mengaktifkan utang saprotan petani."
           action={
             <span className="flex items-center gap-1 rounded-full bg-cyan-50 border border-cyan-150/40 px-3 py-0.5 text-xs font-bold text-[#0c6a78] uppercase">
@@ -275,11 +278,11 @@ export default function GudangPage() {
       {/* Zone 2: Off-chain stock (clearly labeled) */}
       <Card className="rounded-[2rem] border-gray-100 bg-white shadow-sm overflow-hidden p-5 sm:p-6">
         <CardHeader
-          title="Stok Gudang"
-          description="Catatan fisik gudang koperasi. Data ini disimpan lokal, tidak di blockchain."
+          title={t("page.kmp.gudang.title")}
+          description={t("page.kmp.gudang.desc")}
           action={
             <Badge tone="neutral" icon={<Database size={11} />} className="rounded-full font-bold">
-              Catatan Lokal
+              {t("page.kmp.gudang.label.offChain")}
             </Badge>
           }
           className="pb-3"
@@ -309,7 +312,7 @@ export default function GudangPage() {
           <div>
             <div className="flex items-center gap-2 border-b border-gray-100 bg-[#ebf5e9]/30 px-5 py-4">
               <Warehouse size={15} className="text-emerald-700" />
-              <span className="text-sm font-bold text-gray-900">Saprotan</span>
+              <span className="text-sm font-bold text-gray-900">{t("page.kmp.gudang.zone.saprotan")}</span>
               <Badge tone="verdant" className="rounded-full">Pertanian</Badge>
             </div>
             <TableFrame className="border-0 shadow-none rounded-none overflow-visible">

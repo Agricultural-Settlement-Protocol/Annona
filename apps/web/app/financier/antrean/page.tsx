@@ -13,7 +13,12 @@
 
 import { PageHeader } from "@/components/kmp/page-header";
 import { useTx } from "@/components/kmp/use-tx";
-import type { Invocation } from "@/lib/tx";
+import {
+  approveFunding,
+  disburseFunding,
+  rejectFunding,
+} from "@/lib/invocations";
+import { useI18n } from "@/lib/i18n/use-i18n";
 import { fetchFinancierQueue, type ApiFundingRequestRow, type RiskBadge } from "@/lib/api";
 import { useApi } from "@/lib/use-api";
 import {
@@ -47,24 +52,28 @@ function riskBadgeClass(badge: RiskBadge): string {
 
 type ActionType = "approve" | "reject" | "disburse";
 
-const ACTION_LABEL: Record<ActionType, string> = {
-  approve: "Setujui",
-  reject: "Tolak",
-  disburse: "Cairkan",
+const ACTION_LABEL_KEY: Record<ActionType, string> = {
+  approve: "page.financier.antrean.approve",
+  reject: "page.financier.antrean.reject",
+  disburse: "page.financier.antrean.disburse",
 };
 
-/** Placeholder builder: in demo mode the builder is never called.
- *  TODO: replace with real Invocations when approve_funding /
- *  reject_funding / disburse_funding are deployed on-chain. */
-function buildFundingInvocation(action: ActionType): (signer: string) => Invocation {
-  const method =
-    action === "approve"
-      ? "approve_funding"
-      : action === "reject"
-        ? "reject_funding"
-        : "disburse_funding";
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  return (_signer: string): Invocation => ({ method, args: [] });
+/** Build a real Invocation for the given action. */
+function handleAction(tx: ReturnType<typeof useTx>, req: ApiFundingRequestRow, action: ActionType) {
+  const onchainId = BigInt(req.onchainId);
+  if (action === "approve") {
+    tx.run((signer) =>
+      approveFunding(signer, onchainId, req.amountRequested),
+    );
+  } else if (action === "reject") {
+    tx.run((signer) =>
+      rejectFunding(signer, onchainId, "DITOLAK"),
+    );
+  } else if (action === "disburse") {
+    tx.run((signer) =>
+      disburseFunding(signer, onchainId),
+    );
+  }
 }
 
 interface ActionLog {
@@ -78,10 +87,12 @@ function RequestCard({
   req,
   busy,
   onAction,
+  t,
 }: {
   req: ApiFundingRequestRow;
   busy: boolean;
   onAction: (action: ActionType) => void;
+  t: (key: string, params?: Record<string, string | number>) => string;
 }) {
   const coveragePct = (req.coverageRatioBps / 100).toFixed(1);
 
@@ -89,12 +100,12 @@ function RequestCard({
     <Card className="rounded-2xl border-gray-100 bg-white shadow-sm">
       <CardHeader
         title={req.coopName}
-        description={`Diajukan ${req.createdAt.slice(0, 10)}`}
+        description={`${t("badge.funding.Requested")} ${req.createdAt.slice(0, 10)}`}
         action={
           <span
             className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${riskBadgeClass(req.riskBadge)}`}
           >
-            Risiko: {req.riskBadge}
+            {t("page.financier.portofolio.badge.risiko", { level: req.riskBadge })}
           </span>
         }
       />
@@ -102,30 +113,30 @@ function RequestCard({
         {/* Proof + coverage */}
         <div className="flex flex-wrap gap-4 rounded-xl border border-gray-100 bg-gray-50/60 px-4 py-3 text-sm">
           <div className="min-w-0 flex-1">
-            <p className="mb-1 text-xs font-medium text-gray-500">Bukti Offtake</p>
+            <p className="mb-1 text-xs font-medium text-gray-500">{t("page.financier.antrean.proof")}</p>
             <p className="break-all font-mono text-xs text-gray-800">
               {shortHash(req.backingHash)}
             </p>
           </div>
           <div className="shrink-0 text-right">
-            <p className="mb-1 text-xs font-medium text-gray-500">Rasio Cakupan</p>
+            <p className="mb-1 text-xs font-medium text-gray-500">{t("page.financier.antrean.coverage")}</p>
             <p className="text-sm font-bold tabular-nums text-gray-900">{coveragePct}%</p>
-            <p className="mt-0.5 text-[10px] text-gray-400">lebih rendah lebih aman</p>
+            <p className="mt-0.5 text-[10px] text-gray-400">{t("page.financier.antrean.coverageHint")}</p>
           </div>
         </div>
 
         {/* Amounts */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <div>
-            <p className="mb-0.5 text-xs font-medium text-gray-500">Proyeksi Panen</p>
+            <p className="mb-0.5 text-xs font-medium text-gray-500">{t("page.financier.antrean.projected")}</p>
             <RupiahAmount smallest={req.projectedSettlement} className="text-sm font-semibold" />
           </div>
           <div>
-            <p className="mb-0.5 text-xs font-medium text-gray-500">Diminta</p>
+            <p className="mb-0.5 text-xs font-medium text-gray-500">{t("page.financier.antrean.requested")}</p>
             <RupiahAmount smallest={req.amountRequested} className="text-sm font-semibold" />
           </div>
           <div>
-            <p className="mb-0.5 text-xs font-medium text-gray-500">Disetujui</p>
+            <p className="mb-0.5 text-xs font-medium text-gray-500">{t("page.financier.antrean.approved")}</p>
             <RupiahAmount
               smallest={req.amountApproved}
               className="text-sm font-semibold text-amber-700"
@@ -143,7 +154,7 @@ function RequestCard({
             onClick={() => onAction("approve")}
             className="rounded-full bg-emerald-600 hover:bg-emerald-700 text-white"
           >
-            {busy ? "Memproses..." : "Setujui"}
+            {busy ? t("page.financier.antrean.processing") : t("page.financier.antrean.approve")}
           </Button>
           <Button
             variant="outline"
@@ -153,7 +164,7 @@ function RequestCard({
             onClick={() => onAction("reject")}
             className="rounded-full border-red-200 text-red-700 hover:bg-red-50"
           >
-            Tolak
+            {t("page.financier.antrean.reject")}
           </Button>
           <Button
             variant="outline"
@@ -163,11 +174,11 @@ function RequestCard({
             onClick={() => onAction("disburse")}
             className="rounded-full border-amber-200 text-amber-700 hover:bg-amber-50"
           >
-            Cairkan
+            {t("page.financier.antrean.disburse")}
           </Button>
           <Link href={`/financier/${req.id}`} className="ml-auto">
             <Button variant="ghost" size="sm" className="text-xs text-gray-500 hover:text-gray-800">
-              Detail
+              {t("common.detail")}
             </Button>
           </Link>
         </div>
@@ -177,6 +188,7 @@ function RequestCard({
 }
 
 export default function AntreanPage() {
+  const { t } = useI18n();
   const { data: queue, loading, error } = useApi(fetchFinancierQueue);
   const tx = useTx();
 
@@ -197,11 +209,11 @@ export default function AntreanPage() {
 
   const requests = queue ?? [];
 
-  function handleAction(req: ApiFundingRequestRow, action: ActionType) {
+  function handleActionClick(req: ApiFundingRequestRow, action: ActionType) {
     if (tx.state !== "idle") return;
     activeRef.current = { id: req.id, coopName: req.coopName, action };
     forceUpdate((n) => n + 1);
-    tx.run(buildFundingInvocation(action));
+    handleAction(tx, req, action);
   }
 
   const busyId = tx.state !== "idle" ? activeRef.current?.id : undefined;
@@ -209,12 +221,12 @@ export default function AntreanPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Antrean Persetujuan"
-        description="Permohonan talangan modal kerja yang menunggu keputusan Anda."
+        title={t("page.financier.antrean.title")}
+        description={t("page.financier.antrean.desc")}
       />
 
       {error && (
-        <Alert tone="warning" title="Gagal memuat antrean">
+        <Alert tone="warning" title={t("common.error")}>
           {error}
         </Alert>
       )}
@@ -229,7 +241,7 @@ export default function AntreanPage() {
             >
               <CheckCircle2 size={16} className="shrink-0 text-emerald-600" />
               <span className="text-sm font-medium text-gray-800">
-                {log.coopName}: {ACTION_LABEL[log.action]} berhasil dicatat.
+                {t("page.financier.antrean.logEntry", { coop: log.coopName, action: t(ACTION_LABEL_KEY[log.action]) })}
               </span>
               <TxHashLink hash={log.hash} />
             </div>
@@ -238,25 +250,25 @@ export default function AntreanPage() {
       )}
 
       {tx.state === "signing" && (
-        <Alert tone="info" title="Menandatangani transaksi">
-          Konfirmasi di Freighter (atau sedang disimulasikan). Jangan tutup jendela.
+        <Alert tone="info" title={t("page.financier.antrean.signing")}>
+          {t("page.financier.antrean.signAlert")}
         </Alert>
       )}
       {tx.state === "submitting" && (
-        <Alert tone="info" title="Mengirim ke jaringan">
-          Mencatat di Stellar Testnet. Proses 5 hingga 10 detik.
+        <Alert tone="info" title={t("page.financier.antrean.submitting")}>
+          {t("page.financier.antrean.submitAlert")}
         </Alert>
       )}
 
       {loading && (
-        <p className="py-8 text-center text-sm text-gray-400">Memuat antrean...</p>
+        <p className="py-8 text-center text-sm text-gray-400">{t("page.financier.antrean.loading")}</p>
       )}
 
       {!loading && requests.length === 0 && (
         <div className="rounded-2xl border border-dashed border-gray-200 py-16 text-center">
           <ClipboardCheck size={32} className="mx-auto mb-3 text-gray-300" />
           <p className="text-sm font-medium text-gray-400">
-            Tidak ada permohonan yang menunggu persetujuan.
+            {t("page.financier.antrean.empty")}
           </p>
         </div>
       )}
@@ -267,7 +279,8 @@ export default function AntreanPage() {
             key={req.id}
             req={req}
             busy={busyId === req.id}
-            onAction={(action) => handleAction(req, action)}
+            onAction={(action) => handleActionClick(req, action)}
+            t={t}
           />
         ))}
       </div>

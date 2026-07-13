@@ -18,6 +18,7 @@ import {
 } from "@/lib/oversight-data";
 import { formatRupiah } from "@annona/core";
 import { Alert, Card, CardContent } from "@annona/ui";
+import { useI18n } from "@/lib/i18n/use-i18n";
 import { useMemo } from "react";
 
 function buildPemerintahSnapshot(): GroundingSnapshot {
@@ -95,21 +96,19 @@ function buildPemerintahSnapshot(): GroundingSnapshot {
 }
 
 export default function PemerintahAiPage() {
+  const { t } = useI18n();
   const snapshot = useMemo(() => buildPemerintahSnapshot(), []);
 
   return (
     <div className="flex h-[calc(100vh-6rem)] flex-col gap-4">
       <OversightPageHeader
-        title="Asisten AI Pengawasan"
-        description="Analisis data produksi, kinerja koperasi, dan flag. Percakapan disimpan di perangkat Anda. Tampilan hanya baca."
+        title={t("page.oversight.pemerintah.ai.title")}
+        description={t("page.oversight.pemerintah.ai.desc")}
       />
 
-      <Alert tone="info" title="AI hanya membaca data, tidak bisa menulis">
+      <Alert tone="info" title={t("page.oversight.pemerintah.ai.title")}>
         <span className="text-sm">
-          Asisten ini tidak dapat melakukan tindakan apapun di blockchain. Semua
-          jawaban berdasarkan snapshot data saat halaman dimuat. Flag yang
-          disebutkan AI adalah indikator untuk peninjauan manusia, bukan
-          tuduhan otomatis.
+          {t("page.oversight.pemerintah.ai.alert")}
         </span>
       </Alert>
 

@@ -14,6 +14,7 @@ import {
   type ApiFundingRequestRow,
   type RiskBadge,
 } from "@/lib/api";
+import { useI18n } from "@/lib/i18n/use-i18n";
 import { useApi } from "@/lib/use-api";
 import { formatRupiah } from "@annona/core";
 import {
@@ -72,6 +73,7 @@ function QueuePreviewRow({ req }: { req: ApiFundingRequestRow }) {
 }
 
 export default function FinancierHomePage() {
+  const { t } = useI18n();
   const { data: ov, loading: ovLoading, error: ovError } = useApi(fetchFinancierOverview);
   const { data: queue, loading: qLoading } = useApi(fetchFinancierQueue);
 
@@ -82,12 +84,12 @@ export default function FinancierHomePage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Ringkasan Portofolio"
-        description="Kesehatan pool dana, permohonan masuk, dan rekonsiliasi berjalan."
+        title={t("page.financier.ringkasan.title")}
+        description={t("page.financier.ringkasan.desc")}
       />
 
       {ovError && (
-        <Alert tone="warning" title="Gagal memuat data">
+        <Alert tone="warning" title={t("common.error")}>
           {ovError}
         </Alert>
       )}
@@ -95,12 +97,12 @@ export default function FinancierHomePage() {
       {/* Hero stat cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <StatCard
-          label="Saldo Pool Dana"
+          label={t("page.financier.ringkasan.poolBalance")}
           value={
             financier ? (
               <RupiahAmount smallest={financier.poolBalance} className="text-3xl font-bold" />
             ) : (
-              <span className="text-3xl font-bold text-gray-300">Memuat...</span>
+              <span className="text-3xl font-bold text-gray-300">{t("common.loading")}</span>
             )
           }
           hint="Dana tersedia untuk dicairkan"
@@ -120,7 +122,7 @@ export default function FinancierHomePage() {
           icon={<Banknote size={18} />}
         />
         <StatCard
-          label="Total Dicairkan"
+          label={t("page.financier.ringkasan.totalDisbursed")}
           value={
             totals ? (
               <RupiahAmount smallest={totals.totalDisbursed} className="text-3xl font-bold" />
@@ -169,14 +171,14 @@ export default function FinancierHomePage() {
       {/* Queue preview */}
       <Card className="rounded-[2rem] border-gray-100 bg-white shadow-sm overflow-hidden p-5 sm:p-6">
         <CardHeader
-          title="Antrean Menunggu Persetujuan"
-          description="Permohonan talangan yang belum disetujui atau ditolak."
+          title={t("page.financier.ringkasan.queue")}
+          description={t("page.financier.antrean.desc")}
           action={
             <Link
               href="/financier/antrean"
               className="flex items-center gap-1 text-sm font-semibold text-amber-700 hover:underline"
             >
-              Lihat semua
+              {t("page.financier.ringkasan.queue.viewAll")}
               <ArrowRight size={14} />
             </Link>
           }
@@ -184,11 +186,11 @@ export default function FinancierHomePage() {
         />
         <CardContent className="space-y-2 pt-3">
           {qLoading && (
-            <p className="py-4 text-center text-sm text-gray-400">Memuat antrean...</p>
+            <p className="py-4 text-center text-sm text-gray-400">{t("page.financier.antrean.loading")}</p>
           )}
           {!qLoading && topQueue.length === 0 && (
             <p className="py-6 text-center text-sm text-gray-400">
-              Tidak ada permohonan menunggu persetujuan.
+              {t("page.financier.ringkasan.queue.empty")}
             </p>
           )}
           {topQueue.map((req) => (

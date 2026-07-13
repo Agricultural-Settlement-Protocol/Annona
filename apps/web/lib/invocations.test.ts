@@ -20,10 +20,18 @@ import {
 import type { Transaction } from "@stellar/stellar-sdk";
 import {
   acceptSupply,
+  approveFunding,
+  confirmRemittance,
   createAgreement,
+  disburseFunding,
+  dispatchSupply,
+  flagRemittanceDispute,
   markForceMajeure,
   markResiduRemitted,
+  reconcileFunding,
   recordDelivery,
+  rejectFunding,
+  requestFunding,
   settle,
 } from "./invocations";
 
@@ -33,12 +41,13 @@ const farmer = Keypair.random().publicKey();
 const supplier = Keypair.random().publicKey();
 const KTP = "a".repeat(64); // 32-byte hex
 
-test("create_agreement: 11 args, correct order + types", () => {
+test("create_agreement: 12 args, correct order + types", () => {
   const inv = createAgreement({
     coop,
     farmer,
     supplier,
     commodity: { code: "GABAH", grade: "B", moistureBps: 1400, hppVersion: 4 },
+    subsidyTier: "Subsidized",
     basePriceSupplier: 2_000_000_0000000n,
     saprotanMarkupBps: 1000,
     hppHandlingFeeBps: 500,
@@ -48,20 +57,21 @@ test("create_agreement: 11 args, correct order + types", () => {
     ktpHashHex: KTP,
   });
   assert.equal(inv.method, "create_agreement");
-  assert.equal(inv.args.length, 11);
+  assert.equal(inv.args.length, 12);
 
-  const [a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10] = inv.args.map((v) => scValToNative(v));
+  const [a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11] = inv.args.map((v) => scValToNative(v));
   assert.equal(a0, coop);
   assert.equal(a1, farmer);
   assert.equal(a2, supplier);
   assert.deepEqual(a3, { code: "GABAH", grade: "B", moisture_bps: 1400, hpp_version: 4 });
-  assert.equal(a4, 2_000_000_0000000n);
-  assert.equal(a5, 1000);
-  assert.equal(a6, 500);
-  assert.equal(a7, 2_600_000n);
-  assert.equal(a8, 6_500_0000000n);
-  assert.equal(a9, 2000);
-  assert.equal(Buffer.from(a10).toString("hex"), KTP);
+  assert.equal(a4, "Subsidized");
+  assert.equal(a5, 2_000_000_0000000n);
+  assert.equal(a6, 1000);
+  assert.equal(a7, 500);
+  assert.equal(a8, 2_600_000n);
+  assert.equal(a9, 6_500_0000000n);
+  assert.equal(a10, 2000);
+  assert.equal(Buffer.from(a11).toString("hex"), KTP);
 });
 
 test("accept_supply: (coop, u64 id)", () => {
@@ -123,6 +133,7 @@ test("create_agreement builds a valid invokeHostFunction tx envelope", () => {
     farmer,
     supplier,
     commodity: { code: "GABAH", grade: "B", moistureBps: 1400, hppVersion: 4 },
+    subsidyTier: "Subsidized",
     basePriceSupplier: 2_000_000_0000000n,
     saprotanMarkupBps: 1000,
     hppHandlingFeeBps: 500,
@@ -146,4 +157,88 @@ test("create_agreement builds a valid invokeHostFunction tx envelope", () => {
   const reparsed = TransactionBuilder.fromXDR(xdr, Networks.TESTNET) as Transaction;
   assert.equal(reparsed.operations.length, 1);
   assert.equal(reparsed.operations[0]?.type, "invokeHostFunction");
+});
+
+// ─── Funding (KMP) ───────────────────────────────────────────────────────────
+
+test("request_funding: (coop, financier, bytes32, i128, i128)", () => {
+  const inv = requestFunding({
+    coop,
+    financier: supplier,
+    backingHash: KTP,
+    projectedSettlement: 10_000_000_0000000n,
+    amountRequested: 8_000_000_0000000n,
+  });
+  assert.equal(inv.method, "request_funding");
+  assert.equal(inv.args.length, 5);
+  const [c, f, h, ps, ar] = inv.args.map((v) => scValToNative(v));
+  assert.equal(c, coop);
+  assert.equal(f, supplier);
+  assert.equal(Buffer.from(h).toString("hex"), KTP);
+  assert.equal(ps, 10_000_000_0000000n);
+  assert.equal(ar, 8_000_000_0000000n);
+});
+
+test("reconcile_funding: (coop, u64, i128)", () => {
+  const inv = reconcileFunding(coop, 1n, 2_000_000_0000000n);
+  assert.equal(inv.method, "reconcile_funding");
+  const [c, id, pc] = inv.args.map((v) => scValToNative(v));
+  assert.equal(c, coop);
+  assert.equal(id, 1n);
+  assert.equal(pc, 2_000_000_0000000n);
+});
+
+// ─── Funding (Financier) ─────────────────────────────────────────────────────
+
+test("approve_funding: (financier, u64, i128)", () => {
+  const inv = approveFunding(supplier, 1n, 8_000_000_0000000n);
+  assert.equal(inv.method, "approve_funding");
+  const [f, id, amt] = inv.args.map((v) => scValToNative(v));
+  assert.equal(f, supplier);
+  assert.equal(id, 1n);
+  assert.equal(amt, 8_000_000_0000000n);
+});
+
+test("reject_funding: (financier, u64, symbol reason)", () => {
+  const inv = rejectFunding(supplier, 2n, "RISIKO_TINGGI");
+  assert.equal(inv.method, "reject_funding");
+  const [f, id, reason] = inv.args.map((v) => scValToNative(v));
+  assert.equal(f, supplier);
+  assert.equal(id, 2n);
+  assert.equal(reason, "RISIKO_TINGGI");
+});
+
+test("disburse_funding: (financier, u64) — highest-risk encode path", () => {
+  const inv = disburseFunding(supplier, 1n);
+  assert.equal(inv.method, "disburse_funding");
+  const [f, id] = inv.args.map((v) => scValToNative(v));
+  assert.equal(f, supplier);
+  assert.equal(id, 1n);
+});
+
+// ─── Supply (Supplier) ───────────────────────────────────────────────────────
+
+test("dispatch_supply: (supplier, u64)", () => {
+  const inv = dispatchSupply(supplier, 5n);
+  assert.equal(inv.method, "dispatch_supply");
+  const [s, id] = inv.args.map((v) => scValToNative(v));
+  assert.equal(s, supplier);
+  assert.equal(id, 5n);
+});
+
+test("confirm_remittance: (supplier, u64)", () => {
+  const inv = confirmRemittance(supplier, 5n);
+  assert.equal(inv.method, "confirm_remittance");
+  const [s, id] = inv.args.map((v) => scValToNative(v));
+  assert.equal(s, supplier);
+  assert.equal(id, 5n);
+});
+
+test("flag_remittance_dispute: (supplier, u64, symbol reason)", () => {
+  const inv = flagRemittanceDispute(supplier, 7n, "SALDO_TIDAK_COCOK");
+  assert.equal(inv.method, "flag_remittance_dispute");
+  const [s, id, reason] = inv.args.map((v) => scValToNative(v));
+  assert.equal(s, supplier);
+  assert.equal(id, 7n);
+  assert.equal(reason, "SALDO_TIDAK_COCOK");
 });

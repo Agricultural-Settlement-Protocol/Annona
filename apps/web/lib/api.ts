@@ -9,7 +9,7 @@
  * discipline (never floats for money). Field names mirror the API responses,
  * NOT the mock-data `Mock*` shapes (they diverge: volumeG vs volumeKg, etc.).
  */
-import type { FlagReason, ResiduStatus, Status } from "@annona/core";
+import type { FlagReason, ResiduStatus, Status, SubsidyTier } from "@annona/core";
 import type { RepTier } from "@annona/ui";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8787";
@@ -33,6 +33,7 @@ export interface ApiAgreement {
   farmerId: string;
   farmerName: string;
   commodityCode: string;
+  subsidyTier: SubsidyTier;
   grade: string;
   moistureBps: number;
   basePriceSupplier: bigint;
@@ -405,6 +406,53 @@ export async function fetchHpp(): Promise<ApiPriceRef[]> {
   }));
 }
 
+// ─── Subsidy / e-RDKK distribution ──────────────────────────────────────────
+
+export interface ApiSubsidyTierRow {
+  tier: "Subsidized" | "Commercial";
+  count: number;
+  projectedValue: bigint;
+}
+
+export interface ApiFarmerSubsidyStatus {
+  status: string;
+  count: number;
+}
+
+export interface ApiHetCatalogItem {
+  id: string;
+  name: string;
+  priceTier: string | null;
+  hetPrice: string | null;
+  erdkkGated: boolean | null;
+}
+
+export interface ApiSubsidyDistribution {
+  byTier: ApiSubsidyTierRow[];
+  subsidizedAgreementCount: number;
+  commercialAgreementCount: number;
+  byFarmerStatus: ApiFarmerSubsidyStatus[];
+  hetCatalog: ApiHetCatalogItem[];
+}
+
+export async function fetchSubsidyDistribution(): Promise<ApiSubsidyDistribution> {
+  const r = await getJSON<{
+    byTier: { tier: string; count: number; projectedValue: string }[];
+    subsidizedAgreementCount: number;
+    commercialAgreementCount: number;
+    byFarmerStatus: { status: string; count: number }[];
+    hetCatalog: { id: string; name: string; priceTier: string | null; hetPrice: string | null; erdkkGated: boolean | null }[];
+  }>("/subsidy/distribution");
+  return {
+    ...r,
+    byTier: r.byTier.map((t) => ({
+      tier: t.tier as "Subsidized" | "Commercial",
+      count: t.count,
+      projectedValue: big(t.projectedValue),
+    })),
+  };
+}
+
 /** Build an id -> farmer lookup (fills the kecamatan/wallet the agreement list omits). */
 export function farmerMap(farmers: ApiFarmer[]): Map<string, ApiFarmer> {
   return new Map(farmers.map((f) => [f.id, f]));
@@ -443,6 +491,39 @@ export interface ApiBackingLine {
   commodityCode: string;
   status: string;
   backingValue: bigint;
+}
+
+// ─── Payable (Utang ke Supplier) ─────────────────────────────────────────────
+
+export interface ApiPayableOverview {
+  totals: {
+    count: number;
+    totalAccrued: bigint;
+    totalSettled: bigint;
+    totalOutstanding: bigint;
+    byStatus: Record<string, number>;
+  };
+}
+
+export async function fetchPayableOverview(): Promise<ApiPayableOverview> {
+  const r = await getJSON<{
+    totals: {
+      count: number;
+      totalAccrued: string;
+      totalSettled: string;
+      totalOutstanding: string;
+      byStatus: Record<string, number>;
+    };
+  }>("/payable/overview");
+  return {
+    totals: {
+      count: r.totals.count,
+      totalAccrued: big(r.totals.totalAccrued),
+      totalSettled: big(r.totals.totalSettled),
+      totalOutstanding: big(r.totals.totalOutstanding),
+      byStatus: r.totals.byStatus,
+    },
+  };
 }
 
 export interface ApiFinancierOverview {

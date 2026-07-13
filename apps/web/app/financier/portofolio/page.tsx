@@ -15,24 +15,33 @@ import {
   type FundingStatus,
   type RiskBadge,
 } from "@/lib/api";
+import { useI18n } from "@/lib/i18n/use-i18n";
 import { useApi } from "@/lib/use-api";
 import { Alert, RupiahAmount } from "@annona/ui";
 import { Search } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
-function StatusBadge({ status }: { status: FundingStatus }) {
-  const map: Record<FundingStatus, { cls: string; label: string }> = {
-    Requested: { cls: "bg-gray-100 text-gray-600 border-gray-200", label: "Diajukan" },
-    Approved: { cls: "bg-amber-50 text-amber-700 border-amber-200", label: "Disetujui" },
-    Rejected: { cls: "bg-red-50 text-red-700 border-red-200", label: "Ditolak" },
-    Disbursed: { cls: "bg-blue-50 text-blue-700 border-blue-200", label: "Dicairkan" },
-    Reconciled: { cls: "bg-emerald-50 text-emerald-700 border-emerald-200", label: "Direkonsiliasi" },
-  };
-  const s = map[status];
+const STATUS_BADGE_STYLES: Record<FundingStatus, string> = {
+  Requested: "bg-gray-100 text-gray-600 border-gray-200",
+  Approved: "bg-amber-50 text-amber-700 border-amber-200",
+  Rejected: "bg-red-50 text-red-700 border-red-200",
+  Disbursed: "bg-blue-50 text-blue-700 border-blue-200",
+  Reconciled: "bg-emerald-50 text-emerald-700 border-emerald-200",
+};
+
+const STATUS_BADGE_KEYS: Record<FundingStatus, string> = {
+  Requested: "badge.funding.Requested",
+  Approved: "badge.funding.Approved",
+  Rejected: "badge.funding.Rejected",
+  Disbursed: "badge.funding.Disbursed",
+  Reconciled: "badge.funding.Reconciled",
+};
+
+function StatusBadge({ status, t }: { status: FundingStatus; t: (key: string) => string }) {
   return (
-    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${s.cls}`}>
-      {s.label}
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${STATUS_BADGE_STYLES[status]}`}>
+      {t(STATUS_BADGE_KEYS[status])}
     </span>
   );
 }
@@ -58,6 +67,7 @@ function remainingAmt(req: ApiFundingRequestRow): bigint {
 }
 
 export default function PortofolioPage() {
+  const { t } = useI18n();
   const { data, loading, error } = useApi(fetchFinancierPortfolio);
   const [query, setQuery] = useState("");
 
@@ -77,12 +87,12 @@ export default function PortofolioPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Portofolio"
-        description="Semua permohonan yang sudah disetujui, dicairkan, direkonsiliasi, atau ditolak."
+        title={t("page.financier.portofolio.title")}
+        description={t("page.financier.portofolio.desc")}
       />
 
       {error && (
-        <Alert tone="warning" title="Gagal memuat portofolio">
+        <Alert tone="warning" title={t("common.error")}>
           {error}
         </Alert>
       )}
@@ -92,7 +102,7 @@ export default function PortofolioPage() {
         <Search size={14} className="shrink-0 text-gray-400" />
         <input
           type="search"
-          placeholder="Cari koperasi, status, atau risiko..."
+          placeholder={t("page.financier.portofolio.search")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className="h-full w-full bg-transparent text-sm text-gray-800 outline-none placeholder:text-gray-400"
@@ -100,7 +110,7 @@ export default function PortofolioPage() {
       </div>
 
       {loading && (
-        <p className="py-4 text-sm text-gray-400">Memuat portofolio...</p>
+        <p className="py-4 text-sm text-gray-400">{t("common.loading")}</p>
       )}
 
       {!loading && (
@@ -108,21 +118,21 @@ export default function PortofolioPage() {
           <TableFrame>
             <Table>
               <THead>
-                <Th>Koperasi</Th>
-                <Th>Status</Th>
-                <Th>Risiko</Th>
-                <Th className="text-right">Diajukan</Th>
-                <Th className="text-right">Disetujui</Th>
-                <Th className="text-right">Dicairkan</Th>
-                <Th className="text-right">Direkonsiliasi</Th>
+                <Th>{t("page.financier.portofolio.table.col.coop")}</Th>
+                <Th>{t("common.status")}</Th>
+                <Th>{t("page.financier.portofolio.table.col.risk")}</Th>
+                <Th className="text-right">{t("badge.funding.Requested")}</Th>
+                <Th className="text-right">{t("badge.funding.Approved")}</Th>
+                <Th className="text-right">{t("badge.funding.Disbursed")}</Th>
+                <Th className="text-right">{t("badge.funding.Reconciled")}</Th>
                 <Th className="text-right">Sisa</Th>
-                <Th>Tanggal</Th>
+                <Th>{t("page.financier.portofolio.table.col.date")}</Th>
               </THead>
               <TBody>
                 {filtered.length === 0 ? (
                   <tr>
                     <td colSpan={9} className="px-4 py-8 text-center text-sm text-gray-400">
-                      Tidak ada data ditemukan.
+                      {t("page.financier.portofolio.table.empty")}
                     </td>
                   </tr>
                 ) : (
@@ -140,7 +150,7 @@ export default function PortofolioPage() {
                         </Link>
                       </Td>
                       <Td>
-                        <StatusBadge status={req.status} />
+                        <StatusBadge status={req.status} t={t} />
                       </Td>
                       <Td>
                         <RiskPill badge={req.riskBadge} />

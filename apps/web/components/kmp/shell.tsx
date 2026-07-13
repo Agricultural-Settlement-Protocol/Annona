@@ -1,6 +1,8 @@
 "use client";
 
 import { WalletBadge } from "@/components/kmp/wallet-badge";
+import { LanguageToggle } from "@/lib/i18n/language-toggle";
+import { useI18n } from "@/lib/i18n/use-i18n";
 import { fetchCoop } from "@/lib/api";
 import { useApi } from "@/lib/use-api";
 import { shortAddr } from "@/lib/mock-data";
@@ -43,38 +45,40 @@ type NavItem = {
   exact?: boolean;
 };
 
-const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
-  {
-    label: null,
-    items: [
-      { href: "/kmp", label: "Beranda", icon: LayoutDashboard, exact: true },
-      { href: "/kmp/petani", label: "Petani", icon: Users },
-      { href: "/kmp/perjanjian", label: "Perjanjian", icon: FileText },
-    ],
-  },
-  {
-    label: "Transaksi",
-    items: [
-      {
-        href: "/kmp/permintaan",
-        label: "Permintaan Saprotan",
-        icon: ClipboardList,
-      },
-      { href: "/kmp/setor", label: "Setor Panen", icon: PackageCheck },
-      { href: "/kmp/pembayaran", label: "Pembayaran", icon: Banknote },
-      { href: "/kmp/residu", label: "Residu Supplier", icon: Landmark },
-      { href: "/kmp/permintaan-dana", label: "Permintaan Dana", icon: Coins },
-    ],
-  },
-  {
-    label: "Lainnya",
-    items: [
-      { href: "/kmp/gudang", label: "Gudang & Pasokan", icon: Warehouse },
-      { href: "/kmp/logistik", label: "Logistik ke Agrinas", icon: Truck },
-      { href: "/kmp/pengaturan", label: "Pengaturan", icon: Settings },
-    ],
-  },
-];
+function navGroups(t: (key: string) => string): { label: string | null; items: NavItem[] }[] {
+  return [
+    {
+      label: null,
+      items: [
+        { href: "/kmp", label: t("shell.kmp.nav.beranda"), icon: LayoutDashboard, exact: true },
+        { href: "/kmp/petani", label: t("shell.kmp.nav.petani"), icon: Users },
+        { href: "/kmp/perjanjian", label: t("shell.kmp.nav.perjanjian"), icon: FileText },
+      ],
+    },
+    {
+      label: t("shell.kmp.nav.group.transactions"),
+      items: [
+        {
+          href: "/kmp/permintaan",
+          label: t("shell.kmp.nav.permintaan"),
+          icon: ClipboardList,
+        },
+        { href: "/kmp/setor", label: t("shell.kmp.nav.setor"), icon: PackageCheck },
+        { href: "/kmp/pembayaran", label: t("shell.kmp.nav.pembayaran"), icon: Banknote },
+        { href: "/kmp/residu", label: t("shell.kmp.nav.residu"), icon: Landmark },
+        { href: "/kmp/permintaan-dana", label: t("shell.kmp.nav.permintaanDana"), icon: Coins },
+      ],
+    },
+    {
+      label: t("shell.kmp.nav.group.others"),
+      items: [
+        { href: "/kmp/gudang", label: t("shell.kmp.nav.gudang"), icon: Warehouse },
+        { href: "/kmp/logistik", label: t("shell.kmp.nav.logistik"), icon: Truck },
+        { href: "/kmp/pengaturan", label: t("shell.kmp.nav.pengaturan"), icon: Settings },
+      ],
+    },
+  ];
+}
 
 const STORAGE_KEY = "annona.kmp.sidebar.collapsed";
 
@@ -141,6 +145,7 @@ function SidebarContent({
   onToggle?: () => void;
 }) {
   const pathname = usePathname();
+  const { t } = useI18n();
   const { data: coopData } = useApi(fetchCoop);
   const coop = coopData?.coop;
   return (
@@ -158,7 +163,7 @@ function SidebarContent({
               <Logo size={20} className="shrink-0" />
             </Link>
             <span className="min-w-0 shrink truncate rounded-full bg-[#e7fafc] border border-[#c3f2f6]/50 px-2 py-0.5 text-[9px] font-mono font-bold tracking-wide text-[#0c6a78] uppercase">
-              KMP
+              {t("shell.kmp.title")}
             </span>
           </>
         )}
@@ -166,7 +171,7 @@ function SidebarContent({
           <button
             type="button"
             onClick={onToggle}
-            aria-label={collapsed ? "Perlebar menu" : "Perkecil menu"}
+            aria-label={collapsed ? t("shell.kmp.sidebar.expand") : t("shell.kmp.sidebar.collapse")}
             className={cn(
               "hidden rounded-md p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 lg:block",
               collapsed ? "mt-2" : "ml-auto",
@@ -185,7 +190,7 @@ function SidebarContent({
       {collapsed ? null : (
         <div className="mx-4 mb-4 rounded-lg border border-border bg-surface-muted px-3 py-2.5">
           <p className="text-sm font-semibold text-foreground">
-            {coop?.name ?? "Koperasi"}
+            {coop?.name ?? t("shell.kmp.cooperative")}
           </p>
           <p className="mt-0.5 text-xs text-muted-foreground">
             {coop ? `${coop.kecamatan}, ${coop.kabupaten}` : ""}
@@ -205,9 +210,9 @@ function SidebarContent({
           "hover:[&::-webkit-scrollbar-thumb]:bg-gray-400/70",
           collapsed ? "px-2" : "px-3",
         )}
-        aria-label="Menu utama"
+        aria-label={t("shell.kmp.sidebar.navLabel")}
       >
-        {NAV_GROUPS.map((group) => (
+        {navGroups(t).map((group) => (
           <div key={group.label ?? "utama"}>
             {group.label && !collapsed ? (
               <p className="px-3 pb-1 text-[10px] font-bold tracking-[0.14em] text-gray-400 uppercase">
@@ -243,11 +248,12 @@ function SidebarContent({
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-800 border border-emerald-250">
               HU
             </div>
+            <LanguageToggle iconOnly className="inline-flex items-center justify-center rounded-lg border border-emerald-200/60 bg-emerald-50 p-1.5 text-emerald-700 transition-all hover:bg-emerald-100 hover:text-emerald-800 hover:border-emerald-300 active:scale-[0.97]" />
             <button
               type="button"
               onClick={() => void signOutToAuth()}
-              title="Keluar"
-              aria-label="Keluar"
+              title={t("shell.kmp.footer.logout")}
+              aria-label={t("shell.kmp.footer.logout")}
               className="rounded-md p-2 text-gray-500 transition-colors hover:bg-red-50 hover:text-red-700"
             >
               <LogOut size={16} />
@@ -264,22 +270,23 @@ function SidebarContent({
                   H. Usman
                 </p>
                 <p className="text-[11px] text-muted-foreground leading-tight">
-                  Pengurus KMP
+                  {t("shell.kmp.user.title")}
                 </p>
               </div>
               <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-[#e7fafc] px-1.5 py-0.5 text-[8px] font-mono font-bold text-[#0c6a78] border border-[#c3f2f6]/50">
                 <Wifi size={9} className="animate-pulse" />
-                Testnet
+                {t("shell.oversight.testnet")}
               </span>
             </div>
             <WalletBadge />
+            <LanguageToggle />
             <button
               type="button"
               onClick={() => void signOutToAuth()}
               className="flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-gray-200 px-3 text-xs font-semibold text-gray-600 transition-colors hover:bg-red-50 hover:text-red-700 hover:border-red-100"
             >
               <LogOut size={14} />
-              Keluar
+              {t("shell.kmp.footer.logout")}
             </button>
           </div>
         )}
@@ -289,6 +296,7 @@ function SidebarContent({
 }
 
 export function KmpShell({ children }: { children: ReactNode }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [hydrated, setHydrated] = useState(false);
@@ -329,8 +337,8 @@ export function KmpShell({ children }: { children: ReactNode }) {
             {/* Backdrop */}
             <motion.button
               type="button"
-              aria-label="Tutup menu"
-              initial={{ opacity: 0 }}
+                aria-label={t("shell.kmp.sidebar.closeMenu")}
+                initial={{ opacity: 0 }}
               animate={{ opacity: 0.4 }}
               exit={{ opacity: 0 }}
               className="absolute inset-0 bg-black pointer-events-auto"
@@ -346,7 +354,7 @@ export function KmpShell({ children }: { children: ReactNode }) {
             >
               <button
                 type="button"
-                aria-label="Tutup menu"
+                aria-label={t("shell.kmp.sidebar.closeMenu")}
                 className="absolute top-4 right-4 rounded-full p-2 text-gray-400 hover:bg-gray-100"
                 onClick={() => setOpen(false)}
               >
@@ -362,7 +370,7 @@ export function KmpShell({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-gray-100 bg-white/80 px-4 backdrop-blur-md lg:hidden">
         <button
           type="button"
-          aria-label="Buka menu"
+          aria-label={t("shell.kmp.sidebar.openMenu")}
           className="rounded-full p-2 text-gray-700 hover:bg-gray-100"
           onClick={() => setOpen(true)}
         >
@@ -370,7 +378,7 @@ export function KmpShell({ children }: { children: ReactNode }) {
         </button>
         <Logo className="h-6 w-auto" />
         <span className="ml-auto rounded-full bg-[#e7fafc] border border-[#c3f2f6]/50 px-2.5 py-0.5 text-[9px] font-mono font-bold text-[#0c6a78] uppercase">
-          Testnet
+          {t("shell.oversight.testnet")}
         </span>
       </header>
 

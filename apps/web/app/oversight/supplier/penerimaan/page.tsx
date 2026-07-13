@@ -30,6 +30,7 @@ import {
   Truck,
   X,
 } from "lucide-react";
+import { useI18n } from "@/lib/i18n/use-i18n";
 import { Fragment, useCallback, useMemo, useRef, useState } from "react";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -39,9 +40,10 @@ function moistureLabel(bps: number): string {
 }
 
 function ShipmentStatusBadge({ status }: { status: OversightShipment["status"] }) {
-  if (status === "Dikirim") return <Badge tone="aqua">Dikirim</Badge>;
-  if (status === "Diterima") return <Badge tone="success">Diterima</Badge>;
-  if (status === "Selisih") return <Badge tone="danger">Selisih</Badge>;
+  const { t } = useI18n();
+  if (status === "Dikirim") return <Badge tone="aqua">{t("page.oversight.supplier.penerimaan.badge.dikirim")}</Badge>;
+  if (status === "Diterima") return <Badge tone="success">{t("page.oversight.supplier.penerimaan.badge.diterima")}</Badge>;
+  if (status === "Selisih") return <Badge tone="danger">{t("page.oversight.supplier.penerimaan.badge.selisih")}</Badge>;
   return <Badge tone="neutral">Draft</Badge>;
 }
 
@@ -54,6 +56,7 @@ function InboundCard({
   shipment: OversightShipment;
   onOpenDetail: (s: OversightShipment) => void;
 }) {
+  const { t } = useI18n();
   const avgMoisture = weightedMoistureBps(shipment.lines);
   const grades = [...new Set(shipment.lines.map((l) => l.grade))].sort().join(", ");
 
@@ -68,26 +71,26 @@ function InboundCard({
       </div>
       <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
         <div>
-          <p className="text-xs text-muted-foreground">Komoditas</p>
+          <p className="text-xs text-muted-foreground">{t("page.kmp.perjanjian.colHeader.commodity")}</p>
           <p className="font-medium text-foreground">{shipment.commodityCode}</p>
         </div>
         <div>
-          <p className="text-xs text-muted-foreground">Volume Dikirim</p>
+          <p className="text-xs text-muted-foreground">{t("page.oversight.supplier.penerimaan.totalVolume")}</p>
           <p className="font-medium text-foreground tabular-nums">
             {shipment.totalVolumeKg.toLocaleString("id-ID")} kg
           </p>
         </div>
         <div>
-          <p className="text-xs text-muted-foreground">Grade Lot</p>
+          <p className="text-xs text-muted-foreground">{t("page.kmp.perjanjian.detail.grade")}</p>
           <p className="font-medium text-foreground">{grades}</p>
         </div>
         <div>
-          <p className="text-xs text-muted-foreground">Kadar Air (rata-rata)</p>
+          <p className="text-xs text-muted-foreground">{t("page.kmp.perjanjian.detail.moisture")}</p>
           <p className="font-medium text-foreground">{moistureLabel(avgMoisture)}</p>
         </div>
       </div>
       {shipment.sentAt && (
-        <p className="mt-2 text-xs text-muted-foreground">Tanggal kirim: {shipment.sentAt}</p>
+        <p className="mt-2 text-xs text-muted-foreground">{t("common.date")}: {shipment.sentAt}</p>
       )}
       <div className="mt-4">
         <Button
@@ -97,7 +100,7 @@ function InboundCard({
           onClick={() => onOpenDetail(shipment)}
           className="w-full"
         >
-          Konfirmasi Penerimaan
+          {t("page.oversight.supplier.penerimaan.confirm")}
         </Button>
       </div>
     </div>
@@ -115,6 +118,7 @@ function ConfirmSheet({
   onClose: () => void;
   onConfirm: (id: string, receivedKg: number, catatan: string) => void;
 }) {
+  const { t } = useI18n();
   const [receivedInput, setReceivedInput] = useState<string>("");
   const [catatan, setCatatan] = useState<string>("");
   const [errors, setErrors] = useState<{ received?: string; catatan?: string }>({});
@@ -140,10 +144,10 @@ function ConfirmSheet({
   function validate(): boolean {
     const errs: { received?: string; catatan?: string } = {};
     if (!receivedInput || Number.isNaN(receivedKg) || receivedKg <= 0) {
-      errs.received = "Volume diterima wajib diisi";
+      errs.received = "Volume diterima wajib diisi"; // no i18n key
     }
     if (isSelisih && !catatan.trim()) {
-      errs.catatan = "Catatan selisih wajib diisi jika volume berbeda";
+      errs.catatan = "Catatan selisih wajib diisi jika volume berbeda"; // no i18n key
     }
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -163,18 +167,18 @@ function ConfirmSheet({
         type="button"
         className="fixed inset-0 z-40 bg-foreground/30 backdrop-blur-[1px]"
         onClick={onClose}
-        aria-label="Tutup panel"
+        aria-label={t("common.close")}
       />
       {/* biome-ignore lint/a11y/useSemanticElements: side-sheet uses role="dialog" on div; native <dialog> lacks the CSS positioning primitives needed for this fixed-right layout */}
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Konfirmasi penerimaan kiriman"
+        aria-label={t("page.oversight.supplier.penerimaan.confirm")}
         className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col bg-surface shadow-md overflow-hidden"
       >
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div>
-            <p className="font-semibold text-foreground">Konfirmasi Penerimaan</p>
+            <p className="font-semibold text-foreground">{t("page.oversight.supplier.penerimaan.confirm")}</p>
             <p className="text-xs text-muted-foreground">
               {s.coopName}, {s.ref}
             </p>
@@ -183,7 +187,7 @@ function ConfirmSheet({
             type="button"
             onClick={onClose}
             className="rounded-md p-1 text-muted-foreground hover:text-foreground"
-            aria-label="Tutup"
+            aria-label={t("common.close")}
           >
             <X size={18} />
           </button>
@@ -193,17 +197,17 @@ function ConfirmSheet({
           {/* Shipment summary */}
           <div className="rounded-[10px] border border-border bg-surface-muted p-4 text-sm space-y-2">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Komoditas</span>
+              <span className="text-muted-foreground">{t("page.kmp.perjanjian.colHeader.commodity")}</span>
               <span className="font-medium">{s.commodityCode}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Volume Dinyatakan</span>
+              <span className="text-muted-foreground">{t("page.oversight.supplier.penerimaan.totalVolume")}</span>
               <span className="font-medium tabular-nums">
                 {declared.toLocaleString("id-ID")} kg
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Kadar Air (rata-rata)</span>
+              <span className="text-muted-foreground">{t("page.kmp.perjanjian.detail.moisture")}</span>
               <span className="font-medium">{moistureLabel(avgMoisture)}</span>
             </div>
           </div>
@@ -218,14 +222,14 @@ function ConfirmSheet({
                 <div key={line.id} className="flex items-center justify-between px-4 py-2.5">
                   <div>
                     <p className="text-xs text-muted-foreground">ID {line.farmerId}</p>
-                    <p className="font-medium">Grade {line.grade}</p>
+                    <p className="font-medium">{t("page.kmp.perjanjian.detail.grade")} {line.grade}</p>
                   </div>
                   <div className="text-right">
                     <p className="font-medium tabular-nums">
                       {line.volumeKg.toLocaleString("id-ID")} kg
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Kadar air {moistureLabel(line.moistureBps)}
+                      {t("page.kmp.perjanjian.detail.moisture")} {moistureLabel(line.moistureBps)}
                     </p>
                   </div>
                 </div>
@@ -239,7 +243,7 @@ function ConfirmSheet({
               className="mb-1 block text-sm font-medium text-foreground"
               htmlFor="confirm-received"
             >
-              Volume Diterima (kg)
+               {t("page.oversight.supplier.penerimaan.confirm.actual")}
             </label>
             <Input
               id="confirm-received"
@@ -285,7 +289,7 @@ function ConfirmSheet({
                 className="mb-1 block text-sm font-medium text-foreground"
                 htmlFor="confirm-catatan"
               >
-                Catatan Selisih (wajib)
+                {t("page.oversight.supplier.penerimaan.confirm.notes")}
               </label>
               <textarea
                 id="confirm-catatan"
@@ -295,7 +299,7 @@ function ConfirmSheet({
                   if (errors.catatan) setErrors((prev) => ({ ...prev, catatan: undefined }));
                 }}
                 rows={3}
-                placeholder="Jelaskan penyebab selisih..."
+                placeholder={t("common.notes")}
                 className="w-full rounded-[10px] border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
               {errors.catatan && (
@@ -308,17 +312,17 @@ function ConfirmSheet({
           <div className="flex items-start gap-2 rounded-[10px] bg-surface-muted px-4 py-3 text-xs text-muted-foreground">
             <Info size={13} className="mt-0.5 shrink-0" />
             <span>
-              Dicatat off-chain. Jalur on-chain (confirm_receipt on Stellar) direncanakan v3.1.
+              {t("page.oversight.supplier.penerimaan.confirm.desc")}
             </span>
           </div>
         </div>
 
         <div className="flex items-center justify-end gap-3 border-t border-border px-6 py-4">
           <Button variant="outline" size="sm" onClick={onClose}>
-            Batal
+            {t("common.cancel")}
           </Button>
           <Button variant="primary" size="sm" onClick={handleConfirm}>
-            {isSelisih && receivedInput ? "Tandai Selisih" : "Konfirmasi Diterima"}
+            {isSelisih && receivedInput ? t("page.oversight.supplier.penerimaan.badge.selisih") : t("page.oversight.supplier.penerimaan.confirm.submit")}
           </Button>
         </div>
       </div>
@@ -335,6 +339,7 @@ function HistoryDetailSheet({
   shipment: OversightShipment | null;
   onClose: () => void;
 }) {
+  const { t } = useI18n();
   if (!shipment) return null;
 
   return (
@@ -343,18 +348,18 @@ function HistoryDetailSheet({
         type="button"
         className="fixed inset-0 z-40 bg-foreground/30 backdrop-blur-[1px]"
         onClick={onClose}
-        aria-label="Tutup detail"
+        aria-label={t("common.close")}
       />
       {/* biome-ignore lint/a11y/useSemanticElements: side-sheet uses role="dialog" on div; native <dialog> lacks the CSS positioning primitives needed for this fixed-right layout */}
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Detail kiriman"
+        aria-label={t("common.detail")}
         className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col bg-surface shadow-md overflow-hidden"
       >
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div>
-            <p className="font-semibold text-foreground">Detail Kiriman</p>
+            <p className="font-semibold text-foreground">{t("common.detail")}</p>
             <p className="text-xs text-muted-foreground">
               {shipment.coopName}, {shipment.ref}
             </p>
@@ -363,7 +368,7 @@ function HistoryDetailSheet({
             type="button"
             onClick={onClose}
             className="rounded-md p-1 text-muted-foreground hover:text-foreground"
-            aria-label="Tutup"
+            aria-label={t("common.close")}
           >
             <X size={18} />
           </button>
@@ -373,36 +378,36 @@ function HistoryDetailSheet({
           <div className="flex items-center gap-3">
             <ShipmentStatusBadge status={shipment.status} />
             {shipment.status === "Selisih" && (
-              <span className="text-sm text-amber-700 font-medium">Perlu tindak lanjut</span>
+              <span className="text-sm text-amber-700 font-medium">{t("badge.status.Flagged")}</span>
             )}
           </div>
 
           <div className="rounded-[10px] border border-border bg-surface-muted p-4 text-sm space-y-2">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Komoditas</span>
+              <span className="text-muted-foreground">{t("page.kmp.perjanjian.colHeader.commodity")}</span>
               <span className="font-medium">{shipment.commodityCode}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Volume Dinyatakan</span>
+              <span className="text-muted-foreground">{t("page.oversight.supplier.penerimaan.totalVolume")}</span>
               <span className="font-medium tabular-nums">
                 {shipment.totalVolumeKg.toLocaleString("id-ID")} kg
               </span>
             </div>
             {shipment.receivedVolumeKg != null && (
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Volume Diterima</span>
+                <span className="text-muted-foreground">{t("page.oversight.supplier.penerimaan.confirm.actual")}</span>
                 <span className={`font-medium tabular-nums ${shipment.receivedVolumeKg !== shipment.totalVolumeKg ? "text-amber-700" : "text-verdant-700"}`}>
                   {shipment.receivedVolumeKg.toLocaleString("id-ID")} kg
                 </span>
               </div>
             )}
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Tanggal Kirim</span>
+              <span className="text-muted-foreground">{t("common.date")}</span>
               <span className="font-medium">{shipment.sentAt ?? "-"}</span>
             </div>
             {shipment.receivedAt && (
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Tanggal Terima</span>
+                <span className="text-muted-foreground">{t("common.date")}</span>
                 <span className="font-medium">{shipment.receivedAt}</span>
               </div>
             )}
@@ -410,7 +415,7 @@ function HistoryDetailSheet({
 
           {shipment.discrepancyNote && (
             <div className="rounded-[10px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              <p className="font-medium mb-1">Catatan Selisih</p>
+              <p className="font-medium mb-1">{t("page.oversight.supplier.penerimaan.confirm.notes")}</p>
               <p>{shipment.discrepancyNote}</p>
             </div>
           )}
@@ -424,14 +429,14 @@ function HistoryDetailSheet({
                 <div key={line.id} className="flex items-center justify-between px-4 py-2.5">
                   <div>
                     <p className="text-xs text-muted-foreground">ID {line.farmerId}</p>
-                    <p className="font-medium">Grade {line.grade}</p>
+                    <p className="font-medium">{t("page.kmp.perjanjian.detail.grade")} {line.grade}</p>
                   </div>
                   <div className="text-right">
                     <p className="font-medium tabular-nums">
                       {line.volumeKg.toLocaleString("id-ID")} kg
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Kadar air {moistureLabel(line.moistureBps)}
+                      {t("page.kmp.perjanjian.detail.moisture")} {moistureLabel(line.moistureBps)}
                     </p>
                   </div>
                 </div>
@@ -442,7 +447,7 @@ function HistoryDetailSheet({
           <div className="flex items-start gap-2 rounded-[10px] bg-surface-muted px-4 py-3 text-xs text-muted-foreground">
             <Info size={13} className="mt-0.5 shrink-0" />
             <span>
-              Dicatat off-chain. Jalur on-chain direncanakan v3.1.
+              {t("page.oversight.supplier.penerimaan.confirm.desc")}
             </span>
           </div>
         </div>
@@ -454,6 +459,7 @@ function HistoryDetailSheet({
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function PenerimaanPage() {
+  const { t } = useI18n();
   const [shipments, setShipments] = useState<OversightShipment[]>(OVERSIGHT_SHIPMENTS);
   const [confirmTarget, setConfirmTarget] = useState<OversightShipment | null>(null);
   const [historySearch, setHistorySearch] = useState<string>("");
@@ -508,58 +514,55 @@ export default function PenerimaanPage() {
   return (
     <div className="space-y-8">
       <OversightPageHeader
-        title="Penerimaan Hasil Panen"
-        description="Konfirmasi kiriman gabah dari koperasi ke gudang Agrinas. Pencatatan off-chain; jalur on-chain direncanakan v3.1."
+        title={t("page.oversight.supplier.penerimaan.title")}
+        description={t("page.oversight.supplier.penerimaan.desc")}
       />
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         <StatCard
-          label="Menunggu Konfirmasi"
+          label={t("page.oversight.supplier.penerimaan.incoming")}
           value={String(pendingShipments.length)}
-          hint="Kiriman belum dikonfirmasi Agrinas"
+          hint={t("page.oversight.supplier.penerimaan.desc")}
           tone={pendingShipments.length > 0 ? "warn" : "good"}
           icon={<Truck size={18} />}
         />
         <StatCard
-          label="Diterima Bulan Ini"
+          label={t("page.oversight.supplier.penerimaan.badge.diterima")}
           value={`${diterimaBulanIni.toLocaleString("id-ID")} kg`}
-          hint="Volume gabah dikonfirmasi Agrinas"
+          hint={t("page.oversight.supplier.penerimaan.totalVolume")}
           tone="good"
           icon={<CheckCircle2 size={18} />}
         />
         <StatCard
-          label="Selisih Tercatat"
+          label={t("page.oversight.supplier.penerimaan.badge.selisih")}
           value={String(selisihCount)}
-          hint="Kiriman dengan selisih volume"
+          hint={t("page.oversight.supplier.penerimaan.qualityCheck")}
           tone={selisihCount > 0 ? "bad" : "neutral"}
           icon={<AlertTriangle size={18} />}
         />
       </div>
 
       {/* Off-chain notice */}
-      <Alert tone="info" title="Penerimaan dicatat off-chain">
-        <span className="text-sm">
-          Konfirmasi di halaman ini belum terhubung ke Stellar. Jalur on-chain
-          (confirm_receipt) direncanakan pada versi v3.1.
-        </span>
+      <Alert tone="info" title={t("page.oversight.supplier.penerimaan.confirm")}>
+        <span className="text-sm">{t("page.oversight.supplier.penerimaan.confirm.desc")}</span>
       </Alert>
 
       {/* Pending shipments */}
       <div>
         <div className="mb-4">
-          <p className="font-semibold text-foreground">Kiriman Menunggu Konfirmasi</p>
+          <p className="font-semibold text-foreground">{t("page.oversight.supplier.penerimaan.incoming")}</p>
           <p className="text-xs text-muted-foreground">
-            Klik "Konfirmasi Penerimaan" untuk mencatat volume aktual yang diterima di gudang.
+            {t("page.oversight.supplier.penerimaan.confirm.desc")}
           </p>
         </div>
 
         {pendingShipments.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-[14px] border border-dashed border-border py-12 text-center">
             <CheckCircle2 size={36} className="mb-3 text-emerald-500" />
-            <p className="font-medium text-foreground">Semua kiriman telah dikonfirmasi</p>
+            <p className="font-medium text-foreground">{t("common.noData")}</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Tidak ada kiriman yang menunggu konfirmasi.
+              {t("page.oversight.supplier.penerimaan.history.empty")}
             </p>
           </div>
         ) : (
@@ -578,11 +581,11 @@ export default function PenerimaanPage() {
       {/* History */}
       <div>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <p className="font-semibold text-foreground">Riwayat Penerimaan</p>
+          <p className="font-semibold text-foreground">{t("page.oversight.supplier.penerimaan.history")}</p>
           <div className="relative w-64">
             <input
               type="text"
-              placeholder="Cari KMP atau ref..."
+              placeholder={t("common.search")}
               value={historySearch}
               onChange={(e) => setHistorySearch(e.target.value)}
               className="w-full rounded-[10px] border border-border bg-surface py-1.5 pl-3 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
@@ -597,19 +600,19 @@ export default function PenerimaanPage() {
                 <Table>
                   <THead>
                     <Th>Ref</Th>
-                    <Th>KMP Asal</Th>
-                    <Th>Komoditas</Th>
-                    <Th className="text-right">Dinyatakan (kg)</Th>
-                    <Th className="text-right">Diterima (kg)</Th>
-                    <Th>Status</Th>
-                    <Th>Tanggal Terima</Th>
-                    <Th>Detail</Th>
+                    <Th>KMP</Th>
+                    <Th>{t("page.kmp.perjanjian.colHeader.commodity")}</Th>
+                    <Th className="text-right">{t("page.oversight.supplier.penerimaan.badge.dikirim")}</Th>
+                    <Th className="text-right">{t("page.oversight.supplier.penerimaan.badge.diterima")}</Th>
+                    <Th>{t("common.status")}</Th>
+                    <Th>{t("common.date")}</Th>
+                    <Th>{t("common.detail")}</Th>
                   </THead>
                   <TBody>
                     {filteredHistory.length === 0 ? (
                       <Tr>
                         <Td colSpan={8} className="py-8 text-center text-muted-foreground">
-                          Tidak ada riwayat penerimaan.
+                          {t("page.oversight.supplier.penerimaan.history.empty")}
                         </Td>
                       </Tr>
                     ) : (
@@ -640,7 +643,7 @@ export default function PenerimaanPage() {
                                 className="flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:border-ring hover:text-foreground"
                               >
                                 <ChevronRight size={12} />
-                                Detail
+                                {t("common.detail")}
                               </button>
                             </Td>
                           </Tr>

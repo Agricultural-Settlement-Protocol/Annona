@@ -45,6 +45,7 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
+import { useI18n } from "@/lib/i18n/use-i18n";
 import { useRef, useState } from "react";
 
 /** Agreements that can receive a new deposit. */
@@ -106,6 +107,9 @@ function finalStatusLabel(flag: ReturnType<typeof classifyFlag>): string {
 }
 
 export default function SetorPage() {
+  /* ── I18n ──────────────────────────────────────────────────────────────── */
+  const { t } = useI18n();
+
   /* ── Live data ───────────────────────────────────────────────────────── */
   const { data, loading, error } = useApi(
     () => Promise.all([fetchAgreements(), fetchFarmers(), fetchDeliveries()]),
@@ -229,8 +233,8 @@ export default function SetorPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Setor Panen"
-        description="Catat hasil timbang gabah atau jagung dari petani. Setiap setoran tercatat di blockchain Stellar sebagai resi panen."
+        title={t("page.kmp.setor.title")}
+        description={t("page.kmp.setor.desc")}
         actions={
           <Button
             variant="outline"
@@ -238,16 +242,16 @@ export default function SetorPage() {
             leftIcon={<History size={15} />}
             onClick={handleToggleHistory}
           >
-            Riwayat Setoran
+            {t("page.kmp.setor.history")}
           </Button>
         }
       />
 
       {loading && (
-        <p className="text-sm text-muted-foreground">Memuat perjanjian aktif...</p>
+        <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
       )}
       {error && (
-        <Alert tone="warning" title="Gagal memuat perjanjian">
+        <Alert tone="warning" title={t("common.error")}>
           {error}
         </Alert>
       )}
@@ -255,8 +259,8 @@ export default function SetorPage() {
       {/* Step 1: Pilih perjanjian */}
       <Card>
         <CardHeader
-          title="Pilih Perjanjian"
-          description="Hanya perjanjian Berjalan atau Sebagian Disetor yang dapat menerima setoran baru."
+          title={t("page.kmp.setor.form.title")}
+          description={t("page.kmp.setor.form.title")}
           action={<Wheat size={18} className="text-verdant-400" />}
         />
         <CardContent>
@@ -264,13 +268,13 @@ export default function SetorPage() {
             className="mb-1.5 block text-sm font-medium text-foreground"
             htmlFor="setor-agreement-select"
           >
-            Perjanjian aktif
+            {t("page.kmp.setor.form.agreement")}
           </label>
           <SearchSelect
             items={selectItems}
             value={selectedId}
             onChange={handleSelectAgreement}
-            placeholder="Pilih perjanjian..."
+            placeholder={t("page.kmp.setor.form.title")}
             searchPlaceholder="Cari nama petani, komoditas, atau kecamatan..."
           />
 
@@ -306,14 +310,14 @@ export default function SetorPage() {
       {agreement && !showFinalizeSuccess && (
         <Card>
           <CardHeader
-            title="Pengukuran Aktual"
-            description="Diukur di timbangan koperasi saat setoran. Nilai ini adalah hasil nyata, bukan estimasi."
+            title={t("page.kmp.setor.form.grade")}
+            description={t("page.kmp.setor.desc")}
             action={<Scale size={18} className="text-verdant-400" />}
           />
           <CardContent>
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
               <Input
-                label="Volume Bersih (kg)"
+                label={t("page.kmp.setor.form.volume")}
                 type="number"
                 name="volume"
                 min="0"
@@ -330,7 +334,7 @@ export default function SetorPage() {
                   htmlFor="select-grade"
                   className="mb-1.5 block text-sm font-medium text-foreground"
                 >
-                  Grade
+                  {t("page.kmp.setor.form.grade")}
                 </label>
                 <div className="flex h-11 items-center gap-2 rounded-md border border-border bg-surface px-3 focus-within:ring-2 focus-within:ring-ring">
                   <select
@@ -340,15 +344,15 @@ export default function SetorPage() {
                     disabled={formLocked}
                     className="h-full w-full bg-transparent text-sm text-foreground outline-none disabled:opacity-50"
                   >
-                    <option value="A">Grade A (terbaik)</option>
-                    <option value="B">Grade B (standar)</option>
-                    <option value="C">Grade C (di bawah standar)</option>
+                    <option value="A">{t("page.kmp.setor.form.grade.A")}</option>
+                    <option value="B">{t("page.kmp.setor.form.grade.B")}</option>
+                    <option value="C">{t("page.kmp.setor.form.grade.C")}</option>
                   </select>
                 </div>
               </div>
 
               <Input
-                label="Kadar Air (%)"
+                label={t("page.kmp.setor.form.moisture")}
                 type="number"
                 name="moisture"
                 min="0"
@@ -375,7 +379,7 @@ export default function SetorPage() {
       {flagResult !== null && inputKgNum > 0 && agreement && !showFinalizeSuccess && (
         <Card>
           <CardHeader
-            title="Prakiraan Flag Setoran"
+            title={t("page.kmp.setor.forceMajeure")}
             description="Berdasarkan rasio total setoran terhadap perkiraan. Flag hanya indikator, bukan keputusan final."
             action={<AlertTriangle size={18} className="text-amber-400" />}
           />
@@ -422,7 +426,7 @@ export default function SetorPage() {
       {agreement && !showFinalizeSuccess && (
         <Card>
           <CardHeader
-            title="Tindakan Setoran"
+            title={t("page.kmp.setor.form.title")}
             description="Setiap tindakan memerlukan tanda tangan dompet Freighter dan tercatat di Stellar."
           />
           <CardContent className="space-y-4">
@@ -447,11 +451,11 @@ export default function SetorPage() {
                     ? "Menandatangani..."
                     : txDeliver.state === "submitting"
                       ? "Mengirim ke Stellar..."
-                      : "Catat Setoran"}
+                      : t("page.kmp.setor.form.submit")}
                 </Button>
                 {txDeliver.state === "signing" && (
                   <p className="text-xs text-muted-foreground">
-                    Konfirmasi tanda tangan di Freighter. Jangan tutup jendela.
+                    {t("page.kmp.permintaanDana.signHint")}
                   </p>
                 )}
                 {txDeliver.state === "submitting" && (
@@ -473,7 +477,7 @@ export default function SetorPage() {
                 <CheckCircle2 size={18} className="text-verdant-700" />
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-verdant-700">
-                    Resi panen tercatat di chain
+                    {t("page.kmp.setor.form.success")}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     Bukti setoran tersimpan permanen di Stellar testnet.
@@ -559,7 +563,7 @@ export default function SetorPage() {
                         size="sm"
                         onClick={() => setShowFinalizeConfirm(false)}
                       >
-                        Batal
+                        {t("common.cancel")}
                       </Button>
                     </div>
                   </div>
@@ -577,7 +581,7 @@ export default function SetorPage() {
                     className="flex items-center gap-1.5 text-sm text-red-600 hover:underline focus:outline-none"
                   >
                     <CloudRain size={14} />
-                    Tandai Gagal Panen
+                    {t("page.kmp.setor.forceMajeure")}
                   </button>
                 ) : (
                   <div className="rounded-lg border border-red-200 bg-red-50 p-4 space-y-3">
@@ -603,7 +607,7 @@ export default function SetorPage() {
                         htmlFor="fm-reason"
                         className="mb-1.5 block text-sm font-medium text-foreground"
                       >
-                        Alasan gagal panen
+                        {t("page.kmp.setor.forceMajeure.reason")}
                       </label>
                       <textarea
                         id="fm-reason"
@@ -631,7 +635,7 @@ export default function SetorPage() {
                           ? "Menandatangani..."
                           : txFm.state === "submitting"
                             ? "Mengirim..."
-                            : "Konfirmasi Gagal Panen"}
+                            : t("page.kmp.setor.forceMajeure.submit")}
                       </Button>
                       <Button
                         variant="ghost"
@@ -641,7 +645,7 @@ export default function SetorPage() {
                           setFmReason("");
                         }}
                       >
-                        Batal
+                        {t("common.cancel")}
                       </Button>
                     </div>
                   </div>
@@ -661,7 +665,7 @@ export default function SetorPage() {
                 <CheckCircle2 size={28} className="text-aqua-700" />
               </span>
               <div>
-                <h3 className="text-lg font-bold text-foreground">Jendela panen ditutup</h3>
+                <h3 className="text-lg font-bold text-foreground">{t("page.kmp.setor.alert.finalized")}</h3>
                 <p className="text-sm text-muted-foreground">
                   Total setoran aktual dikunci di Stellar. Status perjanjian diperbarui.
                 </p>
@@ -685,7 +689,7 @@ export default function SetorPage() {
           <div className="flex flex-wrap gap-3">
             <Link href="/kmp/pembayaran">
               <Button variant="accent" size="md" rightIcon={<ArrowRight size={16} />}>
-                Lanjut ke Pembayaran
+                {t("page.kmp.pembayaran.settle")}
               </Button>
             </Link>
             <Button
@@ -737,7 +741,7 @@ export default function SetorPage() {
         <div ref={historyRef}>
           <Card>
             <CardHeader
-              title="Riwayat Setoran"
+              title={t("page.kmp.setor.history")}
               description="Semua setoran panen yang telah dicatat. Cari berdasarkan nama petani atau nomor perjanjian."
               action={<History size={18} className="text-verdant-400" />}
             />
@@ -756,7 +760,7 @@ export default function SetorPage() {
             onClick={handleToggleHistory}
             className="text-sm text-accent hover:underline"
           >
-            Tampilkan Riwayat Setoran
+            {t("page.kmp.setor.history")}
           </button>
         </div>
       )}

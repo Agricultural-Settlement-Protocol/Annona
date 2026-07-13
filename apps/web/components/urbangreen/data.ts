@@ -9,68 +9,68 @@ export const TEAM_MEMBERS: TeamMember[] = [
   {
     id: "tm-1",
     name: "Suhardi",
-    role: "Ketua KUD Cianjur Jaya",
-    bio: "Bapak Suhardi memimpin KUD Cianjur Jaya sejak 2012, berfokus pada digitalisasi ekosistem pertanian desa dan adopsi pembiayaan transparan.",
+    role: "Chairman of KUD Cianjur Jaya",
+    bio: "Mr. Suhardi has led the Cianjur Jaya cooperative since 2012, focusing on digitalizing local agricultural ecosystems and adopting transparent financing models.",
     avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop"
   },
   {
     id: "tm-2",
     name: "Sri Ningsih",
-    role: "Bendahara KUD Malang Makmur",
-    bio: "Ibu Sri Ningsih mengelola keuangan dan penyaluran kredit saprotan dengan transparansi penuh untuk ratusan petani di wilayah Malang.",
+    role: "Treasurer of KUD Malang Makmur",
+    bio: "Mrs. Sri Ningsih manages financial accounts and agricultural input credit distribution with absolute transparency for hundreds of farmers in Malang.",
     avatarUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop"
   },
   {
     id: "tm-3",
     name: "Ahmad Kusuma",
-    role: "Penasihat Sektor Pertanian",
-    bio: "Dr. Ahmad Kusuma mendampingi implementasi sensor IoT dan pemetaan produktivitas lahan padi di bawah naungan Koperasi Desa Merah Putih.",
+    role: "Agricultural Sector Advisor",
+    bio: "Dr. Ahmad Kusuma oversees IoT sensor implementation and crop yield mapping under the Merah Putih Cooperative.",
     avatarUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop"
   },
   {
     id: "tm-4",
     name: "Budi Santoso",
-    role: "Pengawas Independen",
-    bio: "Bapak Budi Santoso bertindak sebagai auditor eksternal untuk memastikan keadilan bagi hasil netting pelunasan di Stellar blockchain.",
+    role: "Independent Auditor",
+    bio: "Mr. Budi Santoso serves as an external auditor to ensure fairness and cryptographic integrity of netting settlements on the Stellar blockchain.",
     avatarUrl: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop"
   }
 ];
 
 export const ROADMAP_ITEMS: RoadmapItem[] = [
   {
-    title: "Q1 2026: Integrasi dIDR & Stellar Node",
-    description: "Uji coba awal dIDR dan integrasi Stellar blockchain.",
+    title: "Q1 2026: dIDR & Stellar Node Integration",
+    description: "Initial testing of Digital Rupiah (dIDR) and Stellar blockchain node setup.",
     details: [
-      "Setup Node Validator Stellar lokal",
-      "Pengembangan smart contract Soroban untuk netting otomatis",
-      "Pilot project terbatas di Cianjur dengan 50 petani"
+      "Deploy local Stellar validator node infrastructure",
+      "Develop Soroban smart contracts for automated netting settlements",
+      "Launch restricted pilot project in Cianjur with 50 local farmers"
     ]
   },
   {
-    title: "Q2 2026: Pendaftaran DID Petani",
-    description: "Registrasi identitas digital terenkripsi untuk petani mitra.",
+    title: "Q2 2026: Decentralized ID (DID) Registration",
+    description: "Enrolling encrypted digital identities for partner farmers.",
     details: [
-      "Edukasi KUD tentang penyimpanan kunci privat aman",
-      "Penerbitan 200+ DID petani terverifikasi",
-      "Integrasi sensor timbangan IoT di gudang KUD"
+      "Train cooperative admins on secure private key management",
+      "Issue 200+ verified farmer DIDs on the Stellar ledger",
+      "Integrate IoT digital weighing scale telemetry at cooperative warehouses"
     ]
   },
   {
-    title: "Q3 2026: Netting Otomatis Saprotan",
-    description: "Eksekusi pemotongan utang otomatis saat panen.",
+    title: "Q3 2026: Automated Offtake Settlement Netting",
+    description: "Executing automated debt-to-yield netting settlements upon harvest delivery.",
     details: [
-      "Penerapan audit kualitas (Grade A/B/C) otomatis",
-      "Penyelesaian pembayaran instan ke wallet petani",
-      "Laporan ledger terenkripsi untuk transparansi audit"
+      "Implement rule-based automatic crop quality grading (Grade A/B/C)",
+      "Settle net profits instantly to farmers' digital wallets",
+      "Publish encrypted, auditable transaction ledgers"
     ]
   },
   {
-    title: "Q4 2026: Ekspansi Nasional",
-    description: "Skalabilitas ke koperasi di seluruh wilayah Indonesia.",
+    title: "Q4 2026: Nationwide Expansion",
+    description: "Scaling the settlement protocol to agricultural cooperatives across Indonesia.",
     details: [
-      "Sertifikasi kepatuhan dengan regulator & Bapanas",
-      "Penyediaan pool likuiditas dIDR lebih besar",
-      "Integrasi program pupuk bersubsidi dengan pemerintah"
+      "Acquire regulatory sandbox clearance with financial and agricultural authorities",
+      "Expand dIDR liquidity pools for larger cooperative volumes",
+      "Integrate government-subsidized fertilizer tracking programs"
     ]
   }
 ];

@@ -47,6 +47,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useI18n } from "@/lib/i18n/use-i18n";
 import { motion, AnimatePresence } from "motion/react";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -327,6 +328,7 @@ const SUPPLIER_OPTIONS: SearchSelectItem[] = [
 type LocalShipment = MockShipment & { isLocal?: boolean };
 
 export default function LogistikPage() {
+  const { t } = useI18n();
   const [search, setSearch] = useState<string>("");
   const [dateRange, setDateRange] = useState<DateRange>({ start: null, end: null });
   const [selectedShipment, setSelectedShipment] = useState<LocalShipment | null>(null);
@@ -464,28 +466,28 @@ export default function LogistikPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Logistik Panen"
-        description="Catat pengiriman hasil panen dari gudang KMP ke gudang Agrinas. Data logistik dicatat off-chain untuk MVP."
+        title={t("page.kmp.logistik.title")}
+        description={t("page.kmp.logistik.desc")}
       />
 
       {/* ── Stat row ── */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard
-          label="Stok Gudang KMP"
+          label={t("page.kmp.gudang.stats.totalStock")}
           value={`${stokKMPKg.toLocaleString("id-ID")} kg`}
           icon={<Warehouse size={18} />}
           tone={stokKMPKg > 0 ? "warn" : "good"}
-          hint="Volume sudah disetor petani, belum dikirim ke Agrinas"
+          hint={t("page.kmp.gudang.stats.readyShipHint")}
         />
         <StatCard
-          label="Dalam Perjalanan"
+          label={t("page.kmp.logistik.badge.inTransit")}
           value={`${dalamPerjalananKg.toLocaleString("id-ID")} kg`}
           icon={<Truck size={18} />}
           tone={dalamPerjalananKg > 0 ? "warn" : "neutral"}
           hint="Dikirim, menunggu konfirmasi penerimaan Agrinas"
         />
         <StatCard
-          label="Sudah Diterima Agrinas"
+          label={t("page.kmp.logistik.badge.delivered")}
           value={`${sudahDiterimaKg.toLocaleString("id-ID")} kg`}
           icon={<CheckCircle2 size={18} />}
           tone="good"
@@ -496,7 +498,7 @@ export default function LogistikPage() {
       {/* ── Stok Siap Kirim ── */}
       <Card className="rounded-[2rem] border-gray-100 bg-white shadow-sm overflow-hidden p-5 sm:p-6">
         <CardHeader
-          title="Stok Siap Kirim"
+          title={t("page.kmp.gudang.stats.readyShip")}
           description="Setoran panen petani yang sudah ada di gudang KMP, belum dikirim ke Agrinas. Pilih lot untuk buat pengiriman."
           action={<Package size={18} className="text-emerald-700" />}
           className="pb-3"
@@ -593,7 +595,7 @@ export default function LogistikPage() {
       {unshipped.length > 0 && (
         <Card className="rounded-[2rem] border-gray-100 bg-white shadow-sm p-5 sm:p-6">
           <CardHeader
-            title="Buat Pengiriman"
+            title={t("page.kmp.logistik.shipments")}
             description="Pilih lot di atas, tentukan tujuan gudang, lalu kirim."
             action={<Truck size={18} className="text-cyan-800" />}
             className="pb-3"
@@ -700,7 +702,7 @@ export default function LogistikPage() {
       {/* ── Riwayat Pengiriman ── */}
       <Card className="rounded-[2rem] border-gray-100 bg-white shadow-sm overflow-hidden p-5 sm:p-6">
         <CardHeader
-          title="Riwayat Pengiriman"
+          title={t("page.kmp.logistik.history")}
           description="Semua catatan pengiriman ke gudang Agrinas. Klik baris untuk detail rincian per petani."
           action={<Box size={18} className="text-cyan-800" />}
           className="pb-3"
