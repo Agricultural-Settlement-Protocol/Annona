@@ -9,7 +9,11 @@
     "start": "next start",
     "lint": "biome lint app",
     "check-types": "tsc --noEmit",
-    "test": "tsx --test lib/**/*.test.ts"
+    "test": "tsx --test lib/**/*.test.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:report": "playwright show-report",
+    "test:e2e:smoke": "E2E_SMOKE=1 playwright test smoke"
   },
   "dependencies": {
     "@annona/core": "workspace:*",
@@ -28,6 +32,7 @@
   },
   "devDependencies": {
     "@annona/config": "workspace:*",
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4.0.0",
     "@types/node": "^22.10.2",
     "@types/react": "^19.0.0",

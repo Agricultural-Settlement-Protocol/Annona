@@ -97,4 +97,27 @@ cat >"$ARTIFACTS" <<JSON
 }
 JSON
 echo "wrote $ARTIFACTS"
-echo "done."
+
+# 6. Auto-wire env (Phase 9): the browser cannot read the artifacts file at
+# runtime, so the deploy handoff is a copy into web `.env.local` + api `.env`.
+# Idempotent: replaces the key line if present, else appends. Never touches
+# other keys/secrets. This is what flips `useTx` from demo mode to live.
+wire_env() {
+  local file="$1" prefix="$2"
+  [ -f "$file" ] || return 0
+  for pair in "${prefix}OFFTAKE_REGISTRY_CONTRACT_ID=$REGISTRY_ID" \
+              "${prefix}DIDR_TOKEN_CONTRACT_ID=$DIDR_SAC"; do
+    local key="${pair%%=*}"
+    if grep -q "^${key}=" "$file"; then
+      # in-place replace (portable: rewrite via a temp file, no sed -i quirks)
+      grep -v "^${key}=" "$file" >"$file.tmp" && printf '%s\n' "$pair" >>"$file.tmp" && mv "$file.tmp" "$file"
+    else
+      printf '%s\n' "$pair" >>"$file"
+    fi
+  done
+  echo "  wired $file"
+}
+echo "wiring env files with the deployed ids..."
+wire_env "$ROOT/apps/web/.env.local" "NEXT_PUBLIC_"
+wire_env "$ROOT/apps/api/.env" ""
+echo "done. Restart dev servers to pick up the new contract ids (demo pill gone)."

@@ -27,7 +27,7 @@
 - [x] Phase 6 — Web read cutover (subsidy badge · price tier · payable panel · Screen O · Screen P · gov subsidy · supplier rename · no AI for mitra · lint+build green)
 - [x] Phase 7 — Web write path (8 builders · all 16 tests · wired KMP+financier+supplier · WalletBadge in all shells · demo-mode click-through ready)
 - [x] Phase 8 — Deploy testnet + wire live — registry `CC5NZIW5…CQHQ`; **12 agreements + full funding lifecycle driven on the REAL contract; 85 events across 57 real txs projected by the production indexer; §5 split EXACT; real dIDR paid to farmers + financier→coop advance**. (Open: Freighter click-through in the browser.)
-- [ ] Phase 9 — E2E (Playwright) + full CI
+- [x] Phase 9 — E2E (Playwright) + full CI (**11 tests green**: auth×5 · KMP settlement×3 · funding×2 · oversight AI×1; demo-mode writes + real Supabase reads; `e2e` + `db-diff` CI jobs; deploy auto-wires env)
 - [ ] Phase 10 — Demo polish + acceptance audit
 
 ---
@@ -449,10 +449,10 @@ Goal: lock the loop against regression; every PR self-verifies. The CI skeleton 
 - Full CI (types + lint + cargo + unit + reducer + E2E) green on a throwaway PR.
 
 **Checklist**
-- [ ] Playwright covers the 3 core journeys
-- [ ] Freighter mocked for CI, real for smoke
-- [ ] E2E + db-diff added to CI
-- [ ] Deploy script auto-wires env
+- [x] Playwright covers the 3 core journeys *(`apps/web/e2e/`: KMP settlement (real reads → detail §5 split → demo settle + tx hash), funding (Ajukan Dana → financier approve + disburse), oversight AI (grounded query, Groq route-mocked); + auth/role-routing for all 4 roles. 11 tests green.)*
+- [x] Freighter mocked for CI, real for smoke *(CI suite runs DEMO mode — `useTx` never touches the wallet, deterministic. `e2e/support/freighter.ts` injects a provider stub for the `E2E_SMOKE=1` real-mode run (`smoke.spec.ts`).)*
+- [x] E2E + db-diff added to CI *(`.github/workflows/ci.yml`: `e2e` job (Playwright, live-Supabase reads via secrets) + `db-diff` job (drizzle-kit check always + `supabase db diff --linked` when secrets present).)*
+- [x] Deploy script auto-wires env *(`scripts/deploy.sh` writes `registryId`/`didrSac` into `apps/web/.env.local` (`NEXT_PUBLIC_`) + `apps/api/.env`, idempotent, flipping demo → live.)*
 
 **Blocks:** Phase 10 (soft).
 

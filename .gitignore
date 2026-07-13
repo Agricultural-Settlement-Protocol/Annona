@@ -32,3 +32,10 @@ npm-debug.log*
 pnpm-debug.log*
 
 data/
+
+# playwright (e2e)
+playwright-report/
+blob-report/
+**/e2e/.results/
+.playwright/
+test-results/

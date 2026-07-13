@@ -74,3 +74,91 @@ jobs:
 
       - name: WASM build (budget check)
         run: cargo build --release --target wasm32v1-none -p offtake-registry
+
+  # ── e2e: Playwright journeys (Phase 9) ────────────────────────────────
+  # Web runs in DEMO MODE (contract id forced empty in playwright.config.ts) so
+  # every write self-simulates — deterministic, no chain/Freighter. READS are
+  # real: the API + live Supabase serve the seeded read-model, so a broken read
+  # fails the run. The Groq AI call is route-mocked inside the spec.
+  #
+  # Required repo secrets (Settings > Secrets and variables > Actions):
+  #   DATABASE_URL, DIRECT_URL           — API -> live Supabase (pooler URLs)
+  #   NEXT_PUBLIC_SUPABASE_URL           — browser Supabase auth
+  #   NEXT_PUBLIC_SUPABASE_ANON_KEY      — browser Supabase auth
+  #   SUPABASE_SERVICE_ROLE_KEY          — API admin (if used by routes)
+  e2e:
+    name: E2E — Playwright (3 journeys)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: web
+    if: ${{ github.repository == 'Agricultural-Settlement-Protocol/Annona' }}
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DIRECT_URL: ${{ secrets.DIRECT_URL }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      NEXT_PUBLIC_API_URL: http://localhost:8787
+      NEXT_PUBLIC_STELLAR_NETWORK: testnet
+      NEXT_PUBLIC_SOROBAN_RPC_URL: https://soroban-testnet.stellar.org
+      # Forced empty => demo-mode writes (also enforced in playwright.config.ts).
+      NEXT_PUBLIC_OFFTAKE_REGISTRY_CONTRACT_ID: ""
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install Playwright browser + OS deps
+        run: pnpm --filter @annona/web exec playwright install --with-deps chromium
+      - name: Run E2E suite
+        run: pnpm --filter @annona/web test:e2e
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 7
+
+  # ── db-diff: schema drift guard ───────────────────────────────────────
+  # drizzle-kit check proves schema.ts <-> the drizzle migration journal are
+  # consistent (the always-on guard). The optional `supabase db diff --linked`
+  # step catches drift between committed supabase/migrations and the live remote;
+  # it runs only when a SUPABASE_ACCESS_TOKEN secret is present.
+  db-diff:
+    name: DB — drizzle check + supabase diff
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Drizzle schema <-> migration drift check
+        run: pnpm --filter @annona/api db:check
+      - name: Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: supabase db diff (linked remote vs committed migrations)
+        if: ${{ secrets.SUPABASE_ACCESS_TOKEN != '' }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          supabase link --project-ref ldjrsjyecihvynturgnr
+          DIFF="$(supabase db diff --linked --schema public)"
+          if [ -n "$DIFF" ]; then
+            echo "::error::Schema drift between committed migrations and the live DB:"; echo "$DIFF"; exit 1
+          fi
+          echo "no drift."
