@@ -26,7 +26,7 @@
 - [x] Phase 5 — Indexer + seed + API (funding + subsidy + payable read-model; live seed→curl green)
 - [x] Phase 6 — Web read cutover (subsidy badge · price tier · payable panel · Screen O · Screen P · gov subsidy · supplier rename · no AI for mitra · lint+build green)
 - [x] Phase 7 — Web write path (8 builders · all 16 tests · wired KMP+financier+supplier · WalletBadge in all shells · demo-mode click-through ready)
-- [ ] Phase 8 — Deploy testnet + wire live (kills the "static" bug)
+- [~] Phase 8 — Deploy testnet + wire live — **registry deployed + wired** (`CD6C2NPU…D44F`, WASM hash verified, live create_agreement + event decode green); demo re-seed on-chain + financier identity still open
 - [ ] Phase 9 — E2E (Playwright) + full CI
 - [ ] Phase 10 — Demo polish + acceptance audit
 

@@ -64,7 +64,9 @@ test("create_agreement: 12 args, correct order + types", () => {
   assert.equal(a1, farmer);
   assert.equal(a2, supplier);
   assert.deepEqual(a3, { code: "GABAH", grade: "B", moisture_bps: 1400, hpp_version: 4 });
-  assert.equal(a4, "Subsidized");
+  // SubsidyTier is a unit ENUM: a 1-element vec, NOT a bare Symbol. This
+  // assertion previously said `"Subsidized"` and was itself encoding the bug.
+  assert.deepEqual(a4, ["Subsidized"]);
   assert.equal(a5, 2_000_000_0000000n);
   assert.equal(a6, 1000);
   assert.equal(a7, 500);
@@ -241,4 +243,41 @@ test("flag_remittance_dispute: (supplier, u64, symbol reason)", () => {
   assert.equal(s, supplier);
   assert.equal(id, 7n);
   assert.equal(reason, "SALDO_TIDAK_COCOK");
+});
+
+/* ── SubsidyTier is a UNIT ENUM, not a Symbol (live-chain regression) ──────────
+ * Caught by simulating against the deployed v4.0 contract on 2026-07-13: passing
+ * `Subsidized` as a bare Symbol makes the contract TRAP with
+ * `WasmVm, InvalidAction / UnreachableCodeReached` while unmarshalling the arg,
+ * so EVERY create_agreement from the UI would have failed post-deploy.
+ * A round-trip test cannot catch this by itself — it checks our encoder against
+ * ITSELF, never against the contract's expected arg type. Hence this asserts the
+ * concrete XDR shape: a 1-element vec holding the variant symbol.
+ */
+test("create_agreement encodes subsidy_tier as a unit ENUM (scvVec[symbol]), not a bare Symbol", () => {
+  const inv = createAgreement({
+    coop,
+    farmer,
+    supplier,
+    commodity: { code: "GABAH", grade: "A", moistureBps: 1400, hppVersion: 1 },
+    subsidyTier: "Subsidized",
+    basePriceSupplier: 20_000_000_000_000n,
+    saprotanMarkupBps: 1000,
+    hppHandlingFeeBps: 500,
+    expectedVolG: 2_600_000n,
+    hppPerKg: 65_000_000n,
+    toleranceBps: 200,
+    ktpHashHex: KTP,
+  });
+
+  const tier = inv.args[4];
+  assert.ok(tier, "arg[4] must be subsidy_tier");
+  // The concrete XDR shape is the whole point: scvSymbol here makes the deployed
+  // contract trap, and scValToNative alone would not make the difference obvious.
+  assert.equal(tier.switch().name, "scvVec", "a unit enum is vec-encoded, not a symbol");
+  const vec = tier.vec();
+  assert.ok(vec);
+  assert.equal(vec.length, 1, "exactly one element: the variant name");
+  assert.equal(vec[0]?.switch().name, "scvSymbol");
+  assert.deepEqual(scValToNative(tier), ["Subsidized"]);
 });
