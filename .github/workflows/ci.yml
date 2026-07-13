@@ -35,7 +35,13 @@ jobs:
       - name: Biome lint
         run: pnpm lint
 
-      - name: Indexer reducer tests (pure)
+      # Parses contracts/**/events.rs and compares it to packages/core + poll.ts.
+      # Catches wire-name / topic-order drift, which `check-types` CANNOT see:
+      # a wrong-but-consistent field name compiles fine and only fails on-chain.
+      - name: Contract ↔ core drift tripwire (event shapes)
+        run: pnpm --filter @annona/core test
+
+      - name: Indexer reducer + topic-registry tests (pure)
         run: pnpm --filter @annona/api test
 
       - name: ScVal round-trip / envelope tests

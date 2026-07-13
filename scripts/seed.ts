@@ -206,7 +206,7 @@ async function replayAgreement(a: (typeof MOCK_AGREEMENTS)[number]): Promise<voi
       },
       // v4.0 demo spread: every 3rd agreement priced at HET (subsidized).
       subsidyTier: Number(oid) % 3 === 0 ? "Subsidized" : "Commercial",
-      basePriceSupplier: a.basePriceSupplier,
+      basePrice: a.basePriceSupplier, // wire field is `base_price` (see events.ts)
       saprotanMarkupBps: a.saprotanMarkupBps,
       inputDebt: a.inputDebt,
       hppHandlingFeeBps: a.hppHandlingFeeBps,

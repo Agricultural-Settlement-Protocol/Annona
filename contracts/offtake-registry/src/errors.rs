@@ -30,4 +30,10 @@ pub enum ContractError {
     /// residu operation not valid for the agreement's current ResiduStatus
     /// (e.g. confirm before remit, remit before settle, dispute before remit)
     InvalidResiduStatus = 9,
+    /// no funding request with the given id
+    FundingNotFound = 10,
+    /// funding operation not valid for the request's current FundingStatus
+    /// (e.g. approve/reject a non-Requested, disburse a non-Approved, reconcile
+    /// a non-Disbursed request)
+    InvalidFundingStatus = 11,
 }

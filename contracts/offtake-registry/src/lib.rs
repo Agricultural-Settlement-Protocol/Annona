@@ -1,33 +1,41 @@
 #![no_std]
-// `create_agreement` takes the 12 spec-mandated parameters (four price variables,
-// three parties, commodity, volumes, tolerance, ktp_hash); the Soroban macros
-// re-expand that arity into generated helpers. This is inherent to the contract
-// interface, so the lint is silenced crate-wide rather than fought per-callsite.
+// `create_agreement` takes the spec-mandated parameters (four price variables,
+// three transacting parties, commodity, subsidy tier, volumes, tolerance,
+// ktp_hash); the Soroban macros re-expand that arity into generated helpers.
+// This is inherent to the contract interface, so the lint is silenced crate-wide
+// rather than fought per-callsite.
 #![allow(clippy::too_many_arguments)]
-//! # offtake-registry — Annona protocol core (v3.0, multi-party, PMK 15/2026)
+//! # offtake-registry — Annona protocol core (v4.0, multi-party, PMK 15/2026)
 //!
 //! A tamper-proof, auto-netting, HPP-anchored settlement ledger for the
 //! input-credit → harvest-buyback (*yarnen*) loop. Generic and commodity-
 //! agnostic. See `docs/technical/SMART-CONTRACT.md`.
 //!
-//! Three commercial parties + a regulator:
-//! - **Agrinas** (operator): sets `base_price_agrinas` (principal), dispatches
+//! Four commercial parties + a regulator (v4.0 corrects the earlier single
+//! "Agrinas" operator into its true roles):
+//! - **Supplier** (input principal): sets `base_price` (principal), dispatches
 //!   supply, verifies residu remittance.
 //! - **KMP** (`coop`): pre-funds cash, drafts the agreement, accepts supply,
-//!   records deliveries, settles, remits residu principal.
+//!   records deliveries, settles, remits residu principal, requests financing.
+//! - **Financier** (working-capital): approves + disburses offtake *talangan*
+//!   against a proof packet (real dIDR financier → coop); reconciled at settle.
 //! - **Farmer**: receives the net payout; accrues reputation (no writes).
 //! - **Government**: read-only (not a signer).
 //!
 //! Design constraints enforced here:
 //! - **PII never on chain** (rule 1): only `ktp_hash`.
-//! - **Two confirmation gates** (rule 6c): `dispatch_supply` (Agrinas) then
+//! - **Two confirmation gates** (rule 6c): `dispatch_supply` (Supplier) then
 //!   `accept_supply` (KMP) must both fire before `input_debt` is an ACTIVE
 //!   liability and deliveries can be recorded.
 //! - **Debt netted first, then split three ways** (rule 6): `settle` clears
 //!   debt from (gross - handling) before paying the farmer, then splits the
-//!   collected debt into Agrinas principal residu + KMP margin.
-//! - **Residu principal is Agrinas's money** (rule 6b): tracked separately and
+//!   collected debt into Supplier principal residu + KMP margin.
+//! - **Residu principal is Supplier's money** (rule 6b): tracked separately and
 //!   reconciled via `mark_residu_remitted` → `confirm_remittance`.
+//! - **Subsidy tier is recorded, not computed** (rule 4-adjacent): the contract
+//!   anchors the KMP-submitted `subsidy_tier`; it never verifies e-RDKK.
+//! - **Financing is a parallel lifecycle**: `request → approve/reject →
+//!   disburse → reconcile`, independent of the agreement state machine (§B).
 //! - **Flags indicate, humans decide** (rule 7): classification + dispute
 //!   freeze are advisory.
 
@@ -45,12 +53,13 @@ use soroban_sdk::{contract, contractimpl, token, Address, BytesN, Env, Symbol, V
 use crate::errors::ContractError;
 use crate::events::{
     AgreementCreated, CoopReputationUpdated, DeliveryRecorded, Flagged, ForceMajeure,
+    FundingApproved, FundingDisbursed, FundingReconciled, FundingRejected, FundingRequested,
     HarvestReceiptMinted, RemittanceCleared, RemittanceDisputed, RemittanceResolved,
     ReputationUpdated, ResiduRemitted, Settled, SupplyAccepted, SupplyDispatched,
 };
 use crate::types::{
-    Agreement, Commodity, CoopReputation, FlagReason, HarvestReceipt, Reputation, ResiduStatus,
-    Status,
+    Agreement, Commodity, CoopReputation, FlagReason, FundingRequest, FundingStatus,
+    HarvestReceipt, Reputation, ResiduStatus, Status, SubsidyTier,
 };
 
 #[contract]
@@ -69,17 +78,21 @@ impl OfftakeRegistry {
     }
 
     /// KMP drafts the yarnen agreement (the collective Surat Pesanan). Stores the
-    /// four locked price variables and DERIVES `input_debt` from the Agrinas
-    /// principal + KMP markup. Status = Created; the debt is a DRAFT figure, not
+    /// four locked price variables and DERIVES `input_debt` from the Supplier
+    /// principal + KMP markup. `subsidy_tier` records which price tier the
+    /// snapshotted `base_price` came from — the contract trusts the KMP-submitted
+    /// tier (the `Subsidized`==HET invariant is enforced off-chain; the chain
+    /// never verifies e-RDKK). Status = Created; the debt is a DRAFT figure, not
     /// yet an active liability (that requires both confirmation gates). Bumps the
     /// coop's agreement counter. Returns the new id. Requires coop auth.
     pub fn create_agreement(
         env: Env,
         coop: Address,
         farmer: Address,
-        agrinas: Address,
+        supplier: Address,
         commodity: Commodity,
-        base_price_agrinas: i128,
+        subsidy_tier: SubsidyTier,
+        base_price: i128,
         saprotan_markup_bps: u32,
         hpp_handling_fee_bps: u32,
         expected_vol_g: i128,
@@ -90,20 +103,21 @@ impl OfftakeRegistry {
         coop.require_auth();
         storage::extend_instance(&env);
 
-        if base_price_agrinas <= 0 || expected_vol_g <= 0 || hpp_per_kg <= 0 {
+        if base_price <= 0 || expected_vol_g <= 0 || hpp_per_kg <= 0 {
             return Err(ContractError::InvalidAmount);
         }
 
-        let input_debt = settlement::derive_input_debt(base_price_agrinas, saprotan_markup_bps)?;
+        let input_debt = settlement::derive_input_debt(base_price, saprotan_markup_bps)?;
 
         let id = storage::get_next_id(&env);
         let agreement = Agreement {
             id,
             farmer: farmer.clone(),
             coop: coop.clone(),
-            agrinas: agrinas.clone(),
+            supplier: supplier.clone(),
             commodity: commodity.clone(),
-            base_price_agrinas,
+            subsidy_tier: subsidy_tier.clone(),
+            base_price,
             saprotan_markup_bps,
             input_debt,
             hpp_handling_fee_bps,
@@ -136,9 +150,10 @@ impl OfftakeRegistry {
             id,
             farmer,
             coop,
-            agrinas,
+            supplier,
+            subsidy_tier,
             commodity,
-            base_price_agrinas,
+            base_price,
             saprotan_markup_bps,
             input_debt,
             hpp_handling_fee_bps,
@@ -150,15 +165,15 @@ impl OfftakeRegistry {
         Ok(id)
     }
 
-    /// GATE 1 — Agrinas validates the collective order + releases logistics.
+    /// GATE 1 — Supplier validates the collective order + releases logistics.
     /// `Created` -> `SupplyDispatched`. Price is now frozen (no unilateral
-    /// change). Bound to the agreement's `agrinas`. Requires agrinas auth.
-    pub fn dispatch_supply(env: Env, agrinas: Address, id: u64) -> Result<(), ContractError> {
-        agrinas.require_auth();
+    /// change). Bound to the agreement's `supplier`. Requires supplier auth.
+    pub fn dispatch_supply(env: Env, supplier: Address, id: u64) -> Result<(), ContractError> {
+        supplier.require_auth();
         storage::extend_instance(&env);
 
         let mut agreement = storage::get_agreement(&env, id)?;
-        if agreement.agrinas != agrinas {
+        if agreement.supplier != supplier {
             return Err(ContractError::Unauthorized);
         }
         if agreement.status != Status::Created {
@@ -170,7 +185,7 @@ impl OfftakeRegistry {
 
         SupplyDispatched {
             id,
-            agrinas,
+            supplier,
             coop: agreement.coop,
         }
         .publish(&env);
@@ -306,7 +321,7 @@ impl OfftakeRegistry {
     /// Settle the delivered-but-unsettled volume with the THREE-WAY split (§5).
     /// Debt is netted FIRST from (gross - handling), then the net is transferred
     /// in dIDR from the (pre-funded) contract to the farmer; the collected debt
-    /// is split into Agrinas principal residu + KMP margin (tracked, not moved in
+    /// is split into Supplier principal residu + KMP margin (tracked, not moved in
     /// the demo). Callable repeatedly for staged settlement. Only the agreement's
     /// coop or the admin (Path A backend service key) may call it.
     pub fn settle(env: Env, caller: Address, id: u64) -> Result<(), ContractError> {
@@ -335,7 +350,7 @@ impl OfftakeRegistry {
             agreement.hpp_per_kg,
             agreement.hpp_handling_fee_bps,
             agreement.remaining_debt,
-            agreement.base_price_agrinas,
+            agreement.base_price,
             agreement.input_debt,
         )?;
 
@@ -361,7 +376,7 @@ impl OfftakeRegistry {
             .ok_or(ContractError::MathOverflow)?;
         agreement.residu_principal = agreement
             .residu_principal
-            .checked_add(s.principal_to_agrinas)
+            .checked_add(s.principal_to_supplier)
             .ok_or(ContractError::MathOverflow)?;
 
         // Close the agreement only once the full expected harvest has been
@@ -389,7 +404,7 @@ impl OfftakeRegistry {
         let mut coop_rep = storage::get_coop_reputation(&env, &agreement.coop);
         coop_rep.total_residu_principal = coop_rep
             .total_residu_principal
-            .checked_add(s.principal_to_agrinas)
+            .checked_add(s.principal_to_supplier)
             .ok_or(ContractError::MathOverflow)?;
         if became_settled {
             coop_rep.settlements += 1;
@@ -414,7 +429,7 @@ impl OfftakeRegistry {
             gross: s.gross,
             handling_cut: s.handling_cut,
             debt_netted: s.debt_paid,
-            principal_to_agrinas: s.principal_to_agrinas,
+            principal_to_supplier: s.principal_to_supplier,
             coop_margin: s.coop_margin,
             net_paid: s.net_to_farmer,
             settled_vol_g: agreement.settled_vol_g,
@@ -457,7 +472,7 @@ impl OfftakeRegistry {
         Ok(())
     }
 
-    /// KMP asserts it has remitted the residu principal to Agrinas (off-chain
+    /// KMP asserts it has remitted the residu principal to Supplier (off-chain
     /// bank transfer; proof/ref uploaded off-chain, anchored here as `ref_hash`).
     /// Requires the agreement to have residu principal owed and `ResiduStatus`
     /// == Pending. Pending -> Remitted. Requires coop auth.
@@ -492,16 +507,16 @@ impl OfftakeRegistry {
         Ok(())
     }
 
-    /// Agrinas verifies the real bank mutation of the residu principal.
+    /// Supplier verifies the real bank mutation of the residu principal.
     /// Remitted -> Cleared; the coop's `total_residu_cleared` accrues. Requires
-    /// the agreement's agrinas auth. (Path-A style: off-chain rupiah verified,
+    /// the agreement's supplier auth. (Path-A style: off-chain rupiah verified,
     /// then anchored.)
-    pub fn confirm_remittance(env: Env, agrinas: Address, id: u64) -> Result<(), ContractError> {
-        agrinas.require_auth();
+    pub fn confirm_remittance(env: Env, supplier: Address, id: u64) -> Result<(), ContractError> {
+        supplier.require_auth();
         storage::extend_instance(&env);
 
         let mut agreement = storage::get_agreement(&env, id)?;
-        if agreement.agrinas != agrinas {
+        if agreement.supplier != supplier {
             return Err(ContractError::Unauthorized);
         }
         if agreement.residu_status != ResiduStatus::Remitted {
@@ -524,28 +539,28 @@ impl OfftakeRegistry {
             id,
             coop,
             principal,
-            agrinas,
+            supplier,
         }
         .publish(&env);
         emit_coop_reputation(&env, &coop_rep);
         Ok(())
     }
 
-    /// Agrinas found a mismatch / manipulation on a claimed remittance.
+    /// Supplier found a mismatch / manipulation on a claimed remittance.
     /// Remitted -> Disputed; the coop's `disputes` counter bumps and `frozen`
     /// is set (an INDICATOR for human resolution, never an auto-accusation).
-    /// Requires the agreement's agrinas auth.
+    /// Requires the agreement's supplier auth.
     pub fn flag_remittance_dispute(
         env: Env,
-        agrinas: Address,
+        supplier: Address,
         id: u64,
         reason: Symbol,
     ) -> Result<(), ContractError> {
-        agrinas.require_auth();
+        supplier.require_auth();
         storage::extend_instance(&env);
 
         let mut agreement = storage::get_agreement(&env, id)?;
-        if agreement.agrinas != agrinas {
+        if agreement.supplier != supplier {
             return Err(ContractError::Unauthorized);
         }
         if agreement.residu_status != ResiduStatus::Remitted {
@@ -567,7 +582,7 @@ impl OfftakeRegistry {
     }
 
     /// Admin resolves a dispute: unfreezes the coop and returns the agreement's
-    /// residu to Remitted (awaiting Agrinas re-verification). The `disputes`
+    /// residu to Remitted (awaiting Supplier re-verification). The `disputes`
     /// counter is historical and left intact. Requires admin auth.
     pub fn resolve_dispute(
         env: Env,
@@ -598,13 +613,229 @@ impl OfftakeRegistry {
         coop_rep.frozen = false;
         storage::set_coop_reputation(&env, &coop_rep);
 
-        RemittanceResolved {
+        RemittanceResolved { id, coop, admin }.publish(&env);
+        emit_coop_reputation(&env, &coop_rep);
+        Ok(())
+    }
+
+    // ── Offtake financing (§B) — a parallel lifecycle, independent of the
+    // Created→Settled agreement machine. Requested → Approved → Disbursed →
+    // Reconciled, with a reject branch. References its backing agreements only
+    // off-chain via `backing_hash`. ──
+
+    /// KMP requests working-capital *talangan* backed by an off-chain proof packet
+    /// (agreement ids + receipts hashed into `backing_hash`). `projected_settlement`
+    /// is the sum of kg × hpp across the backing agreements (the coverage
+    /// denominator the financier reads off-chain). Status = Requested. Returns the
+    /// new funding id. Requires coop auth.
+    pub fn request_funding(
+        env: Env,
+        coop: Address,
+        financier: Address,
+        backing_hash: BytesN<32>,
+        projected_settlement: i128,
+        amount_requested: i128,
+    ) -> Result<u64, ContractError> {
+        coop.require_auth();
+        storage::extend_instance(&env);
+
+        if amount_requested <= 0 || projected_settlement <= 0 {
+            return Err(ContractError::InvalidAmount);
+        }
+
+        let id = storage::get_next_funding_id(&env);
+        let funding = FundingRequest {
+            id,
+            coop: coop.clone(),
+            financier: financier.clone(),
+            backing_hash: backing_hash.clone(),
+            projected_settlement,
+            amount_requested,
+            amount_approved: 0,
+            amount_disbursed: 0,
+            amount_reconciled: 0,
+            status: FundingStatus::Requested,
+        };
+        storage::set_funding(&env, &funding);
+        storage::set_next_funding_id(&env, id + 1);
+
+        FundingRequested {
             id,
             coop,
-            admin,
+            financier,
+            projected_settlement,
+            amount_requested,
+            backing_hash,
         }
         .publish(&env);
-        emit_coop_reputation(&env, &coop_rep);
+        Ok(id)
+    }
+
+    /// Financier approves an amount (`0 < amount_approved <= amount_requested`).
+    /// Requested -> Approved. Bound to the request's `financier`. Requires
+    /// financier auth.
+    pub fn approve_funding(
+        env: Env,
+        financier: Address,
+        id: u64,
+        amount_approved: i128,
+    ) -> Result<(), ContractError> {
+        financier.require_auth();
+        storage::extend_instance(&env);
+
+        let mut funding = storage::get_funding(&env, id)?;
+        if funding.financier != financier {
+            return Err(ContractError::Unauthorized);
+        }
+        if funding.status != FundingStatus::Requested {
+            return Err(ContractError::InvalidFundingStatus);
+        }
+        if amount_approved <= 0 || amount_approved > funding.amount_requested {
+            return Err(ContractError::InvalidAmount);
+        }
+
+        funding.amount_approved = amount_approved;
+        funding.status = FundingStatus::Approved;
+        storage::set_funding(&env, &funding);
+
+        FundingApproved {
+            id,
+            financier,
+            amount_approved,
+        }
+        .publish(&env);
+        Ok(())
+    }
+
+    /// Financier declines. Requested -> Rejected (reason off-chain). Bound to the
+    /// request's `financier`. Requires financier auth.
+    pub fn reject_funding(
+        env: Env,
+        financier: Address,
+        id: u64,
+        reason: Symbol,
+    ) -> Result<(), ContractError> {
+        financier.require_auth();
+        storage::extend_instance(&env);
+
+        let mut funding = storage::get_funding(&env, id)?;
+        if funding.financier != financier {
+            return Err(ContractError::Unauthorized);
+        }
+        if funding.status != FundingStatus::Requested {
+            return Err(ContractError::InvalidFundingStatus);
+        }
+
+        funding.status = FundingStatus::Rejected;
+        storage::set_funding(&env, &funding);
+
+        FundingRejected {
+            id,
+            financier,
+            reason,
+        }
+        .publish(&env);
+        Ok(())
+    }
+
+    /// Financier disburses `amount_approved` to KMP as a REAL dIDR transfer
+    /// (financier → coop) via the deploy-set token — the second visible on-chain
+    /// money movement in the demo, alongside the settlement payout. Approved ->
+    /// Disbursed. Bound to the request's `financier`. Requires financier auth,
+    /// which ALSO authorizes the nested token-transfer sub-invocation (unlike
+    /// `settle`, the money moves FROM the caller, not the contract balance).
+    pub fn disburse_funding(env: Env, financier: Address, id: u64) -> Result<(), ContractError> {
+        financier.require_auth();
+        storage::extend_instance(&env);
+
+        let mut funding = storage::get_funding(&env, id)?;
+        if funding.financier != financier {
+            return Err(ContractError::Unauthorized);
+        }
+        if funding.status != FundingStatus::Approved {
+            return Err(ContractError::InvalidFundingStatus);
+        }
+
+        let amount = funding.amount_approved;
+        funding.amount_disbursed = amount;
+        funding.status = FundingStatus::Disbursed;
+        let coop = funding.coop.clone();
+        storage::set_funding(&env, &funding);
+
+        // Real money movement, financier -> coop, via the deploy-set token
+        // (never a caller-supplied address). The financier authorizes this
+        // sub-invocation as part of require_auth() above.
+        let token_addr = storage::get_token(&env)?;
+        let client = token::Client::new(&env, &token_addr);
+        client.transfer(&financier, &coop, &amount);
+
+        FundingDisbursed {
+            id,
+            financier,
+            amount_disbursed: amount,
+            coop,
+        }
+        .publish(&env);
+        Ok(())
+    }
+
+    /// Net collected input-principal against an outstanding advance. Accumulates
+    /// `amount_reconciled`, CLAMPED so it never exceeds `amount_disbursed` (an
+    /// over-reported collection cannot inflate repayment); flips Disbursed ->
+    /// Reconciled once fully repaid. Auth mirrors `settle` (§9): the request's
+    /// `coop` OR the admin (Path A service key) — so the same backend that drives
+    /// `settle` can drive the financing-repayment leg without a fresh coop
+    /// signature every time. (Open Decision B: a SEPARATE explicit call in MVP —
+    /// NOT auto-hooked into `settle()`; that is a v4.1 nicety.)
+    pub fn reconcile_funding(
+        env: Env,
+        caller: Address,
+        id: u64,
+        principal_collected: i128,
+    ) -> Result<(), ContractError> {
+        caller.require_auth();
+        storage::extend_instance(&env);
+
+        if principal_collected <= 0 {
+            return Err(ContractError::InvalidAmount);
+        }
+
+        let mut funding = storage::get_funding(&env, id)?;
+        let admin = storage::get_admin(&env)?;
+        if caller != funding.coop && caller != admin {
+            return Err(ContractError::Unauthorized);
+        }
+        if funding.status != FundingStatus::Disbursed {
+            return Err(ContractError::InvalidFundingStatus);
+        }
+
+        let proposed = funding
+            .amount_reconciled
+            .checked_add(principal_collected)
+            .ok_or(ContractError::MathOverflow)?;
+        funding.amount_reconciled = if proposed > funding.amount_disbursed {
+            funding.amount_disbursed
+        } else {
+            proposed
+        };
+        let remaining = funding
+            .amount_disbursed
+            .checked_sub(funding.amount_reconciled)
+            .ok_or(ContractError::MathOverflow)?;
+        if remaining == 0 {
+            funding.status = FundingStatus::Reconciled;
+        }
+        let amount_reconciled = funding.amount_reconciled;
+        let coop = funding.coop.clone();
+        storage::set_funding(&env, &funding);
+
+        FundingReconciled {
+            id,
+            coop,
+            amount_reconciled,
+            remaining,
+        }
+        .publish(&env);
         Ok(())
     }
 
@@ -624,6 +855,10 @@ impl OfftakeRegistry {
 
     pub fn get_coop_reputation(env: Env, coop: Address) -> CoopReputation {
         storage::get_coop_reputation(&env, &coop)
+    }
+
+    pub fn get_funding(env: Env, id: u64) -> Result<FundingRequest, ContractError> {
+        storage::get_funding(&env, id)
     }
 
     pub fn get_admin(env: Env) -> Result<Address, ContractError> {

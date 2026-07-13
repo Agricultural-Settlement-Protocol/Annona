@@ -19,9 +19,9 @@
 ## Progress Tracker
 
 - [ ] Phase 0 — Foundation unblock + CI skeleton
-- [ ] Phase 1 — Contract: supplier rename + subsidy tier
-- [ ] Phase 2 — Contract: Offtake Financing lifecycle
-- [ ] Phase 3 — `packages/core` sync
+- [x] Phase 1 — Contract: supplier rename + subsidy tier (54 cargo tests · WASM 45.3 KB)
+- [x] Phase 2 — Contract: Offtake Financing lifecycle (6 fns · 5 events · real dIDR disburse)
+- [x] Phase 3 — `packages/core` sync (wire types + **drift tripwire**: 22 core + 26 api tests)
 - [x] Phase 4 — Schema + migrations `0004`/`0005` (**4a additive** ✅ · **4b agrinas→supplier rename** ✅)
 - [x] Phase 5 — Indexer + seed + API (funding + subsidy + payable read-model; live seed→curl green)
 - [x] Phase 6 — Web read cutover (subsidy badge · price tier · payable panel · Screen O · Screen P · gov subsidy · supplier rename · no AI for mitra · lint+build green)
@@ -167,11 +167,11 @@ Use `soroban-dev` + `/annona-contract`.
 - `stellar contract build` for `wasm32v1-none`; WASM size logged (64KB budget headroom check).
 
 **Checklist**
-- [ ] `agrinas` → `supplier` rename complete (grep clean except intentional PT-Agrinas history)
-- [ ] `SubsidyTier` + `subsidy_tier` field + `create_agreement` arg + event field
-- [ ] 40 existing tests green after rename
-- [ ] +2 new tests (subsidy round-trip, settlement regression)
-- [ ] WASM builds under budget
+- [x] `agrinas` → `supplier` rename complete *(only survivor in `src/` is the rename-history comment in `lib.rs`)*
+- [x] `SubsidyTier` + `subsidy_tier` field + `create_agreement` arg + event field *(recorded, never verified — no e-RDKK check)*
+- [x] 40 existing tests green after rename *(rename landed as its own green step before any feature work)*
+- [x] +2 new tests (subsidy round-trip, settlement regression)
+- [x] WASM builds under budget *(45.3 KB release, `wasm32v1-none`, vs the 64 KB limit)*
 
 **Blocks:** Phase 2.
 
@@ -199,12 +199,12 @@ agreement state machine. Use `soroban-dev` + `/annona-contract funding`.
 - WASM under 64KB; first cut if tight = `reject_funding` + `CoopFunding` index.
 
 **Checklist**
-- [ ] `FundingStatus` + `FundingRequest` + storage keys
-- [ ] 6 funding fns with correct auth binding
-- [ ] 5 funding events
-- [ ] `disburse_funding` real dIDR transfer + envelope test
-- [ ] Full lifecycle + negative-path tests green
-- [ ] WASM under budget
+- [x] `FundingStatus` + `FundingRequest` + `NextFundingId`/`Funding(id)` storage keys
+- [x] 6 funding fns with correct auth binding *(`reconcile_funding` = coop OR admin, resolving the §4/§9 spec contradiction toward §9 so the Path A service key can drive the repayment leg)*
+- [x] 5 funding events
+- [x] `disburse_funding` real dIDR transfer + envelope test *(asserts the financier's auth SUB-tree is non-empty — `mock_all_auths()` would otherwise let a broken contract pass)*
+- [x] Full lifecycle + negative-path tests green *(54 total, incl. approve>requested, disburse-before-approve, reconcile cap, wrong-signer per fn)*
+- [x] WASM under budget *(45.3 KB; no first-cut needed)*
 
 **Blocks:** Phase 3, Phase 8.
 
@@ -224,10 +224,10 @@ Use `/annona-types`.
 - A `tsx --test` shape test asserting each new event's field set matches the contract emit exactly.
 
 **Checklist**
-- [ ] Rename + new types mirrored to `packages/core`
-- [ ] `events.ts` switch covers all new events
-- [ ] Shape test green (drift tripwire)
-- [ ] Lanes B + C swapped stub types → real types
+- [x] Rename + new types mirrored to `packages/core` *(wire layer: `supplier`, `basePrice`, `principalToSupplier`, `subsidyTier`, 5 funding events, `FundingStatus`/`FundingRequest`)*
+- [x] `events.ts` switch covers all new events *(+ added the missing `HarvestReceiptMintedData` — the tripwire found it on its first run)*
+- [x] **Shape test green (drift tripwire)** — `packages/core/src/events.test.ts` (22) parses `events.rs` and asserts every event's TS field set matches the contract's emitted fields; `apps/api/src/indexer/poll.test.ts` (26) asserts every topic symbol + **topic ORDER** matches `#[topic]`. Both parse BOTH sides from source, so neither can itself drift. Mutation-verified: reintroducing the `basePrice`→`basePriceSupplier` bug (and a topic-order swap) leaves `tsc` **green** but turns both suites red. Wired into CI.
+- [x] Lanes B + C swapped stub types → real types *(merged 2026-07-13, commit `6fa4acd`)*
 
 **Blocks:** final integration of Phases 4–7.
 

@@ -1,5 +1,5 @@
 #![cfg(test)]
-//! Unit tests for the offtake-registry (v3.0 multi-party model).
+//! Unit tests for the offtake-registry (v4.0 multi-party model).
 //!
 //! Money values here use the spec's worked-example whole-rupiah numbers for 1:1
 //! readability against `docs/technical/SMART-CONTRACT.md` section 5. The contract
@@ -15,12 +15,14 @@ use soroban_sdk::{
 };
 
 use crate::errors::ContractError;
-use crate::types::{Commodity, DataKey, FlagReason, ResiduStatus, Status};
+use crate::types::{
+    Commodity, DataKey, FlagReason, FundingStatus, ResiduStatus, Status, SubsidyTier,
+};
 use crate::{OfftakeRegistry, OfftakeRegistryClient};
 
 // Spec worked-example constants (whole rupiah).
 const HPP_PER_KG: i128 = 6_500;
-const BASE_PRICE: i128 = 2_000_000; // Agrinas principal
+const BASE_PRICE: i128 = 2_000_000; // Supplier principal
 const MARKUP_BPS: u32 = 1_000; // 10% KMP markup
 const HANDLING_BPS: u32 = 500; // 5% KMP handling cut
 const INPUT_DEBT: i128 = 2_200_000; // derived = 2,000,000 * 1.10
@@ -34,7 +36,7 @@ struct Harness {
     token_addr: Address,
     admin: Address,
     coop: Address,
-    agrinas: Address,
+    supplier: Address,
     farmer: Address,
 }
 
@@ -44,7 +46,7 @@ fn setup() -> Harness {
 
     let admin = Address::generate(&env);
     let coop = Address::generate(&env);
-    let agrinas = Address::generate(&env);
+    let supplier = Address::generate(&env);
     let farmer = Address::generate(&env);
 
     // dIDR as a SAC; admin is the issuer/mint authority.
@@ -65,7 +67,7 @@ fn setup() -> Harness {
         token_addr,
         admin,
         coop,
-        agrinas,
+        supplier,
         farmer,
     }
 }
@@ -92,8 +94,9 @@ fn create(h: &Harness) -> u64 {
     h.client.create_agreement(
         &h.coop,
         &h.farmer,
-        &h.agrinas,
+        &h.supplier,
         &commodity(),
+        &SubsidyTier::Commercial,
         &BASE_PRICE,
         &MARKUP_BPS,
         &HANDLING_BPS,
@@ -107,7 +110,7 @@ fn create(h: &Harness) -> u64 {
 /// Draft + pass both gates (status Active), the precondition for deliveries.
 fn create_active(h: &Harness) -> u64 {
     let id = create(h);
-    h.client.dispatch_supply(&h.agrinas, &id);
+    h.client.dispatch_supply(&h.supplier, &id);
     h.client.accept_supply(&h.coop, &id);
     id
 }
@@ -151,9 +154,9 @@ fn create_agreement_happy_and_derives_input_debt() {
     let a = h.client.get_agreement(&id);
     assert_eq!(a.status, Status::Created);
     assert_eq!(a.flag, FlagReason::None);
-    assert_eq!(a.agrinas, h.agrinas);
+    assert_eq!(a.supplier, h.supplier);
     // input_debt DERIVED from principal + markup, never free-entered.
-    assert_eq!(a.base_price_agrinas, BASE_PRICE);
+    assert_eq!(a.base_price, BASE_PRICE);
     assert_eq!(a.input_debt, INPUT_DEBT);
     assert_eq!(a.remaining_debt, INPUT_DEBT);
     assert_eq!(a.residu_status, ResiduStatus::Pending);
@@ -173,27 +176,58 @@ fn create_agreement_rejects_nonpositive_amounts() {
     let h = setup();
     let c = commodity();
     let k = ktp(&h.env);
-    // base_price_agrinas <= 0
+    let t = SubsidyTier::Commercial;
+    // base_price <= 0
     assert_eq!(
         h.client.try_create_agreement(
-            &h.coop, &h.farmer, &h.agrinas, &c, &0, &MARKUP_BPS, &HANDLING_BPS, &EXPECTED_VOL_G,
-            &HPP_PER_KG, &2_000, &k
+            &h.coop,
+            &h.farmer,
+            &h.supplier,
+            &c,
+            &t,
+            &0,
+            &MARKUP_BPS,
+            &HANDLING_BPS,
+            &EXPECTED_VOL_G,
+            &HPP_PER_KG,
+            &2_000,
+            &k
         ),
         Err(Ok(ContractError::InvalidAmount))
     );
     // expected_vol_g <= 0
     assert_eq!(
         h.client.try_create_agreement(
-            &h.coop, &h.farmer, &h.agrinas, &c, &BASE_PRICE, &MARKUP_BPS, &HANDLING_BPS, &0,
-            &HPP_PER_KG, &2_000, &k
+            &h.coop,
+            &h.farmer,
+            &h.supplier,
+            &c,
+            &t,
+            &BASE_PRICE,
+            &MARKUP_BPS,
+            &HANDLING_BPS,
+            &0,
+            &HPP_PER_KG,
+            &2_000,
+            &k
         ),
         Err(Ok(ContractError::InvalidAmount))
     );
     // hpp_per_kg <= 0
     assert_eq!(
         h.client.try_create_agreement(
-            &h.coop, &h.farmer, &h.agrinas, &c, &BASE_PRICE, &MARKUP_BPS, &HANDLING_BPS,
-            &EXPECTED_VOL_G, &0, &2_000, &k
+            &h.coop,
+            &h.farmer,
+            &h.supplier,
+            &c,
+            &t,
+            &BASE_PRICE,
+            &MARKUP_BPS,
+            &HANDLING_BPS,
+            &EXPECTED_VOL_G,
+            &0,
+            &2_000,
+            &k
         ),
         Err(Ok(ContractError::InvalidAmount))
     );
@@ -204,7 +238,10 @@ fn create_agreement_records_coop_authorization() {
     let h = setup();
     create(&h);
     let auths = h.env.auths();
-    assert_eq!(auths.first().map(|(addr, _)| addr.clone()), Some(h.coop.clone()));
+    assert_eq!(
+        auths.first().map(|(addr, _)| addr.clone()),
+        Some(h.coop.clone())
+    );
 }
 
 // ── confirmation gates ─────────────────────────────────────────────────────
@@ -214,7 +251,7 @@ fn gate_flow_created_to_active() {
     let h = setup();
     let id = create(&h);
     assert_eq!(h.client.get_agreement(&id).status, Status::Created);
-    h.client.dispatch_supply(&h.agrinas, &id);
+    h.client.dispatch_supply(&h.supplier, &id);
     assert_eq!(h.client.get_agreement(&id).status, Status::SupplyDispatched);
     h.client.accept_supply(&h.coop, &id);
     assert_eq!(h.client.get_agreement(&id).status, Status::Active);
@@ -234,9 +271,9 @@ fn cannot_accept_before_dispatch() {
 fn cannot_dispatch_twice() {
     let h = setup();
     let id = create(&h);
-    h.client.dispatch_supply(&h.agrinas, &id);
+    h.client.dispatch_supply(&h.supplier, &id);
     assert_eq!(
-        h.client.try_dispatch_supply(&h.agrinas, &id),
+        h.client.try_dispatch_supply(&h.supplier, &id),
         Err(Ok(ContractError::InvalidStatus))
     );
 }
@@ -247,19 +284,21 @@ fn cannot_deliver_before_active() {
     let id = create(&h);
     // Created: not past the gates.
     assert_eq!(
-        h.client.try_record_delivery(&h.coop, &id, &100_000, &symbol_short!("A")),
+        h.client
+            .try_record_delivery(&h.coop, &id, &100_000, &symbol_short!("A")),
         Err(Ok(ContractError::InvalidStatus))
     );
     // SupplyDispatched: still not past gate 2.
-    h.client.dispatch_supply(&h.agrinas, &id);
+    h.client.dispatch_supply(&h.supplier, &id);
     assert_eq!(
-        h.client.try_record_delivery(&h.coop, &id, &100_000, &symbol_short!("A")),
+        h.client
+            .try_record_delivery(&h.coop, &id, &100_000, &symbol_short!("A")),
         Err(Ok(ContractError::InvalidStatus))
     );
 }
 
 #[test]
-fn dispatch_by_wrong_agrinas_is_unauthorized() {
+fn dispatch_by_wrong_supplier_is_unauthorized() {
     let h = setup();
     let id = create(&h);
     let stranger = Address::generate(&h.env);
@@ -273,7 +312,7 @@ fn dispatch_by_wrong_agrinas_is_unauthorized() {
 fn accept_by_wrong_coop_is_unauthorized() {
     let h = setup();
     let id = create(&h);
-    h.client.dispatch_supply(&h.agrinas, &id);
+    h.client.dispatch_supply(&h.supplier, &id);
     let other_coop = Address::generate(&h.env);
     assert_eq!(
         h.client.try_accept_supply(&other_coop, &id),
@@ -331,7 +370,10 @@ fn flag_heals_upward_across_deliveries() {
     let h = setup();
     let id = create_active(&h);
     deliver(&h, id, 1_375_000); // 50% -> PartialDelivery
-    assert_eq!(h.client.get_agreement(&id).flag, FlagReason::PartialDelivery);
+    assert_eq!(
+        h.client.get_agreement(&id).flag,
+        FlagReason::PartialDelivery
+    );
     deliver(&h, id, 1_225_000); // cumulative 2,600,000 = 94.5% -> Warning
     let a = h.client.get_agreement(&id);
     assert_eq!(a.status, Status::Delivered);
@@ -344,7 +386,8 @@ fn record_delivery_rejects_nonpositive_volume() {
     let h = setup();
     let id = create_active(&h);
     assert_eq!(
-        h.client.try_record_delivery(&h.coop, &id, &0, &symbol_short!("A")),
+        h.client
+            .try_record_delivery(&h.coop, &id, &0, &symbol_short!("A")),
         Err(Ok(ContractError::InvalidAmount))
     );
 }
@@ -355,7 +398,8 @@ fn record_delivery_by_wrong_coop_is_unauthorized() {
     let id = create_active(&h);
     let other_coop = Address::generate(&h.env);
     assert_eq!(
-        h.client.try_record_delivery(&other_coop, &id, &100_000, &symbol_short!("A")),
+        h.client
+            .try_record_delivery(&other_coop, &id, &100_000, &symbol_short!("A")),
         Err(Ok(ContractError::Unauthorized))
     );
 }
@@ -365,7 +409,8 @@ fn record_delivery_on_closed_agreement_rejected() {
     let h = setup();
     let id = create_settled(&h); // Delivered -> Settled
     assert_eq!(
-        h.client.try_record_delivery(&h.coop, &id, &100_000, &symbol_short!("A")),
+        h.client
+            .try_record_delivery(&h.coop, &id, &100_000, &symbol_short!("A")),
         Err(Ok(ContractError::AlreadyClosed))
     );
 }
@@ -439,9 +484,10 @@ fn settle_floors_net_at_zero_when_debt_exceeds_gross() {
     let id = h.client.create_agreement(
         &h.coop,
         &h.farmer,
-        &h.agrinas,
+        &h.supplier,
         &commodity(),
-        &100_000_000, // base_price_agrinas
+        &SubsidyTier::Commercial,
+        &100_000_000, // base_price
         &0,           // markup -> input_debt 100,000,000
         &HANDLING_BPS,
         &EXPECTED_VOL_G,
@@ -449,7 +495,7 @@ fn settle_floors_net_at_zero_when_debt_exceeds_gross() {
         &2_000,
         &ktp(&h.env),
     );
-    h.client.dispatch_supply(&h.agrinas, &id);
+    h.client.dispatch_supply(&h.supplier, &id);
     h.client.accept_supply(&h.coop, &id);
     deliver(&h, id, 100_000); // 100 kg -> gross 650,000, handling 32,500
     h.client.settle(&h.coop, &id);
@@ -457,7 +503,7 @@ fn settle_floors_net_at_zero_when_debt_exceeds_gross() {
     let a = h.client.get_agreement(&id);
     assert_eq!(a.paid_to_farmer, 0); // net floored at 0
     assert_eq!(a.coop_handling_accrued, 32_500); // handling still taken
-    // (gross - handling) = 617,500 all went to debt.
+                                                 // (gross - handling) = 617,500 all went to debt.
     assert_eq!(a.remaining_debt, 100_000_000 - 617_500);
     assert_eq!(a.residu_principal, 617_500);
     assert_eq!(a.settled_vol_g, 100_000);
@@ -513,7 +559,8 @@ fn settle_on_force_majeure_rejected() {
     let h = setup();
     let id = create_active(&h);
     deliver(&h, id, 500_000);
-    h.client.mark_force_majeure(&h.coop, &id, &symbol_short!("FLOOD"));
+    h.client
+        .mark_force_majeure(&h.coop, &id, &symbol_short!("FLOOD"));
     assert_eq!(
         h.client.try_settle(&h.coop, &id),
         Err(Ok(ContractError::AlreadyClosed))
@@ -526,13 +573,23 @@ fn settle_on_force_majeure_rejected() {
 fn residu_lifecycle_pending_remitted_cleared() {
     let h = setup();
     let id = create_settled(&h);
-    assert_eq!(h.client.get_agreement(&id).residu_status, ResiduStatus::Pending);
+    assert_eq!(
+        h.client.get_agreement(&id).residu_status,
+        ResiduStatus::Pending
+    );
 
-    h.client.mark_residu_remitted(&h.coop, &id, &ref_hash(&h.env));
-    assert_eq!(h.client.get_agreement(&id).residu_status, ResiduStatus::Remitted);
+    h.client
+        .mark_residu_remitted(&h.coop, &id, &ref_hash(&h.env));
+    assert_eq!(
+        h.client.get_agreement(&id).residu_status,
+        ResiduStatus::Remitted
+    );
 
-    h.client.confirm_remittance(&h.agrinas, &id);
-    assert_eq!(h.client.get_agreement(&id).residu_status, ResiduStatus::Cleared);
+    h.client.confirm_remittance(&h.supplier, &id);
+    assert_eq!(
+        h.client.get_agreement(&id).residu_status,
+        ResiduStatus::Cleared
+    );
 
     let cr = h.client.get_coop_reputation(&h.coop);
     assert_eq!(cr.total_residu_cleared, 2_000_000);
@@ -545,7 +602,7 @@ fn confirm_before_remit_errors() {
     let h = setup();
     let id = create_settled(&h); // residu Pending, not Remitted
     assert_eq!(
-        h.client.try_confirm_remittance(&h.agrinas, &id),
+        h.client.try_confirm_remittance(&h.supplier, &id),
         Err(Ok(ContractError::InvalidResiduStatus))
     );
 }
@@ -555,7 +612,8 @@ fn remit_without_residu_errors() {
     let h = setup();
     let id = create_active(&h); // no settle -> residu_principal 0
     assert_eq!(
-        h.client.try_mark_residu_remitted(&h.coop, &id, &ref_hash(&h.env)),
+        h.client
+            .try_mark_residu_remitted(&h.coop, &id, &ref_hash(&h.env)),
         Err(Ok(ContractError::InvalidResiduStatus))
     );
 }
@@ -566,16 +624,18 @@ fn mark_residu_remitted_by_wrong_coop_unauthorized() {
     let id = create_settled(&h);
     let other = Address::generate(&h.env);
     assert_eq!(
-        h.client.try_mark_residu_remitted(&other, &id, &ref_hash(&h.env)),
+        h.client
+            .try_mark_residu_remitted(&other, &id, &ref_hash(&h.env)),
         Err(Ok(ContractError::Unauthorized))
     );
 }
 
 #[test]
-fn confirm_remittance_by_wrong_agrinas_unauthorized() {
+fn confirm_remittance_by_wrong_supplier_unauthorized() {
     let h = setup();
     let id = create_settled(&h);
-    h.client.mark_residu_remitted(&h.coop, &id, &ref_hash(&h.env));
+    h.client
+        .mark_residu_remitted(&h.coop, &id, &ref_hash(&h.env));
     let other = Address::generate(&h.env);
     assert_eq!(
         h.client.try_confirm_remittance(&other, &id),
@@ -587,14 +647,18 @@ fn confirm_remittance_by_wrong_agrinas_unauthorized() {
 fn dispute_freezes_then_resolve_unfreezes() {
     let h = setup();
     let id = create_settled(&h);
-    h.client.mark_residu_remitted(&h.coop, &id, &ref_hash(&h.env));
+    h.client
+        .mark_residu_remitted(&h.coop, &id, &ref_hash(&h.env));
 
     h.client
-        .flag_remittance_dispute(&h.agrinas, &id, &symbol_short!("MISMATCH"));
+        .flag_remittance_dispute(&h.supplier, &id, &symbol_short!("MISMATCH"));
     let cr = h.client.get_coop_reputation(&h.coop);
     assert_eq!(cr.disputes, 1);
     assert!(cr.frozen);
-    assert_eq!(h.client.get_agreement(&id).residu_status, ResiduStatus::Disputed);
+    assert_eq!(
+        h.client.get_agreement(&id).residu_status,
+        ResiduStatus::Disputed
+    );
 
     // Admin resolves: coop unfreezes, residu returns to Remitted for re-verify.
     h.client.resolve_dispute(&h.admin, &h.coop, &id);
@@ -603,7 +667,10 @@ fn dispute_freezes_then_resolve_unfreezes() {
     let cr2 = h.client.get_coop_reputation(&h.coop);
     assert!(!cr2.frozen);
     assert_eq!(cr2.disputes, 1); // historical, preserved
-    assert_eq!(h.client.get_agreement(&id).residu_status, ResiduStatus::Remitted);
+    assert_eq!(
+        h.client.get_agreement(&id).residu_status,
+        ResiduStatus::Remitted
+    );
 }
 
 #[test]
@@ -611,7 +678,8 @@ fn dispute_before_remit_errors() {
     let h = setup();
     let id = create_settled(&h); // residu Pending, never remitted
     assert_eq!(
-        h.client.try_flag_remittance_dispute(&h.agrinas, &id, &symbol_short!("X")),
+        h.client
+            .try_flag_remittance_dispute(&h.supplier, &id, &symbol_short!("X")),
         Err(Ok(ContractError::InvalidResiduStatus))
     );
 }
@@ -620,9 +688,10 @@ fn dispute_before_remit_errors() {
 fn resolve_dispute_by_non_admin_unauthorized() {
     let h = setup();
     let id = create_settled(&h);
-    h.client.mark_residu_remitted(&h.coop, &id, &ref_hash(&h.env));
     h.client
-        .flag_remittance_dispute(&h.agrinas, &id, &symbol_short!("MISMATCH"));
+        .mark_residu_remitted(&h.coop, &id, &ref_hash(&h.env));
+    h.client
+        .flag_remittance_dispute(&h.supplier, &id, &symbol_short!("MISMATCH"));
     let stranger = Address::generate(&h.env);
     assert_eq!(
         h.client.try_resolve_dispute(&stranger, &h.coop, &id),
@@ -637,7 +706,8 @@ fn mark_force_majeure_closes_without_penalty() {
     let h = setup();
     let id = create_active(&h);
     deliver(&h, id, 400_000); // would be Suspected/Flagged
-    h.client.mark_force_majeure(&h.coop, &id, &symbol_short!("DROUGHT"));
+    h.client
+        .mark_force_majeure(&h.coop, &id, &symbol_short!("DROUGHT"));
 
     let a = h.client.get_agreement(&id);
     assert_eq!(a.status, Status::ForceMajeure);
@@ -686,7 +756,10 @@ fn persistent_ttl_extended_on_write() {
     let h = setup();
     let id = create(&h);
     let ttl = h.env.as_contract(&h.contract_id, || {
-        h.env.storage().persistent().get_ttl(&DataKey::Agreement(id))
+        h.env
+            .storage()
+            .persistent()
+            .get_ttl(&DataKey::Agreement(id))
     });
     assert!(ttl > 0);
 }
@@ -717,8 +790,8 @@ fn event_topic_layout_is_locked() {
     let id = create(&h);
     assert_eq!(topic_arity(&h.env, "agreement_created"), Some(4)); // id, farmer, coop
 
-    h.client.dispatch_supply(&h.agrinas, &id);
-    assert_eq!(topic_arity(&h.env, "dispatched"), Some(3)); // id, agrinas
+    h.client.dispatch_supply(&h.supplier, &id);
+    assert_eq!(topic_arity(&h.env, "dispatched"), Some(3)); // id, supplier
 
     h.client.accept_supply(&h.coop, &id);
     assert_eq!(topic_arity(&h.env, "accepted"), Some(3)); // id, coop
@@ -732,10 +805,11 @@ fn event_topic_layout_is_locked() {
     assert_eq!(topic_arity(&h.env, "reputation"), Some(2)); // farmer
     assert_eq!(topic_arity(&h.env, "coop_reputation"), Some(2)); // coop
 
-    h.client.mark_residu_remitted(&h.coop, &id, &ref_hash(&h.env));
+    h.client
+        .mark_residu_remitted(&h.coop, &id, &ref_hash(&h.env));
     assert_eq!(topic_arity(&h.env, "residu_remitted"), Some(3)); // id, coop
 
-    h.client.confirm_remittance(&h.agrinas, &id);
+    h.client.confirm_remittance(&h.supplier, &id);
     assert_eq!(topic_arity(&h.env, "remittance_cleared"), Some(3)); // id, coop
 }
 
@@ -749,4 +823,281 @@ fn settle_guards_against_overflow() {
         h.client.try_settle(&h.coop, &id),
         Err(Ok(ContractError::MathOverflow))
     );
+}
+
+// ── subsidy tier (recorded, never verified) ─────────────────────────────────
+
+#[test]
+fn create_agreement_records_subsidy_tier() {
+    let h = setup();
+    // Commercial via the `create` helper.
+    assert_eq!(
+        h.client.get_agreement(&create(&h)).subsidy_tier,
+        SubsidyTier::Commercial
+    );
+    // Subsidized snapshots the tier verbatim; the contract trusts it (no e-RDKK
+    // verification on-chain). Settlement math is identical either way — same base
+    // price derives the same input_debt.
+    let id = h.client.create_agreement(
+        &h.coop,
+        &h.farmer,
+        &h.supplier,
+        &commodity(),
+        &SubsidyTier::Subsidized,
+        &BASE_PRICE,
+        &MARKUP_BPS,
+        &HANDLING_BPS,
+        &EXPECTED_VOL_G,
+        &HPP_PER_KG,
+        &2_000,
+        &ktp(&h.env),
+    );
+    let a = h.client.get_agreement(&id);
+    assert_eq!(a.subsidy_tier, SubsidyTier::Subsidized);
+    assert_eq!(a.input_debt, INPUT_DEBT);
+}
+
+// ── offtake financing (§B) ──────────────────────────────────────────────────
+
+const FUND_PROJECTED: i128 = 30_000_000;
+
+/// KMP submits a funding request against a proof-packet hash.
+fn request_funding(h: &Harness, financier: &Address, requested: i128) -> u64 {
+    h.client.request_funding(
+        &h.coop,
+        financier,
+        &ref_hash(&h.env),
+        &FUND_PROJECTED,
+        &requested,
+    )
+}
+
+fn mint(h: &Harness, who: &Address, amount: i128) {
+    token::StellarAssetClient::new(&h.env, &h.token_addr).mint(who, &amount);
+}
+
+#[test]
+fn funding_happy_path_request_approve_disburse_reconcile() {
+    let h = setup();
+    let financier = Address::generate(&h.env);
+    mint(&h, &financier, 5_000_000); // financier holds dIDR to disburse
+
+    let id = request_funding(&h, &financier, 5_000_000);
+    assert_eq!(id, 0);
+    let f = h.client.get_funding(&id);
+    assert_eq!(f.status, FundingStatus::Requested);
+    assert_eq!(f.amount_requested, 5_000_000);
+    assert_eq!(f.projected_settlement, FUND_PROJECTED);
+
+    // Approve a strict subset of the request.
+    h.client.approve_funding(&financier, &id, &4_000_000);
+    let f = h.client.get_funding(&id);
+    assert_eq!(f.status, FundingStatus::Approved);
+    assert_eq!(f.amount_approved, 4_000_000);
+
+    // Disburse: REAL dIDR moves financier -> coop.
+    h.client.disburse_funding(&financier, &id);
+    let f = h.client.get_funding(&id);
+    assert_eq!(f.status, FundingStatus::Disbursed);
+    assert_eq!(f.amount_disbursed, 4_000_000);
+    assert_eq!(balance(&h, &financier), 1_000_000); // 5M - 4M
+    assert_eq!(balance(&h, &h.coop), 4_000_000);
+
+    // Reconcile the full advance in two beats; flips to Reconciled at the cap.
+    h.client.reconcile_funding(&h.coop, &id, &1_500_000);
+    assert_eq!(h.client.get_funding(&id).status, FundingStatus::Disbursed);
+    h.client.reconcile_funding(&h.coop, &id, &2_500_000);
+    let f = h.client.get_funding(&id);
+    assert_eq!(f.status, FundingStatus::Reconciled);
+    assert_eq!(f.amount_reconciled, 4_000_000);
+}
+
+#[test]
+fn disburse_requires_financier_to_authorize_the_nested_transfer() {
+    // The money moves FROM the financier (unlike settle, which pays from the
+    // contract's own balance), so the real Freighter flow needs the financier to
+    // sign the nested token-transfer sub-invocation — not just the outer call.
+    // mock_all_auths() would let a broken contract pass silently; assert the
+    // recorded auth tree actually carries that sub-invocation.
+    let h = setup();
+    let financier = Address::generate(&h.env);
+    mint(&h, &financier, 4_000_000);
+    let id = request_funding(&h, &financier, 4_000_000);
+    h.client.approve_funding(&financier, &id, &4_000_000);
+
+    h.client.disburse_funding(&financier, &id);
+    let auths = h.env.auths();
+    assert_eq!(
+        auths.first().map(|(a, _)| a.clone()),
+        Some(financier.clone())
+    );
+    // The financier's authorization for disburse_funding carries the token
+    // transfer as a required sub-invocation.
+    assert!(!auths[0].1.sub_invocations.is_empty());
+}
+
+#[test]
+fn reconcile_caps_at_disbursed() {
+    let h = setup();
+    let financier = Address::generate(&h.env);
+    mint(&h, &financier, 4_000_000);
+    let id = request_funding(&h, &financier, 4_000_000);
+    h.client.approve_funding(&financier, &id, &4_000_000);
+    h.client.disburse_funding(&financier, &id);
+
+    // Over-report collected principal — must clamp at amount_disbursed, not
+    // over-credit repayment.
+    h.client.reconcile_funding(&h.coop, &id, &10_000_000);
+    let f = h.client.get_funding(&id);
+    assert_eq!(f.amount_reconciled, 4_000_000);
+    assert_eq!(f.status, FundingStatus::Reconciled);
+}
+
+#[test]
+fn approve_above_request_rejected() {
+    let h = setup();
+    let financier = Address::generate(&h.env);
+    let id = request_funding(&h, &financier, 5_000_000);
+    assert_eq!(
+        h.client.try_approve_funding(&financier, &id, &6_000_000),
+        Err(Ok(ContractError::InvalidAmount))
+    );
+    assert_eq!(
+        h.client.try_approve_funding(&financier, &id, &0),
+        Err(Ok(ContractError::InvalidAmount))
+    );
+}
+
+#[test]
+fn disburse_before_approve_rejected() {
+    let h = setup();
+    let financier = Address::generate(&h.env);
+    let id = request_funding(&h, &financier, 5_000_000);
+    assert_eq!(
+        h.client.try_disburse_funding(&financier, &id),
+        Err(Ok(ContractError::InvalidFundingStatus))
+    );
+}
+
+#[test]
+fn reconcile_before_disburse_rejected() {
+    let h = setup();
+    let financier = Address::generate(&h.env);
+    let id = request_funding(&h, &financier, 5_000_000);
+    h.client.approve_funding(&financier, &id, &5_000_000);
+    assert_eq!(
+        h.client.try_reconcile_funding(&h.coop, &id, &1_000_000),
+        Err(Ok(ContractError::InvalidFundingStatus))
+    );
+}
+
+#[test]
+fn reject_closes_request_and_blocks_further_action() {
+    let h = setup();
+    let financier = Address::generate(&h.env);
+    let id = request_funding(&h, &financier, 5_000_000);
+    h.client
+        .reject_funding(&financier, &id, &symbol_short!("NOCOVER"));
+    assert_eq!(h.client.get_funding(&id).status, FundingStatus::Rejected);
+    // A rejected request can no longer be approved.
+    assert_eq!(
+        h.client.try_approve_funding(&financier, &id, &5_000_000),
+        Err(Ok(ContractError::InvalidFundingStatus))
+    );
+}
+
+#[test]
+fn approve_by_wrong_financier_unauthorized() {
+    let h = setup();
+    let financier = Address::generate(&h.env);
+    let stranger = Address::generate(&h.env);
+    let id = request_funding(&h, &financier, 5_000_000);
+    // Bound to the request's financier: a different (even validly-signing) party
+    // cannot approve.
+    assert_eq!(
+        h.client.try_approve_funding(&stranger, &id, &5_000_000),
+        Err(Ok(ContractError::Unauthorized))
+    );
+}
+
+#[test]
+fn reconcile_by_wrong_coop_unauthorized() {
+    let h = setup();
+    let financier = Address::generate(&h.env);
+    let stranger = Address::generate(&h.env);
+    mint(&h, &financier, 5_000_000);
+    let id = request_funding(&h, &financier, 5_000_000);
+    h.client.approve_funding(&financier, &id, &5_000_000);
+    h.client.disburse_funding(&financier, &id);
+    // A true stranger (neither the request's coop nor the admin) is rejected.
+    assert_eq!(
+        h.client.try_reconcile_funding(&stranger, &id, &1_000_000),
+        Err(Ok(ContractError::Unauthorized))
+    );
+}
+
+#[test]
+fn reconcile_by_admin_is_allowed() {
+    // Auth mirrors settle (§9): the admin/service key may drive reconcile so the
+    // Path A backend can automate the financing-repayment leg alongside settle.
+    let h = setup();
+    let financier = Address::generate(&h.env);
+    mint(&h, &financier, 5_000_000);
+    let id = request_funding(&h, &financier, 5_000_000);
+    h.client.approve_funding(&financier, &id, &5_000_000);
+    h.client.disburse_funding(&financier, &id);
+    h.client.reconcile_funding(&h.admin, &id, &5_000_000);
+    let f = h.client.get_funding(&id);
+    assert_eq!(f.status, FundingStatus::Reconciled);
+    assert_eq!(f.amount_reconciled, 5_000_000);
+}
+
+#[test]
+fn get_funding_unknown_id_errors() {
+    let h = setup();
+    assert_eq!(
+        h.client.try_get_funding(&99),
+        Err(Ok(ContractError::FundingNotFound))
+    );
+}
+
+#[test]
+fn request_funding_rejects_nonpositive_amounts() {
+    let h = setup();
+    let financier = Address::generate(&h.env);
+    assert_eq!(
+        h.client
+            .try_request_funding(&h.coop, &financier, &ref_hash(&h.env), &FUND_PROJECTED, &0),
+        Err(Ok(ContractError::InvalidAmount))
+    );
+    assert_eq!(
+        h.client
+            .try_request_funding(&h.coop, &financier, &ref_hash(&h.env), &0, &5_000_000),
+        Err(Ok(ContractError::InvalidAmount))
+    );
+}
+
+#[test]
+fn funding_event_topic_layout_is_locked() {
+    let h = setup();
+    let financier = Address::generate(&h.env);
+    mint(&h, &financier, 5_000_000);
+
+    let id = request_funding(&h, &financier, 5_000_000);
+    assert_eq!(topic_arity(&h.env, "funding_requested"), Some(3)); // id, coop
+
+    h.client.approve_funding(&financier, &id, &4_000_000);
+    assert_eq!(topic_arity(&h.env, "funding_approved"), Some(3)); // id, financier
+
+    h.client.disburse_funding(&financier, &id);
+    assert_eq!(topic_arity(&h.env, "funding_disbursed"), Some(3)); // id, financier
+
+    h.client.reconcile_funding(&h.coop, &id, &4_000_000);
+    assert_eq!(topic_arity(&h.env, "funding_reconciled"), Some(3)); // id, coop
+
+    // reject arity on a fresh request
+    let id2 = request_funding(&h, &financier, 1_000_000);
+    h.client
+        .reject_funding(&financier, &id2, &symbol_short!("NO"));
+    assert_eq!(topic_arity(&h.env, "funding_rejected"), Some(3)); // id, financier
 }

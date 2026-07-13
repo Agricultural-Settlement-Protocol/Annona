@@ -19,6 +19,15 @@ export type ResiduStatus = "Pending" | "Remitted" | "Cleared" | "Disputed";
  *  Contract indicates; humans decide. `Suspected` is never an auto-accusation. */
 export type FlagReason = "None" | "Warning" | "PartialDelivery" | "Suspected";
 
+/** Subsidy tier (e-RDKK / HET gate). Mirrors the Soroban `SubsidyTier` enum.
+ *  RECORDED, never computed: the chain anchors which price tier the snapshotted
+ *  base price came from; it never verifies e-RDKK eligibility. */
+export type SubsidyTier = "Subsidized" | "Commercial";
+
+/** Offtake-financing lifecycle. Mirrors the Soroban `FundingStatus` enum.
+ *  Independent of the agreement state machine (SMART-CONTRACT.md §B). */
+export type FundingStatus = "Requested" | "Approved" | "Rejected" | "Disbursed" | "Reconciled";
+
 /** Tolerance band thresholds (as a fraction of expected volume).
  *  Keep in sync with the contract's graded-flag logic. */
 export const FLAG_THRESHOLDS = {

@@ -1,8 +1,9 @@
 import type { Commodity } from "./agreement.js";
-import type { FlagReason } from "./status.js";
+import type { FlagReason, SubsidyTier } from "./status.js";
 
 /** Contract event names. Mirrors the event topics in SMART-CONTRACT.md section 7
- *  (v3.0, PMK 15/2026: double-confirmation + residu reconciliation events added).
+ *  (v4.0, PMK 15/2026: the single "Agrinas" party is corrected to `supplier`, and
+ *  the offtake-financing lifecycle events are added).
  *  The indexer keys every event by (txHash, eventIndex) for idempotency. */
 export type AnnonaEventType =
   | "AgreementCreated"
@@ -26,11 +27,6 @@ export type AnnonaEventType =
   | "FundingDisbursed"
   | "FundingReconciled";
 
-/** Which price tier the agreement's snapshotted base_price came from. Mirrors
- *  the on-chain `SubsidyTier` — Subsidized items are priced at HET (e-RDKK),
- *  Commercial otherwise. Settlement math is identical either way. */
-export type SubsidyTier = "Subsidized" | "Commercial";
-
 export interface EventEnvelope<T> {
   type: AnnonaEventType;
   txHash: string;
@@ -48,7 +44,10 @@ export interface AgreementCreatedData {
   commodity: Commodity;
   /** v4.0: which price tier the snapshotted base_price came from (chain mirror). */
   subsidyTier: SubsidyTier;
-  basePriceSupplier: bigint;
+  /** WIRE name. The contract emits `base_price` (no party suffix); the DB/read-model
+   *  column is `base_price_supplier`. The reducer bridges the two — do not "align"
+   *  this to the column name or the decoder (deepCamel of `base_price`) breaks. */
+  basePrice: bigint;
   saprotanMarkupBps: number;
   inputDebt: bigint;
   hppHandlingFeeBps: number;
@@ -77,7 +76,19 @@ export interface DeliveryRecordedData {
   deliveredTotalG: bigint;
 }
 
-/** Settled (v3.0, three-way split). */
+/** The immutable per-delivery harvest receipt. Decoded + logged to `event_log`,
+ *  never projected to a read-model table (same as Flagged) — the receipt is
+ *  reconstructed from `delivery` rows for display. */
+export interface HarvestReceiptMintedData {
+  id: bigint;
+  farmer: string;
+  seq: number;
+  volumeG: bigint;
+  grade: string;
+  timestamp: bigint;
+}
+
+/** Settled (v4.0, three-way split). */
 export interface SettledData {
   id: bigint;
   farmer: string;

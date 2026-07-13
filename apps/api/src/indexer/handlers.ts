@@ -234,7 +234,9 @@ async function handle(tx: Tx, env: AnyEnvelope): Promise<void> {
           grade: d.commodity.grade,
           moistureBps: d.commodity.moistureBps,
           subsidyTier: d.subsidyTier,
-          basePriceSupplier: d.basePriceSupplier,
+          // WIRE→DB bridge: the contract emits `base_price` (no party suffix);
+          // the read-model column keeps the `_supplier` suffix. Only asymmetry left.
+          basePriceSupplier: d.basePrice,
           saprotanMarkupBps: d.saprotanMarkupBps,
           inputDebt: d.inputDebt,
           hppHandlingFeeBps: d.hppHandlingFeeBps,
@@ -481,9 +483,12 @@ async function handle(tx: Tx, env: AnyEnvelope): Promise<void> {
       return;
 
     default: {
-      // Exhaustiveness: unhandled events (HarvestReceiptMinted, Flagged) are
-      // logged in event_log above but have no read-model side effect — the
-      // delivery row + classifyDelivery already capture their information.
+      // Exhaustiveness: unhandled events (HarvestReceiptMinted, Flagged, and the
+      // v4.0 funding lifecycle FundingRequested/Approved/Rejected/Disbursed/
+      // Reconciled) are logged in event_log above but have no read-model side
+      // effect. Deliveries + classifyDelivery already capture the former; the
+      // funding read-model tables are a deferred DB phase, so financing events
+      // are recorded (event_log) but not yet projected.
       return;
     }
   }
