@@ -24,6 +24,7 @@ import {
   CardHeader,
   Input,
   ReputationBadge,
+  SubsidyStatusBadge,
   RupiahAmount,
   TxHashLink,
   cn,
@@ -93,7 +94,12 @@ export function CreateAgreementForm() {
         label: f.name,
         sublabel: `${f.kecamatan} · ${f.plotAreaHa} ha`,
         keywords: `${f.defaultCommodityCode === "GABAH" ? "gabah padi" : "jagung"} ${f.kecamatan}`,
-        extra: <ReputationBadge tier={f.repTier} />,
+        extra: (
+          <span className="flex items-center gap-1.5">
+            <ReputationBadge tier={f.repTier} />
+            <SubsidyStatusBadge status={f.subsidyStatus} />
+          </span>
+        ),
       })),
     [farmers],
   );
@@ -290,7 +296,10 @@ export function CreateAgreementForm() {
                     {commodityCode === "GABAH" ? "Gabah Kering Panen" : "Jagung Pipilan Kering"}
                   </p>
                 </div>
-                <ReputationBadge tier={selectedFarmer.repTier} />
+                <div className="flex items-center gap-2">
+                  <ReputationBadge tier={selectedFarmer.repTier} />
+                  <SubsidyStatusBadge status={selectedFarmer.subsidyStatus} />
+                </div>
               </div>
             ) : null}
           </CardContent>
@@ -532,6 +541,15 @@ export function CreateAgreementForm() {
                   ? "HET pemerintah berlaku. Petani menerima bantuan pupuk bersubsidi."
                   : "Harga pasar komersial. Tidak ada HET."}
               </p>
+              {subsidyTier === "Subsidized" &&
+              selectedFarmer &&
+              selectedFarmer.subsidyStatus !== "Terverifikasi" ? (
+                <Alert tone="warning" className="mt-2 rounded-2xl text-xs">
+                  Petani ini berstatus e-RDKK "
+                  {selectedFarmer.subsidyStatus === "Belum" ? "Belum Terverifikasi" : "Non-Subsidi"}
+                  ". Verifikasi e-RDKK dulu, atau pilih tier Komersial.
+                </Alert>
+              ) : null}
             </fieldset>
           </CardContent>
         </Card>

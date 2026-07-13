@@ -10,6 +10,7 @@ export { RupiahAmount } from "./rupiah.js";
 export { TxHashLink } from "./tx-hash.js";
 export { ProgressBar } from "./progress.js";
 export { ReputationBadge, type RepTier } from "./reputation-badge.js";
+export { SubsidyStatusBadge, type SubsidyStatus } from "./subsidy-status-badge.js";
 export { Alert } from "./alert.js";
 export { Input, type InputProps } from "./input.js";
 export { Skeleton } from "./skeleton.js";

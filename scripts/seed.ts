@@ -531,7 +531,7 @@ async function seedAppUsers(financierId: string | null): Promise<void> {
 
   const accounts = [
     { email: "kmp@annona.id", role: "kmp", name: "Pengurus KMP Sukamaju", coop: coopId, agr: null, fin: null },
-    { email: "agrinas@annona.id", role: "supplier", name: "Operator Supplier", coop: null, agr: supplierId, fin: null },
+    { email: "pupukindonesia@annona.id", role: "supplier", name: "Operator Supplier", coop: null, agr: supplierId, fin: null },
     { email: "pemerintah@annona.id", role: "pemerintah", name: "Petugas Pengawas Kementan", coop: null, agr: null, fin: null },
     { email: "financier@annona.id", role: "financier", name: "Pemodal (LPDB Koperasi)", coop: null, agr: null, fin: financierId },
   ] as const;

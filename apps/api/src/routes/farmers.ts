@@ -17,6 +17,7 @@ const PUBLIC_COLS = {
   defaultCommodityCode: schema.farmer.defaultCommodityCode,
   kecamatan: schema.farmer.kecamatan,
   kabupaten: schema.farmer.kabupaten,
+  subsidyStatus: schema.farmer.subsidyStatus,
   createdAt: schema.farmer.createdAt,
 };
 

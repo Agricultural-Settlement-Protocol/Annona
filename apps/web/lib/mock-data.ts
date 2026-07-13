@@ -18,7 +18,7 @@ import {
   kgToGrams,
   rupiah,
 } from "@annona/core";
-import type { RepTier } from "@annona/ui";
+import type { RepTier, SubsidyStatus } from "@annona/ui";
 
 // ─── Parties (ERD: SUPPLIER, COOP) ───────────────────────────────────────────
 
@@ -193,6 +193,8 @@ export interface MockFarmer {
   walletAddress: string;
   /** hex of BytesN<32>; the only farmer identity that touches chain */
   ktpHash: string;
+  /** e-RDKK subsidized-fertilizer verification status (off-chain, KMP-set). */
+  subsidyStatus: SubsidyStatus;
   repTier: RepTier;
   reputation: {
     deliveries: number;
@@ -212,7 +214,7 @@ const hash32 = (seed: string) =>
     .join("")
     .slice(0, 64);
 
-export const MOCK_FARMERS: MockFarmer[] = [
+const FARMERS_BASE: Omit<MockFarmer, "subsidyStatus">[] = [
   {
     id: "frm-001",
     name: "Budi Santoso",
@@ -378,6 +380,15 @@ export const MOCK_FARMERS: MockFarmer[] = [
     },
   },
 ];
+
+/** e-RDKK spread mirrors the seed (scripts/seed.ts): index % 3 →
+ *  Terverifikasi / Belum / NonSubsidi, so the demo-local mocks agree with the
+ *  live /farmers read-model (4 verified / 3 pending / 3 non-subsidy). */
+const SUBSIDY_SPREAD: SubsidyStatus[] = ["Terverifikasi", "Belum", "NonSubsidi"];
+export const MOCK_FARMERS: MockFarmer[] = FARMERS_BASE.map((f, i) => ({
+  ...f,
+  subsidyStatus: SUBSIDY_SPREAD[i % SUBSIDY_SPREAD.length] as SubsidyStatus,
+}));
 
 // ─── Agreements (ERD: AGREEMENT + on-chain mirror + AGREEMENT_INPUT) ────────
 

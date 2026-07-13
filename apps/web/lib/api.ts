@@ -10,7 +10,7 @@
  * NOT the mock-data `Mock*` shapes (they diverge: volumeG vs volumeKg, etc.).
  */
 import type { FlagReason, ResiduStatus, Status, SubsidyTier } from "@annona/core";
-import type { RepTier } from "@annona/ui";
+import type { RepTier, SubsidyStatus } from "@annona/ui";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8787";
 
@@ -122,6 +122,8 @@ export interface ApiFarmer {
   defaultCommodityCode: string;
   kecamatan: string;
   kabupaten: string;
+  /** Farmer e-RDKK subsidized-fertilizer verification status (off-chain, KMP-set). */
+  subsidyStatus: SubsidyStatus;
   createdAt: string;
   repTier: RepTier;
   reputation: ApiFarmerReputation;

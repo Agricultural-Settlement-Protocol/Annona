@@ -5,7 +5,7 @@
 // No persistence beyond component/page state.
 
 import type { MockFarmer } from "@/lib/mock-data";
-import { Alert, Button, Input } from "@annona/ui";
+import { Alert, Button, Input, type SubsidyStatus } from "@annona/ui";
 import { X } from "lucide-react";
 import { useState } from "react";
 
@@ -16,6 +16,7 @@ interface RegForm {
   lahan: string;
   commodity: string;
   kecamatan: string;
+  subsidyStatus: SubsidyStatus;
 }
 
 const EMPTY_FORM: RegForm = {
@@ -25,6 +26,8 @@ const EMPTY_FORM: RegForm = {
   lahan: "",
   commodity: "GABAH",
   kecamatan: "",
+  // Officer sets e-RDKK verification at registration; default to not-yet-verified.
+  subsidyStatus: "Belum",
 };
 
 export function RegistryRegisterPanel({
@@ -81,6 +84,7 @@ export function RegistryRegisterPanel({
       defaultCommodityCode: form.commodity,
       walletAddress,
       ktpHash,
+      subsidyStatus: form.subsidyStatus,
       repTier: "baru",
       reputation: { deliveries: 0, onTime: 0, totalSettledKg: 0, flags: 0, forceMajeureEvents: 0 },
     };
@@ -176,6 +180,27 @@ export function RegistryRegisterPanel({
               <option value="GABAH">Gabah Kering Panen</option>
               <option value="JAGUNG">Jagung Pipilan Kering</option>
             </select>
+          </div>
+          <div className="w-full">
+            <label
+              htmlFor="reg-subsidy"
+              className="mb-2 block text-sm font-bold text-gray-900"
+            >
+              Status e-RDKK (Subsidi)
+            </label>
+            <select
+              id="reg-subsidy"
+              value={form.subsidyStatus}
+              onChange={set("subsidyStatus")}
+              className="h-12 w-full rounded-2xl border border-gray-100 bg-white px-4 text-sm font-semibold text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-ring transition-all"
+            >
+              <option value="Terverifikasi">e-RDKK Terverifikasi (berhak HET)</option>
+              <option value="Belum">Belum Terverifikasi</option>
+              <option value="NonSubsidi">Non-Subsidi (harga komersial)</option>
+            </select>
+            <p className="mt-2 text-xs font-medium text-gray-500">
+              Menentukan apakah petani berhak atas pupuk bersubsidi (HET) saat buat perjanjian.
+            </p>
           </div>
         </div>
 

@@ -21,6 +21,7 @@ import {
   EmptyState,
   Input,
   ReputationBadge,
+  SubsidyStatusBadge,
   RupiahAmount,
   Skeleton,
   StatusBadge,
@@ -63,6 +64,7 @@ function mockToApiFarmer(f: MockFarmer): ApiFarmer {
     defaultCommodityCode: f.defaultCommodityCode,
     kecamatan: f.kecamatan,
     kabupaten: "",
+    subsidyStatus: f.subsidyStatus,
     createdAt: new Date().toISOString(),
     repTier: f.repTier,
     reputation: { ...f.reputation, score: 0 },
@@ -221,6 +223,7 @@ function PetaniPageInner() {
               <Th>{t("page.kmp.petani.table.col.commodity")}</Th>
               <Th>{t("page.kmp.petani.table.col.status")}</Th>
               <Th>{t("page.kmp.petani.table.col.reputation")}</Th>
+              <Th>{t("page.kmp.petani.table.col.subsidy")}</Th>
               <Th>{t("page.kmp.petani.table.col.debt")}</Th>
               <Th className="w-10" />
             </THead>
@@ -264,6 +267,9 @@ function PetaniPageInner() {
                         <ReputationBadge tier={farmer.repTier} />
                       </Td>
                       <Td>
+                        <SubsidyStatusBadge status={farmer.subsidyStatus} />
+                      </Td>
+                      <Td>
                         {debt > 0n ? (
                           <RupiahAmount smallest={debt} tone="negative" />
                         ) : (
@@ -282,7 +288,7 @@ function PetaniPageInner() {
                     {/* Expandable detail row */}
                     {isExpanded ? (
                       <tr className="bg-surface-muted/40">
-                        <td colSpan={8} className="px-6 py-5">
+                        <td colSpan={9} className="px-6 py-5">
                           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
                             {/* Identity */}
                             <div className="space-y-3">

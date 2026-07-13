@@ -325,6 +325,7 @@
   "page.kmp.petani.table.col.commodity": "Commodity",
   "page.kmp.petani.table.col.area": "Land",
   "page.kmp.petani.table.col.reputation": "Reputation",
+  "page.kmp.petani.table.col.subsidy": "Subsidy (e-RDKK)",
   "page.kmp.petani.table.col.debt": "Debt",
   "page.kmp.petani.table.col.status": "Status",
   "page.kmp.petani.empty": "No farmers match your search.",

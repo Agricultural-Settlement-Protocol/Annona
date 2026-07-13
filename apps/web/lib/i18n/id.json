@@ -325,6 +325,7 @@
   "page.kmp.petani.table.col.commodity": "Komoditas",
   "page.kmp.petani.table.col.area": "Lahan",
   "page.kmp.petani.table.col.reputation": "Reputasi",
+  "page.kmp.petani.table.col.subsidy": "Subsidi (e-RDKK)",
   "page.kmp.petani.table.col.debt": "Utang",
   "page.kmp.petani.table.col.status": "Status",
   "page.kmp.petani.empty": "Tidak ada petani yang cocok dengan pencarian.",
