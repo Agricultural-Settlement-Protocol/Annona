@@ -88,7 +88,9 @@ function parseTsEventData(src: string): Map<string, string[]> {
 function parseEventTypeUnion(src: string): string[] {
   const block = src.match(/export type AnnonaEventType =([\s\S]*?);/)?.[1];
   assert.ok(block, "AnnonaEventType union not found in events.ts");
-  return [...block.matchAll(/"(\w+)"/g)].map((m) => m[1] as string);
+  // flatMap-as-guard, not `as string`: a cast would silently admit `undefined`
+  // into the list if this regex ever lost its capture group.
+  return [...block.matchAll(/"(\w+)"/g)].flatMap((m) => (m[1] ? [m[1]] : []));
 }
 
 const rust = parseRustEvents(readFileSync(RUST, "utf8"));

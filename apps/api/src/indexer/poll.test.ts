@@ -67,9 +67,11 @@ function parsePollRegistry(src: string): Map<string, TopicEntry> {
   const out = new Map<string, TopicEntry>();
   const entry = /(\w+):\s*\{\s*type:\s*"(\w+)",\s*topicFields:\s*\[([^\]]*)\]\s*\}/g;
   for (const m of block.matchAll(entry)) {
-    const symbol = m[1] as string;
-    const type = m[2] as string;
-    const topicFields = [...(m[3] as string).matchAll(/"(\w+)"/g)].map((f) => f[1] as string);
+    // Guards, not `as string` casts: a cast would let a regex change silently
+    // yield `undefined` entries and quietly weaken this tripwire.
+    const [, symbol, type, rawFields] = m;
+    if (!symbol || !type || rawFields === undefined) continue;
+    const topicFields = [...rawFields.matchAll(/"(\w+)"/g)].flatMap((f) => (f[1] ? [f[1]] : []));
     out.set(symbol, { type, topicFields });
   }
   return out;
