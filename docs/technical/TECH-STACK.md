@@ -34,7 +34,7 @@
 | **Tailwind CSS** | `v4` | Utility CSS; functional-first, mobile-responsive. |
 | **shadcn/ui** | latest | Accessible component primitives (tables, dialogs, charts shell). |
 | **Recharts** or **Tremor** | latest | Dashboard charts (commodity distribution, settlement rate). |
-| **@stellar/stellar-sdk** | `13.x` (JS) | Build/submit Soroban transactions, read contract state, parse events. |
+| **@stellar/stellar-sdk** | `16.x` (JS) | Build/submit Soroban transactions, read contract state, parse events. |
 | **@stellar/freighter-api** | latest | Wallet connect + `signAuthEntry` for coop/farmer accounts. |
 | **TanStack Query** | `5.x` | Server-state caching for read-models + chain reads. |
 | **next-intl** | latest | Bahasa Indonesia (default) + English toggle. |
@@ -44,7 +44,7 @@
 | Tool | Version | Why |
 |---|---|---|
 | **Hono** | `4.x` | Fast, lightweight TS API framework (runs on Node/edge). Serves REST + SDK backing endpoints. |
-| **@stellar/stellar-sdk** | `13.x` | Submit `settle()` calls (Path A), poll Soroban RPC for events. |
+| **@stellar/stellar-sdk** | `16.x` | Submit `settle()` calls (Path A), poll Soroban RPC for events. |
 | **Supabase** (Postgres `16`) | latest | Off-chain DB (PII, plots, catalog, read-models, reputation cache) + auth + storage. |
 | **Drizzle ORM** | latest | TS-first, lightweight, type-safe SQL. (Alt: Prisma — heavier.) |
 | **Indexer** | custom worker | Polls Soroban RPC `getEvents`, writes read-models to Postgres. Runs as a long-lived process / cron. |
@@ -64,7 +64,7 @@
 | Tool | Version | Why |
 |---|---|---|
 | **TypeScript** | `5.6+` | Typed client over the contract + read-models. |
-| **@stellar/stellar-sdk** | `13.x` | Peer dep for on-chain reads. |
+| **@stellar/stellar-sdk** | `16.x` | Peer dep for on-chain reads. |
 | **tsup** | latest | Bundle ESM+CJS for npm publish (post-hackathon). |
 
 ## 7. Infra / deploy
@@ -81,6 +81,6 @@
 ## 8. Version pinning checklist (do at init)
 - [x] `contracts/Cargo.toml` → pinned `soroban-sdk = "26.1.0"` (workspace dep)
 - [ ] `package.json` (root) → pin Turborepo, pnpm via `packageManager` field
-- [ ] `@stellar/stellar-sdk` → pin `13.x`
+- [x] `@stellar/stellar-sdk` → pin `16.x` (must match the network protocol; 13.x cannot parse protocol-23+ tx meta)
 - [ ] Next 15 / React 19 / Tailwind v4 confirmed compatible (Tailwind v4 needs the new PostCSS-less setup)
 - [ ] Node `.nvmrc` → `22`

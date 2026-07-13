@@ -16,11 +16,11 @@
     "@annona/core": "workspace:*"
   },
   "peerDependencies": {
-    "@stellar/stellar-sdk": "^13.0.0"
+    "@stellar/stellar-sdk": "^16.0.1"
   },
   "devDependencies": {
     "@annona/config": "workspace:*",
-    "@stellar/stellar-sdk": "^13.0.0",
+    "@stellar/stellar-sdk": "^16.0.1",
     "typescript": "^5.6.3"
   }
 }
