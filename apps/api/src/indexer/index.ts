@@ -115,7 +115,11 @@ async function main(): Promise<void> {
     console.log(`[indexer] one-shot poll of ${registryId} on ${rpcUrl}`);
     const n = await runOnce(server, registryId);
     console.log(`[indexer] folded ${n} event(s); exiting (--once)`);
-    return;
+    // postgres.js keeps its pool sockets open, which pins the event loop and
+    // makes a "finished" one-shot hang until the runner times it out. Exit
+    // explicitly; the pool needs no graceful teardown for reads/upserts that
+    // have already awaited.
+    process.exit(0);
   }
 
   // ── Loop mode (default): long-running. For local dev + the demo, and for a
@@ -126,7 +130,13 @@ async function main(): Promise<void> {
       const n = await runOnce(server, registryId);
       if (n > 0) console.log(`[indexer] folded ${n} event(s)`);
     } catch (err) {
-      console.error("[indexer] poll failed:", err instanceof Error ? err.message : err);
+      // "fetch failed" from undici hides the real network error in err.cause
+      // (ECONNRESET, ETIMEDOUT, IPv6 unreachable...). Surface it so a failing
+      // RPC is diagnosable from the log line alone. Loop continues: transient
+      // network errors self-heal on the next tick.
+      const msg = err instanceof Error ? err.message : String(err);
+      const cause = err instanceof Error && err.cause ? ` (cause: ${String(err.cause)})` : "";
+      console.error(`[indexer] poll failed: ${msg}${cause} -- retrying in ${POLL_INTERVAL_MS}ms`);
     }
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
   }

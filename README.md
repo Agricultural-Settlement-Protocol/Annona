@@ -1,24 +1,17 @@
 <div align="center">
 
-<img src="./assets/logo-annona.png" alt="Annona Protocol" height="96" />
-
-# Annona Protocol
+<img src="./assets/logo-annona.png" alt="Annona Protocol" height="88" />
 
 ### The Agricultural Offtake Settlement Rail on Stellar
 
-*Turning Indonesia's village input-credit to harvest-buyback loop (yarnen) into a tamper-proof, auto-netting, HPP-anchored on-chain ledger.*
+**One Soroban contract that turns Indonesia's village input-credit to harvest-buyback loop (*yarnen*) into a tamper-proof, auto-netting, HPP-anchored settlement record.**
 
-[![Network](https://img.shields.io/badge/Stellar-Testnet%20Live-14B866?style=flat-square)](https://stellar.expert/explorer/testnet/contract/CC5NZIW5OYPYQYQOW2T6GAYDBLHBBZHG6BHYCQQH3FPM5OZEC7WJCQHQ)
-[![Contract](https://img.shields.io/badge/Soroban-offtake--registry-10B3C4?style=flat-square)](https://stellar.expert/explorer/testnet/contract/CC5NZIW5OYPYQYQOW2T6GAYDBLHBBZHG6BHYCQQH3FPM5OZEC7WJCQHQ)
+[![Live App](https://img.shields.io/badge/Live%20Demo-annona--protocol.vercel.app-14B866?style=flat-square)](https://annona-protocol.vercel.app/)
+[![Network](https://img.shields.io/badge/Stellar-Testnet%20Live-10B3C4?style=flat-square)](https://stellar.expert/explorer/testnet/contract/CC5NZIW5OYPYQYQOW2T6GAYDBLHBBZHG6BHYCQQH3FPM5OZEC7WJCQHQ)
 [![Contract tests](https://img.shields.io/badge/cargo%20test-54%20passing-14B866?style=flat-square)](./contracts)
 [![Hackathon](https://img.shields.io/badge/APAC%20Stellar%20Hackathon-2026-1B1F1A?style=flat-square)](https://stellar.org)
 
-[Product (PRD)](./docs/PRD.md) &nbsp;·&nbsp;
-[Architecture](./docs/technical/ARCHITECTURE.md) &nbsp;·&nbsp;
-[Smart Contract Spec](./docs/technical/SMART-CONTRACT.md) &nbsp;·&nbsp;
-[Data Model (ERD)](./docs/technical/ERD.md) &nbsp;·&nbsp;
-[Pitch](./docs/pitch-deck/PITCH-SCRIPT.md) &nbsp;·&nbsp;
-[Contributor Guide](./CLAUDE.md)
+**[Open the live demo](https://annona-protocol.vercel.app/)**
 
 </div>
 
@@ -26,320 +19,270 @@
 
 ## Deployed contracts (Stellar Testnet)
 
-> Every on-chain action in the app renders its transaction hash with a live Stellar Expert link. The registry and the settlement asset below are live on Stellar Testnet.
+> Every on-chain action in the app renders its transaction hash with a live Stellar Expert link.
 
 | Contract / Account | Address | Explorer |
 |---|---|---|
 | **Offtake Registry** (Soroban, the core protocol) | `CC5NZIW5OYPYQYQOW2T6GAYDBLHBBZHG6BHYCQQH3FPM5OZEC7WJCQHQ` | [View](https://stellar.expert/explorer/testnet/contract/CC5NZIW5OYPYQYQOW2T6GAYDBLHBBZHG6BHYCQQH3FPM5OZEC7WJCQHQ) |
-| **dIDR token** (SAC, settlement asset, 7 decimals) | `CAJKD7II6HCCVA57F2ERVCEQR33TIDKNXSK5FY4FDORUJ2NY62BCG4SX` | [View](https://stellar.expert/explorer/testnet/contract/CAJKD7II6HCCVA57F2ERVCEQR33TIDKNXSK5FY4FDORUJ2NY62BCG4SX) |
+| **dIDR token** (SAC settlement asset, 7 decimals) | `CAJKD7II6HCCVA57F2ERVCEQR33TIDKNXSK5FY4FDORUJ2NY62BCG4SX` | [View](https://stellar.expert/explorer/testnet/contract/CAJKD7II6HCCVA57F2ERVCEQR33TIDKNXSK5FY4FDORUJ2NY62BCG4SX) |
 | **Admin / deployer** (service key) | `GBMZSJUV7BB24XPLX4ABUQTYK5SB6EZK5QUQ5JQELSB5AKZ76KXPVWDU` | [View](https://stellar.expert/explorer/testnet/account/GBMZSJUV7BB24XPLX4ABUQTYK5SB6EZK5QUQ5JQELSB5AKZ76KXPVWDU) |
 
-- **Network:** Stellar Testnet
-- **Registry WASM hash:** `ae8aa8c68da7fb9cc32271bd2fc181a4c09e527a4174e90dd6048fbd6eab463c`
-- **Deployed:** 2026-07-13
-- **Settlement asset:** dIDR, a Stellar Asset Contract (SAC) wrapping a classic asset (SEP-41 compatible), 7 decimals
-
-Deploy artifacts are written to [`scripts/artifacts.testnet.json`](./scripts/artifacts.testnet.json) by [`scripts/deploy.sh`](./scripts/deploy.sh), which also wires these ids into the app env files.
+- **Network:** Stellar Testnet · **Registry WASM hash:** `ae8aa8c68da7fb9cc32271bd2fc181a4c09e527a4174e90dd6048fbd6eab463c` · **Deployed:** 2026-07-13
+- Deploy artifacts land in [`scripts/artifacts.testnet.json`](./scripts/artifacts.testnet.json) via [`scripts/deploy.sh`](./scripts/deploy.sh), which also wires the ids into the app env files.
 
 ---
 
 ## What is Annona?
 
-Indonesia is capitalizing roughly **80,000 Koperasi Desa Merah Putih (KDMP)** village cooperatives to act as the farmer's **offtaker**: give farmers production inputs (pupuk, benih, pestisida) on credit, then buy the harvest back at the government floor price (HPP), cutting out the *tengkulak* (middleman). Under **PMK 15/2026** the state now absorbs the default risk, so the incentive to run that loop cleanly got weaker, not stronger.
+**Annona is the settlement rail that lets Indonesia's 80,000 village cooperatives prove, on-chain, that inputs given on credit came back as harvest and money, so banks, suppliers, and the state can finally trust them with capital.**
 
-The weak link: the input-credit to harvest-buyback loop (*yarnen*) is split across four institutions that do not share a record. Nobody can link "inputs given" to "harvest returned" to "money paid" to "sold on." Money leaks, farmers side-sell, and banks cannot trust the cooperative with capital.
-
-**Annona encodes that loop as one Soroban smart contract:**
-
-> register a farmer, issue inputs on credit (an on-chain Offtake Agreement carrying the debt and the HPP anchor), record graded delivery (an immutable Harvest Receipt), then **settle**, which computes `volume × HPP`, **auto-nets the input debt**, and splits the rest three ways. Every closed loop grows an on-chain reputation, the seed of a farmer financial identity.
-
-One record, five parties, zero trust required.
-
-> **We ship one app (KDMP-facing), but we architect a protocol:** a reusable offtake settlement standard any commodity cooperative, or any developer, can build on. The UI feels like a KDMP app; the contracts feel like infrastructure.
-
-Built for the **APAC Stellar Hackathon 2026**, then the **Stellar Community Fund** Build track.
+Built for the **APAC Stellar Hackathon 2026**, continuing into the **Stellar Community Fund** Build track.
 
 ---
 
-## Why blockchain, and only here
+## The problem
 
-About 70% of Annona is a normal web app. The chain earns its place in exactly three spots:
+Indonesia is capitalizing roughly **80,000 Koperasi Desa Merah Putih (KDMP)** cooperatives to act as each farmer's **offtaker**: hand out production inputs (pupuk, benih, pestisida) on credit, then buy the harvest back at the government floor price (**HPP**), cutting out the *tengkulak* (middleman).
 
-1. **Tamper-evident settlement record** that no single party can rewrite (the "underlying transaksi" banks demand before they lend).
-2. **Auto-netting trust primitive**, so no cooperative officer can quietly divert the difference between the harvest payment and the input debt.
-3. **Composable financial identity** (reputation plus receipts) that other protocols can read without permission.
+The loop is broken where it matters most:
 
-Everything else (PII, plots, catalog, read-models, reputation cache) is Postgres, and we say so in the UI.
-
-> **Honest framing:** crypto is illegal as a means of payment in Indonesia. In production, money moves in rupiah off-chain and the chain holds the **tamper-proof record**. We never claim "autonomous settlement" or "the blockchain pays the farmer." See [ARCHITECTURE.md section 5](./docs/technical/ARCHITECTURE.md).
-
----
-
-## The five parties
-
-| Party | Role | On-chain? |
-|---|---|---|
-| **Farmer** (Petani) | Receives inputs on credit, delivers graded harvest, gets the net payout. | Wallet, receipts, reputation |
-| **KMP** (Koperasi) | The offtaker: pre-funded cash agent, records deliveries, drives settlement. | Signs the core writes |
-| **Supplier** (input principal, filled by PT Agrinas) | Sets the input master catalog (`base_price`), dispatches saprotan, is the residu counterparty. | Dispatch gate, residu reconciliation |
-| **Financier** (e.g. LPDB) | Funds the coop's offtake working capital; disburses dIDR to the coop, reconciles on repayment. | Funding lifecycle |
-| **Government** (Pemerintah) | Read-only oversight and audit. | Read-only |
-
-Plus the **warehouse operator** ("gudang Agrinas"), a non-transacting infrastructure role that physically receives forwarded harvest.
-
-**Three parties, two gates:** `dispatch_supply` (Supplier) then `accept_supply` (KMP) must both fire before a farmer's input debt goes active. Flags indicate, humans decide: statuses like `Suspected` are never automatic accusations, an officer resolves them.
+- The input-credit to harvest-buyback cycle (*yarnen*) lives in **spreadsheets and WhatsApp**, split across four institutions that share no record.
+- Nobody can link *inputs given* → *harvest returned* → *money paid* → *sold on*. Money leaks. Farmers side-sell. Books cannot be audited.
+- Under **PMK 15/2026** the state now absorbs the default risk, so the incentive to run the loop cleanly got **weaker**, not stronger.
+- Result: suppliers ship saprotan against IOUs they cannot verify, and financiers are asked to fund offtake working capital **with no underlying transaction data at all**.
 
 ---
 
-## The core loop and the three-way split
+## The solution
 
-```
-register farmer ─► create agreement (input debt + expected volume + HPP anchor + subsidy tier)
-                        │
-              Supplier dispatch_supply ──► KMP accept_supply     (double-confirmation gate: debt now active)
-                        │
-                        ▼
-              record delivery (volume + grade + kadar air)  ─► mint Harvest Receipt (immutable)
-                        │
-                        ▼
-                    settle()   gross = volume × HPP
-                               net_to_farmer = max(0, (gross − handling_cut) − input_debt)
-                               debt_netted   = principal_to_supplier (residu) + coop_margin
-                        ─► release net to farmer (dIDR on testnet)
-                        ─► reputation ++   (supports staged / partial settlement)
+Annona encodes the entire offtake loop as **one Soroban smart contract**. Every step is a signed on-chain event; the dashboards are a projection of the chain.
+
+```mermaid
+flowchart LR
+    A["📝 Agreement<br/>HPP locked"] --> B["🚚 Saprotan dispatched<br/>by Supplier"]
+    B --> C["✅ KMP accepts<br/>farmer debt goes ACTIVE"]
+    C --> D["🌾 Harvest deposited<br/>graded receipt minted"]
+    C -.optional.-> E["💰 Offtake funding<br/>financier disburses dIDR"]
+    D --> F["⚖️ settle()<br/>three-way auto-split"]
+    E -.auto-reconciled.-> F
+    F --> G["👨‍🌾 Farmer paid net"]
+    F --> H["🏭 Supplier principal<br/>(residu)"]
+    F --> I["🏛️ Coop margin"]
+    F --> J[("🔗 Hash-chained ledger<br/>single source of truth")]
 ```
 
-Settlement is a **three-way split with debt netted first** (SMART-CONTRACT.md section 5). The collected debt splits into the **Supplier principal residu** (the Supplier's money, held by the KMP until remitted, reconciled on-chain against moral hazard) plus the **KMP margin**. Debt clears before the farmer sees positive cashflow, which protects both the cooperative and the Supplier's principal.
+**Settlement is a three-way split with debt netted first:**
 
-Worked hero example: base `Rp2.000.000` plus 10% markup, 5% handling, 2.600 kg gabah at HPP. Farmer receives `Rp13.855.000`, handling `Rp845.000`, coop margin `Rp200.000`, Supplier residu principal `Rp2.000.000`, debt netted `Rp2.200.000`.
+```
+gross          = volume × HPP
+net_to_farmer  = max(0, (gross − handling_cut) − input_debt)
+debt_netted    = principal_to_supplier (residu) + coop_margin
+```
+
+Debt clears before the farmer sees positive cashflow, the Supplier's principal is tracked separately and reconciled on-chain (no moral hazard), and partial or staged settlement is supported. Worked example: 2,600 kg gabah at HPP with a Rp2.2M input debt settles as **farmer Rp13.855.000 · handling Rp845.000 · coop margin Rp200.000 · supplier residu Rp2.000.000**, computed by the contract.
+
+### What ships in the box
+
+- **Offtake agreements** with a transparent yield estimate (`expected_vol = area × yield/ha`, BPS source shown). A formula, never an "AI prediction."
+- **Double-confirmation supply gate:** Supplier `dispatch_supply` then KMP `accept_supply` must both fire before farmer debt activates.
+- **Staged, human-gated harvest deposits:** farmers deposit multiple times or under-deliver; an officer closes the window. Flags indicate, humans decide.
+- **Immutable graded harvest receipts** (volume, grade, kadar air) minted per deposit.
+- **Offtake financing lifecycle:** request → approve → disburse (real dIDR, financier to coop) → auto-reconcile on repayment, so funding is always backed by live agreement data.
+- **Residu reconciliation:** the Supplier's principal held by the KMP is remitted and confirmed on-chain.
+- **Subsidy tier (e-RDKK)** recorded per agreement; HET-priced catalog items gated on farmer verification status.
+- **On-chain reputation** per farmer and per cooperative, the seed of a rural financial identity.
+- **Five role dashboards** (KMP, Supplier, Financier, Government read-only, Farmer), Bahasa Indonesia first, built for non-expert village officers: big numbers, color-coded statuses, every on-chain action shows its tx hash.
+- **AI assistant** (read-only, grounded in the ledger) for plain-Bahasa questions.
 
 ---
 
-## Architecture at a glance
+## Try it now (live demo)
 
-```
-                    Freighter wallet (writes)          Supabase Auth (dashboard role)
-                            │                                   │
-  ┌─────────────────────────┼───────────────────────────────────┼──────────────────────┐
-  │  apps/web (Next.js 15)   │  role-routed dashboards: KMP · Supplier · Financier · Gov │
-  └─────────────────────────┼───────────────────────────────────┼──────────────────────┘
-                            │  read (REST)                       │
-  ┌─────────────────────────▼───────────────────────────────────▼──────────────────────┐
-  │  apps/api (Hono)   REST read-model · event indexer · settlement orchestrator · AI    │
-  └───────────▲─────────────────────────────────┬───────────────────────────────────────┘
-              │ getEvents (poll)                 │ SUM-derived read-models
-  ┌───────────┴──────────────┐      ┌────────────▼───────────────┐
-  │  Soroban offtake-registry │      │  Supabase / Postgres 16    │
-  │  + dIDR SAC (Testnet)     │      │  PII · catalog · read-model │
-  └───────────────────────────┘      └────────────────────────────┘
-```
+**App:** **[https://annona-protocol.vercel.app/](https://annona-protocol.vercel.app/)**
 
-- **Shared types** live in [`packages/core`](./packages/core) (event shapes, `Agreement`, `Status`, money). `web`, `api`, and `sdk` import from there and never redefine, which prevents drift between the contract and the dashboards.
-- **Read-models are a projection of the chain.** The indexer polls Soroban RPC `getEvents`, folds each event through one shared `applyEvent` reducer into Postgres, and advances a per-contract cursor. Idempotency is keyed by `(tx_hash, event_index)`. Running money (paid, debt, residu) is derived by SUM over settlement and delivery rows, never stored on the agreement row.
+One shared login page; the role routes you to the matching dashboard. Seeded testnet demo accounts, safe to publish:
 
-Full detail: [ARCHITECTURE.md](./docs/technical/ARCHITECTURE.md).
+| Email | Password | Role | Dashboard |
+|---|---|---|---|
+| `kmp@annona.id` | `AnnonaKMP2026!` | KMP (koperasi) | Offtake ledger, deposits, payments, warehouse, logistics |
+| `pupukindonesia@annona.id` | `AnnonaSupplier2026!` | Supplier | Catalog, dispatch, harvest receiving, residu |
+| `financier@annona.id` | `AnnonaFinancier2026!` | Financier | Funding queue, portfolio, disbursement |
+| `pemerintah@annona.id` | `AnnonaGov2026!` | Government | Read-only oversight + AI assistant |
 
 ---
 
-## Monorepo layout
+## Why Stellar
+
+Annona is honest about where the chain earns its place, and Stellar is the only chain that fits all four requirements at village-cooperative economics:
+
+1. **Soroban contracts with native events.** The whole read-model is a projection of `#[contractevent]` streams over RPC `getEvents`. No custom indexing infra, no subgraph vendor.
+2. **Stellar Asset Contracts (SAC).** dIDR is a classic asset bridged to SEP-41 with one command: an IDR-denominated settlement token with zero token-contract code to audit.
+3. **Fees that survive rural volumes.** A full settlement (three-way split + token transfer + receipt + reputation write) costs a fraction of a rupiah. At 80,000 cooperatives settling weekly, fee ceilings are the difference between viable and dead.
+4. **Freighter + auth entries.** `require_auth` gives per-party signing (Supplier dispatch vs KMP accept vs admin settle) without any custom auth layer.
+
+And the regulatory frame is built in: crypto is not legal tender in Indonesia, so in production rupiah moves off-chain and the chain holds the **tamper-proof settlement record**. We never claim "the blockchain pays the farmer." That framing is what makes Annona deployable, not just demoable.
+
+---
+
+## Architecture
+
+```mermaid
+flowchart TB
+    subgraph Wallets["🔑 Signing"]
+        FR["Freighter wallet<br/>(per-party writes)"]
+        SK["Service key<br/>(server-signed settle)"]
+    end
+
+    subgraph Web["🖥️ apps/web · Next.js 15"]
+        KMP["KMP dashboard"]
+        SUP["Supplier dashboard"]
+        FIN["Financier dashboard"]
+        GOV["Gov oversight (read-only)"]
+    end
+
+    subgraph API["⚙️ apps/api · Hono"]
+        REST["REST read-model<br/>(money derived by SUM)"]
+        IDX["Event indexer<br/>poll → decode → applyEvent"]
+        ORCH["Settlement orchestrator"]
+        AI["AI assistant (grounded)"]
+    end
+
+    subgraph Chain["⛓️ Stellar Testnet"]
+        REG["offtake-registry<br/>(Soroban)"]
+        DIDR["dIDR (SAC)"]
+    end
+
+    subgraph DB["🗄️ Supabase Postgres"]
+        RM["Read-models (chain mirror)"]
+        PII["PII, catalog, logistics<br/>(never on-chain)"]
+    end
+
+    FR --> Web
+    Web -->|REST| API
+    Web -->|"sign + submit"| REG
+    SK --> ORCH
+    ORCH --> REG
+    REG --> DIDR
+    IDX -->|"getEvents"| REG
+    IDX --> RM
+    REST --> RM
+    REST --> PII
+    AI --> RM
+```
+
+Two hard rules keep it trustworthy:
+
+- **PII never touches the chain.** KTP numbers, names, and locations live in Postgres; the chain stores hashes, amounts, statuses, and counters.
+- **Read-models are a projection of the chain.** One shared `applyEvent` reducer folds events into Postgres, idempotent on `(tx_hash, event_index)`; running money is always derived by SUM over settlement rows, never stored on the agreement.
+
+### Monorepo
 
 ```
 annona/
 ├── apps/
-│   ├── web/          # Next.js 15 + Tailwind v4: KMP / Supplier / Financier / Gov dashboards
+│   ├── web/          # Next.js 15 + Tailwind v4: role-routed dashboards
 │   └── api/          # Hono: REST read-model + event indexer + settlement orchestrator + AI
 ├── packages/
-│   ├── core/         # shared TS types (Agreement, Status, events, money) = SINGLE SOURCE
-│   ├── sdk/          # @annona/sdk: typed read client (the composability surface)
+│   ├── core/         # shared TS types (events, Agreement, money) = SINGLE SOURCE
+│   ├── sdk/          # @annona/sdk: typed read client (composability surface)
 │   ├── ui/           # shared UI components + theme
 │   └── config/       # shared tsconfig / biome / tailwind presets
 ├── contracts/        # Rust / Soroban: offtake-registry (v4.0) + didr-token
-├── supabase/         # migrations + seed
-├── scripts/          # deploy, fund-testnet, seed, seed-chain
-└── docs/             # PRD.md + technical/ + pitch-deck/
+├── supabase/         # migrations
+└── scripts/          # deploy, fund-testnet, seed, seed-chain
 ```
-
-Managed with **Turborepo** plus **pnpm workspaces**. Internal deps use `workspace:*`.
-
----
-
-## Tech stack
-
-| Area | Tech |
-|---|---|
-| Monorepo | Turborepo 2, pnpm 11, Node 22 |
-| Web | Next.js 15 (App Router), React 19, Tailwind v4, TypeScript 5.6, next-intl (Bahasa default) |
-| API | Hono 4, tsx, Drizzle ORM |
-| Data | Supabase / Postgres 16 |
-| Contract | Rust, soroban-sdk 26.1, target `wasm32v1-none` (Stellar Testnet) |
-| Chain SDK | @stellar/stellar-sdk 16 (JS), @stellar/freighter-api 4 |
-| Wallet | Freighter |
-| AI | Groq `llama-3.3-70b` (chat) plus `llama-4-scout` (vision), read-only and grounded |
-| Lint / format | Biome |
-
-Full version table: [`docs/technical/TECH-STACK.md`](./docs/technical/TECH-STACK.md).
 
 ---
 
 ## Getting started
 
-**Prerequisites:** Node 22 (`nvm use`), pnpm 11+. For the contract: Rust stable plus the Stellar CLI and the `wasm32v1-none` target.
-
-### 1. Install and configure
+**Prerequisites:** Node 22 (`nvm use`), pnpm 11+. For the contract: Rust stable, Stellar CLI, `wasm32v1-none` target.
 
 ```bash
+# 1. install
 pnpm install
 
-# env: copy the examples, then fill in Supabase + contract ids
+# 2. env (fill Supabase creds + the contract ids above)
 cp apps/web/.env.example apps/web/.env.local
 cp apps/api/.env.example apps/api/.env
-```
 
-Key env vars:
-
-| Var | Where | Purpose |
-|---|---|---|
-| `DATABASE_URL`, `DIRECT_URL` | `apps/api/.env` | Postgres / Supabase connection |
-| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `apps/web/.env.local` | Browser auth |
-| `NEXT_PUBLIC_OFFTAKE_REGISTRY_CONTRACT_ID` | `apps/web/.env.local` | Set it for **live mode** (Freighter signs writes). Leave it **unset** for **demo mode** (writes self-simulate, no wallet needed). |
-| `NEXT_PUBLIC_DIDR_TOKEN_CONTRACT_ID` | `apps/web/.env.local` | dIDR settlement asset |
-| `SOROBAN_RPC_URL` | both | Defaults to `https://soroban-testnet.stellar.org` |
-
-### 2. Run the app
-
-```bash
+# 3. run everything
 pnpm dev
-#   web  -> http://localhost:3000
-#   api  -> http://localhost:8787
-
-# or one app at a time
-pnpm --filter @annona/web dev
-pnpm --filter @annona/api dev
+#   web -> http://localhost:3000     api -> http://localhost:8787
 ```
 
-### 3. Contract: build, test, deploy
+| Key env var | Where | Purpose |
+|---|---|---|
+| `DATABASE_URL` | `apps/api/.env` | Supabase Postgres (transaction pooler) |
+| `NEXT_PUBLIC_SUPABASE_URL` / `..._ANON_KEY` | `apps/web/.env.local` | Browser auth |
+| `NEXT_PUBLIC_OFFTAKE_REGISTRY_CONTRACT_ID` | `apps/web/.env.local` | Set = live mode (Freighter signs). Unset = demo mode (writes self-simulate, amber "Mode Demo" badge) |
+| `SETTLEMENT_SERVICE_SECRET` | `apps/api/.env` | Server-signed `settle()` (no Freighter needed for payments) |
+
+### Contract
 
 ```bash
 cd contracts
-cargo test                                             # 54 unit tests
-cargo build --release --target wasm32v1-none -p offtake-registry
-
-# deploy (writes scripts/artifacts.testnet.json + wires the app env files)
-./scripts/deploy.sh
+cargo test        # 54 unit tests
+./scripts/deploy.sh   # deploy + auto-wire ids into both env files
 ```
 
-### 4. Seed the demo data
+### Seed + indexer
 
 ```bash
-# synthetic: replays the fixture through the reducer (fast, placeholder wallets)
-pnpm --filter @annona/scripts seed
+pnpm --filter @annona/scripts seed          # synthetic demo data (fast)
+pnpm --filter @annona/scripts seed:chain    # drives the REAL contract: 85 events, 57 live tx hashes
 
-# chain-backed: drives the REAL deployed contract, real wallets, real tx hashes
-pnpm --filter @annona/scripts seed:chain
+pnpm --filter @annona/api indexer           # loop mode: near-real-time (5s poll)
+pnpm --filter @annona/api indexer:once      # one-shot: for cron / serverless
 ```
 
-### 5. Run the indexer
+### Quality gates
 
-```bash
-pnpm --filter @annona/api indexer         # loop mode (polls every 5s, near real-time), use for the demo
-pnpm --filter @annona/api indexer:once    # one-shot mode (one poll then exit), for cron / serverless
-```
+`pnpm check-types` · `pnpm lint` · `pnpm build` · `pnpm --filter @annona/web test:e2e` (Playwright journeys) · `cargo test` (contract) · CI runs types, lint, unit, contract, build, E2E, and DB drift checks.
 
-### Common commands
+---
 
-| Command | What |
+## Tech stack
+
+| Layer | Tech |
 |---|---|
-| `pnpm dev` | Run all apps (turbo) |
-| `pnpm build` | Build all (cached) |
-| `pnpm lint` | Biome lint |
-| `pnpm check-types` | TS typecheck across workspaces |
-| `pnpm --filter @annona/web test:e2e` | Playwright E2E journeys |
-| `pnpm --filter <pkg> <cmd>` | Target one workspace |
+| Contract | Rust, soroban-sdk 26.1, `wasm32v1-none`, ~46 KB WASM |
+| Chain SDK | @stellar/stellar-sdk 16, @stellar/freighter-api 4 |
+| Web | Next.js 15, React 19, Tailwind v4, TypeScript 5.6 strict, next-intl |
+| API | Hono 4, Drizzle ORM, postgres.js |
+| Data | Supabase (Postgres 16) |
+| AI | Groq llama-3.3-70b, read-only, grounded |
+| Monorepo | Turborepo 2, pnpm 11, Node 22, Biome |
 
 ---
 
-## Demo accounts
+## Status
 
-Auth is Supabase email plus password behind one shared `/auth` page. `app_user.role` routes the signed-in user to the matching dashboard. These are seeded testnet-demo accounts, fine to publish.
-
-| Email | Password | Role | Dashboard |
-|---|---|---|---|
-| `kmp@annona.id` | `AnnonaKMP2026!` | KMP (koperasi) | `/kmp` |
-| `pupukindonesia@annona.id` | `AnnonaSupplier2026!` | Supplier (operator) | `/oversight/supplier` |
-| `financier@annona.id` | `AnnonaFinancier2026!` | Financier (LPDB) | `/financier` |
-| `pemerintah@annona.id` | `AnnonaGov2026!` | Government (read-only) | `/oversight/pemerintah` |
-
-> For a friction-free walkthrough, leave `NEXT_PUBLIC_OFFTAKE_REGISTRY_CONTRACT_ID` unset so every write self-simulates (demo mode shows an amber "Mode Demo" badge). To sign for real, set the id and connect Freighter.
+- ✅ **Contract deployed to Stellar Testnet**: full v4.0 party model (Supplier / Financier / Farmer / Gov), dispatch-accept gates, three-way split, residu reconciliation, offtake financing, subsidy tier, reputation. 54 tests green.
+- ✅ **Chain-driven seed**: 12 agreements and the full funding lifecycle executed on testnet, 85 events across 57 real tx hashes, split math exact to the rupiah.
+- ✅ **Event indexer** (loop + one-shot), REST read-model, and five wired dashboards.
+- ✅ **Server-signed settlement path** plus the Freighter per-party write path with a demo-mode bridge.
+- ✅ **E2E suite** (Playwright) + CI.
 
 ---
 
-## Feature highlights
-
-- **Offtake agreements** with a transparent yield estimate (`expected_vol = area × yield/ha`, BPS / KATAM source shown), never an "AI prediction."
-- **Double-confirmation supply gate** (Supplier dispatch, KMP accept) before input debt goes active.
-- **Staged, human-gated deposits** (setoran berkala): a farmer may deposit multiple times or under-deliver; the officer closes the harvest window.
-- **Three-way split settlement** with debt netted first, partial settlement supported.
-- **Residu reconciliation:** the Supplier principal is held by the KMP and reconciled on-chain (anti moral-hazard).
-- **Offtake financing lifecycle:** request, approve, disburse (real dIDR financier to coop), reconcile on repayment.
-- **Subsidy tier** (e-RDKK) recorded on the agreement (recorded, not verified on-chain).
-- **On-chain reputation** per farmer and per cooperative.
-- **AI assistant** (read-only, grounded in the read-model) for plain-Bahasa questions and document import.
-- **Bahasa Indonesia first**, English toggle. Rupiah formatting everywhere. No em dashes in any UI string.
-
----
-
-## Roadmap (five-layer progression)
+## Roadmap
 
 ```
 L1 Settlement ─► L2 Reputation ─► L3 Receivable ─► L4 Liquidity ─► L5 RWA
-  (MVP)           (seeded now)     (post)            (Blend / DeFindex) (gated on OJK)
+   (live)          (seeded)         (next)           (Blend / DeFindex)   (gated on regulation)
 ```
 
-RWA is the result of the flow, not the headline. Full detail: [PRD section 11](./docs/PRD.md).
+RWA is the *result* of the flow, not the headline.
 
 ---
-
-## Project status
-
-- ✅ Docs (PRD plus technical/) coherent at the **v4.0 multi-party model** (PMK 15/2026).
-- ✅ Soroban `offtake-registry` **reworked to v4.0 and deployed to Testnet**: Supplier / Financier / Farmer split, dispatch/accept gates, three-way split, residu reconciliation, coop reputation, subsidy tier, and the full offtake-financing lifecycle. **54 unit tests green**, clippy and fmt clean, WASM approx 46 KB.
-- ✅ Off-chain DB on Supabase (Drizzle schema live), including `harvest_shipment` logistics and `warehouse_stock`.
-- ✅ Event indexer built (shared `applyEvent` reducer plus RPC poller, loop and one-shot modes, per-contract cursor).
-- ✅ REST read-model routes (agreements, overview, coop, settlements, residu, farmers, financier, payable, subsidy, catalog, warehouse).
-- ✅ Web dashboards wired to the live API; Freighter write path built with a demo-mode bridge.
-- ✅ E2E (Playwright) journeys plus CI (types, lint, unit, contract, build, E2E, DB drift).
-- 🟡 On-chain write path via Freighter is deploy-ready; single-wallet backend signer (Path A) is designed, not yet wired.
-
----
-
-## Testing and CI
-
-- **Contract:** `cargo test` (54 tests) plus a WASM budget build in CI.
-- **Unit:** shared reducer, ScVal round-trip / envelope, and a contract-to-core drift tripwire.
-- **E2E:** Playwright journeys run in demo mode (writes self-simulate, reads hit the live API), gated to PRs on `main` / `dev` plus the manual button to stay within the free CI budget.
-- **DB:** drizzle-kit check plus an optional `supabase db diff` against the linked remote.
-
----
-
-## Contributing
-
-Read [`CLAUDE.md`](./CLAUDE.md) first. Golden rules:
-
-1. **PII never touches the chain.** KTP, names, phone, and GPS go to Postgres only; the chain stores hashes, amounts, status, grades, and counters.
-2. **Chain only where it earns its place** (tamper-proof record, auto-netting, reputation). Everything else is a normal web app.
-3. **Never claim "autonomous settlement."** The correct framing is "tamper-proof settlement record."
-4. **The yield estimate is a transparent formula, never an AI prediction.**
-5. **Shared types live in `packages/core`;** never redefine them.
-6. **Settlement is a three-way split, debt netted first;** the residu principal is the Supplier's money, not the KMP's.
-7. **Flags indicate, humans decide.**
-8. **No em dashes in any user-facing UI string or AI output.** Money is integer smallest-unit; volumes are grams on-chain. Log mistakes in the CLAUDE.md self-learning section.
-
----
-
-## License
-
-To be finalized before public release.
 
 <div align="center">
-<sub>Annona · named for the Roman goddess of the grain supply · APAC Stellar Hackathon 2026</sub>
+
+### Funding and saprotan requests backed by nothing? **Not anymore.**
+
+Every rupiah of input credit, every kilogram of harvest, every settlement split: **one tamper-proof ledger the whole lumbung can trust.**
+
+*Annona · named for the Roman goddess of the grain supply · APAC Stellar Hackathon 2026*
+
 </div>
