@@ -22,6 +22,22 @@ async function getJSON<T>(path: string): Promise<T> {
   return (await res.json()) as T;
 }
 
+/** POST a JSON body. Surfaces the server's `error` message on non-2xx so the
+ *  form can show why (e.g. a duplicate wallet). Used by the off-chain writes
+ *  (farmer registry, saprotan catalog) that persist straight to Postgres. */
+async function postJSON<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = (await res.json().catch(() => ({}))) as T & { error?: string };
+  if (!res.ok) {
+    throw new Error(data?.error ? `${data.error}` : `[api] POST ${path} -> ${res.status}`);
+  }
+  return data as T;
+}
+
 /** Money/volume come off the wire as decimal strings; back to bigint. */
 const big = (v: string): bigint => BigInt(v);
 
@@ -291,6 +307,22 @@ export async function fetchDeliveries(): Promise<ApiDeliveryRow[]> {
 export async function fetchFarmers(): Promise<ApiFarmer[]> {
   const { items } = await getJSON<{ items: ApiFarmer[] }>("/farmers");
   return items;
+}
+
+/** Off-chain farmer registration (Screen B). PII (raw KTP, name) lives only in
+ *  Postgres; the server computes ktp_hash. No wallet/chain needed — persists so
+ *  the row survives a refresh (unlike the old demo-local register). */
+export interface CreateFarmerInput {
+  name: string;
+  ktpRaw: string;
+  walletAddress?: string;
+  plotAreaHa: number;
+  defaultCommodityCode: string;
+  kecamatan: string;
+  subsidyStatus: SubsidyStatus;
+}
+export async function createFarmer(input: CreateFarmerInput): Promise<ApiFarmer> {
+  return postJSON<ApiFarmer>("/farmers", input);
 }
 
 export async function fetchSettlements(): Promise<ApiSettlement[]> {

@@ -27,7 +27,7 @@ import {
   X,
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n/use-i18n";
-import { Fragment, useCallback, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -133,10 +133,14 @@ function CatalogFormSheet({
     }
   }
 
-  // Schedule focus on first input when sheet opens (no autoFocus attr)
-  if (open && firstInputRef.current && document.activeElement !== firstInputRef.current) {
-    setTimeout(() => firstInputRef.current?.focus(), 30);
-  }
+  // Focus the first input ONCE when the sheet opens. Must be an effect keyed on
+  // `open` — doing this in the render body re-fired on every keystroke and yanked
+  // focus back to the name field (the "mental ke nama" bug).
+  useEffect(() => {
+    if (!open) return;
+    const id = setTimeout(() => firstInputRef.current?.focus(), 30);
+    return () => clearTimeout(id);
+  }, [open]);
 
   function patch(key: keyof FormState, val: string) {
     setForm((prev) => ({ ...prev, [key]: val }));

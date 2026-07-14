@@ -1,6 +1,19 @@
+import { createHash, randomBytes } from "node:crypto";
 import { eq, ilike } from "drizzle-orm";
 import { Hono } from "hono";
 import { getDb, schema } from "../db/client.js";
+
+const SUBSIDY_VALUES = ["Terverifikasi", "Belum", "NonSubsidi"] as const;
+type SubsidyValue = (typeof SUBSIDY_VALUES)[number];
+
+/** Base32 (Stellar strkey alphabet) G-address placeholder for a farmer the
+ *  officer registered without pasting a real wallet (demo). */
+function placeholderWallet(): string {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  return `G${Array.from(randomBytes(55))
+    .map((b) => alphabet[b % 32])
+    .join("")}`;
+}
 
 const json = (data: unknown) =>
   JSON.parse(JSON.stringify(data, (_, v) => (typeof v === "bigint" ? v.toString() : v)));
@@ -101,4 +114,71 @@ export const farmersRoute = new Hono()
     const row = rows[0];
     if (!row) return c.json({ error: "not_found", id }, 404);
     return c.json(json(shapeFarmer(row)));
+  })
+  // Off-chain farmer registration (Screen B). Raw KTP + name are PII → stored
+  // ONLY here (Postgres); the server computes ktp_hash (what the chain would
+  // anchor). No wallet/chain needed, so any officer can register and it PERSISTS
+  // across refresh (unlike the old demo-local form).
+  .post("/", async (c) => {
+    const body = (await c.req.json().catch(() => null)) as Record<string, unknown> | null;
+    const name = typeof body?.name === "string" ? body.name.trim() : "";
+    const ktpRaw = typeof body?.ktpRaw === "string" ? body.ktpRaw.trim() : "";
+    const kecamatan = typeof body?.kecamatan === "string" ? body.kecamatan.trim() : "";
+    const plotAreaHa = Number(body?.plotAreaHa);
+    if (!name || !ktpRaw || !kecamatan) {
+      return c.json({ error: "Nama, KTP, dan kecamatan wajib diisi." }, 400);
+    }
+    if (!Number.isFinite(plotAreaHa) || plotAreaHa <= 0) {
+      return c.json({ error: "Luas lahan tidak valid." }, 400);
+    }
+
+    const db = getDb();
+    const coopRows = await db
+      .select({ id: schema.coop.id, kabupaten: schema.coop.kabupaten })
+      .from(schema.coop)
+      .limit(1);
+    const coop = coopRows[0];
+    if (!coop) return c.json({ error: "Belum ada koperasi terkonfigurasi." }, 500);
+
+    const ktpHash = createHash("sha256").update(ktpRaw).digest("hex");
+    const walletAddress =
+      typeof body?.walletAddress === "string" && body.walletAddress.trim()
+        ? body.walletAddress.trim()
+        : placeholderWallet();
+    const subsidyStatus: SubsidyValue = SUBSIDY_VALUES.includes(body?.subsidyStatus as SubsidyValue)
+      ? (body?.subsidyStatus as SubsidyValue)
+      : "NonSubsidi";
+    const commodityCode =
+      typeof body?.defaultCommodityCode === "string" ? body.defaultCommodityCode : "GABAH";
+
+    try {
+      const inserted = await db
+        .insert(schema.farmer)
+        .values({
+          coopId: coop.id,
+          name,
+          ktpRaw,
+          ktpHash,
+          walletAddress,
+          plotAreaHa: String(plotAreaHa),
+          defaultCommodityCode: commodityCode,
+          kecamatan,
+          kabupaten: coop.kabupaten,
+          subsidyStatus,
+        })
+        .returning({ id: schema.farmer.id });
+      const id = inserted[0]?.id;
+      const rows = await db
+        .select({ ...PUBLIC_COLS, ...REP_COLS })
+        .from(schema.farmer)
+        .leftJoin(schema.reputationCache, eq(schema.reputationCache.farmerId, schema.farmer.id))
+        .where(eq(schema.farmer.id, id ?? ""));
+      return c.json(json(shapeFarmer(rows[0] as Parameters<typeof shapeFarmer>[0])), 201);
+    } catch (e) {
+      const dup = e instanceof Error && /unique|duplicate/i.test(e.message);
+      return c.json(
+        { error: dup ? "Alamat wallet sudah terdaftar." : "Gagal menyimpan petani." },
+        400,
+      );
+    }
   });

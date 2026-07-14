@@ -1,10 +1,11 @@
 "use client";
 
-// Registration panel for Screen B (Farmer Registry). Client-side only, demo simulation.
-// KTP is SHA-256 hashed in the browser; the raw number never leaves this component.
-// No persistence beyond component/page state.
+// Registration panel for Screen B (Farmer Registry). PERSISTS to Postgres via
+// POST /farmers (off-chain: raw KTP + name are PII stored server-side; the server
+// computes ktp_hash). Survives a refresh, and any officer can register — no
+// wallet/chain needed.
 
-import type { MockFarmer } from "@/lib/mock-data";
+import { type ApiFarmer, type CreateFarmerInput, createFarmer } from "@/lib/api";
 import { Alert, Button, Input, type SubsidyStatus } from "@annona/ui";
 import { X } from "lucide-react";
 import { useState } from "react";
@@ -34,7 +35,7 @@ export function RegistryRegisterPanel({
   onSuccess,
   onClose,
 }: {
-  onSuccess: (farmer: MockFarmer) => void;
+  onSuccess: (farmer: ApiFarmer) => void;
   onClose: () => void;
 }) {
   const [form, setForm] = useState<RegForm>(EMPTY_FORM);
@@ -62,35 +63,27 @@ export function RegistryRegisterPanel({
     }
     setLoading(true);
 
-    // SHA-256 the KTP number with Web Crypto (real hash, never stored, never sent)
-    const enc = new TextEncoder().encode(form.ktp.trim());
-    const buf = await crypto.subtle.digest("SHA-256", enc);
-    const ktpHash = Array.from(new Uint8Array(buf))
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
-
-    // Build a Stellar-style public key placeholder if the officer left it blank
-    const walletAddress =
-      form.wallet.trim() ||
-      `G${Array.from(crypto.getRandomValues(new Uint8Array(35)))
-        .map((b) => "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"[b % 32])
-        .join("")}`;
-
-    const newFarmer: MockFarmer = {
-      id: `frm-new-${Date.now()}`,
+    // Raw KTP goes to the server (HTTPS) which stores it (PII home = Postgres)
+    // and computes ktp_hash. The wallet is optional; the server generates a
+    // placeholder if the officer left it blank.
+    const payload: CreateFarmerInput = {
       name: form.name.trim(),
-      kecamatan: form.kecamatan.trim(),
+      ktpRaw: form.ktp.trim(),
+      walletAddress: form.wallet.trim() || undefined,
       plotAreaHa: lahan,
       defaultCommodityCode: form.commodity,
-      walletAddress,
-      ktpHash,
+      kecamatan: form.kecamatan.trim(),
       subsidyStatus: form.subsidyStatus,
-      repTier: "baru",
-      reputation: { deliveries: 0, onTime: 0, totalSettledKg: 0, flags: 0, forceMajeureEvents: 0 },
     };
 
-    setLoading(false);
-    onSuccess(newFarmer);
+    try {
+      const created = await createFarmer(payload);
+      onSuccess(created);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Gagal menyimpan petani.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (

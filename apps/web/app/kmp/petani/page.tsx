@@ -13,7 +13,7 @@ import { PageHeader } from "@/components/kmp/page-header";
 import { RegistryRegisterPanel } from "@/components/kmp/registry-register-panel";
 import { TBody, THead, Table, TableFrame, Td, Th, Tr } from "@/components/kmp/table";
 import { useApi } from "@/lib/use-api";
-import { type MockFarmer, shortAddr } from "@/lib/mock-data";
+import { shortAddr } from "@/lib/mock-data";
 import type { Status } from "@annona/core";
 import {
   Alert,
@@ -50,25 +50,6 @@ function farmerActiveAgreementCount(agreements: ApiAgreement[], farmerId: string
   return agreements.filter(
     (a) => a.farmerId === farmerId && ACTIVE_STATUSES.includes(a.status),
   ).length;
-}
-
-/** Adapt a locally-registered MockFarmer (demo write path) to the ApiFarmer shape. */
-function mockToApiFarmer(f: MockFarmer): ApiFarmer {
-  return {
-    id: f.id,
-    coopId: "",
-    name: f.name,
-    ktpHash: f.ktpHash,
-    walletAddress: f.walletAddress,
-    plotAreaHa: String(f.plotAreaHa),
-    defaultCommodityCode: f.defaultCommodityCode,
-    kecamatan: f.kecamatan,
-    kabupaten: "",
-    subsidyStatus: f.subsidyStatus,
-    createdAt: new Date().toISOString(),
-    repTier: f.repTier,
-    reputation: { ...f.reputation, score: 0 },
-  };
 }
 
 /** Skeleton shown while the Suspense boundary resolves useSearchParams. */
@@ -135,10 +116,12 @@ function PetaniPageInner() {
     setExpandedId((prev) => (prev === id ? null : id));
   }
 
-  function handleRegisterSuccess(farmer: MockFarmer) {
-    setRegisteredFarmers((prev) => [...prev, mockToApiFarmer(farmer)]);
+  function handleRegisterSuccess(farmer: ApiFarmer) {
+    // Persisted to Postgres via POST /farmers — shows now and survives refresh
+    // (the API list will include it on the next fetch).
+    setRegisteredFarmers((prev) => [...prev, farmer]);
     setShowRegister(false);
-    setSuccessMessage(`Petani ${farmer.name} berhasil didaftarkan (demo lokal).`);
+    setSuccessMessage(`Petani ${farmer.name} berhasil didaftarkan.`);
     setTimeout(() => setSuccessMessage(null), 6000);
   }
 
