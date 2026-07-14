@@ -43,6 +43,13 @@
       "when": 1783864054681,
       "tag": "0005_supplier_rename",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1784000872526,
+      "tag": "0006_peaceful_quasimodo",
+      "breakpoints": true
     }
   ]
 }

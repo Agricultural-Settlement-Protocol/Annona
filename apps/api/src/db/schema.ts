@@ -681,3 +681,31 @@ export const supplierPayable = pgTable(
     index("supplier_payable_supplier_idx").on(t.supplierId),
   ],
 );
+
+/* ────────────────────────── off-chain warehouse ledger ────────────────────────── */
+
+/** KMP warehouse stock ledger (off-chain, catatan lokal). NOT a chain read-model:
+ *  a simple in/out log the officer maintains for physical inventory tracking.
+ *  category is either 'saprotan' (agricultural inputs) or 'hasil-panen' (harvested
+ *  commodity before forwarding to the Agrinas warehouse). Qty fields are free-text
+ *  so the officer can record human-readable units (karung, kg, kantong) without
+ *  forcing a numeric schema. Persists to Postgres so data survives page refresh. */
+export const warehouseStock = pgTable(
+  "warehouse_stock",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    coopId: uuid("coop_id")
+      .notNull()
+      .references(() => coop.id),
+    itemName: text("item_name").notNull(),
+    /** 'saprotan' | 'hasil-panen' */
+    category: text("category").notNull(),
+    inQty: text("in_qty").notNull().default(""),
+    outQty: text("out_qty").notNull().default(""),
+    balance: text("balance").notNull().default(""),
+    note: text("note").notNull().default(""),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("warehouse_stock_coop_id_idx").on(t.coopId)],
+);

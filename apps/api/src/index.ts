@@ -13,6 +13,7 @@ import { referenceRoute } from "./routes/reference.js";
 import { residuRoute } from "./routes/residu.js";
 import { settlementsRoute } from "./routes/settlements.js";
 import { subsidyRoute } from "./routes/subsidy.js";
+import { warehouseRoute } from "./routes/warehouse.js";
 
 /**
  * Annona API (abstraction layer).
@@ -40,6 +41,7 @@ app.route("/residu", residuRoute);
 app.route("/financier", financierRoute);
 app.route("/payable", payableRoute);
 app.route("/subsidy", subsidyRoute);
+app.route("/warehouse-stock", warehouseRoute);
 
 app.get("/", (c) => c.json({ name: "annona-api", status: "ok" }));
 

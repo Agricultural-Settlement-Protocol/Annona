@@ -697,3 +697,56 @@ export async function fetchFinancierDetail(
     lines: r.lines.map(parseBackingLine),
   };
 }
+
+// ─── Warehouse stock (off-chain catatan lokal) ───────────────────────────────
+
+/** A single warehouse stock row. All qty fields are free-text (e.g. "18 karung",
+ *  "2.750 kg") so officers can record human-readable units without a numeric
+ *  schema. category is 'saprotan' or 'hasil-panen'. */
+export interface ApiWarehouseStock {
+  id: string;
+  coopId: string;
+  itemName: string;
+  /** 'saprotan' | 'hasil-panen' */
+  category: string;
+  inQty: string;
+  outQty: string;
+  balance: string;
+  note: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function fetchWarehouseStock(): Promise<ApiWarehouseStock[]> {
+  const { items } = await getJSON<{ items: ApiWarehouseStock[] }>("/warehouse-stock");
+  return items;
+}
+
+export interface CreateWarehouseStockInput {
+  itemName: string;
+  category: string;
+  inQty?: string;
+  outQty?: string;
+  balance?: string;
+  note?: string;
+}
+
+export async function createWarehouseStock(
+  input: CreateWarehouseStockInput,
+): Promise<ApiWarehouseStock> {
+  return postJSON<ApiWarehouseStock>("/warehouse-stock", input);
+}
+
+export interface UpdateWarehouseStockPatch {
+  inQty?: string;
+  outQty?: string;
+  balance?: string;
+  note?: string;
+}
+
+export async function updateWarehouseStock(
+  id: string,
+  patch: UpdateWarehouseStockPatch,
+): Promise<ApiWarehouseStock> {
+  return patchJSON<ApiWarehouseStock>(`/warehouse-stock/${id}`, patch);
+}
