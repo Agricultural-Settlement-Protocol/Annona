@@ -39,3 +39,6 @@ blob-report/
 **/e2e/.results/
 .playwright/
 test-results/
+
+screenshots/
+.vercel
