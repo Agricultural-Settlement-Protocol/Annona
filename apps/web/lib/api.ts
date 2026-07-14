@@ -354,6 +354,41 @@ export async function fetchSettlements(): Promise<ApiSettlement[]> {
   return items.map(parseSettlement);
 }
 
+export interface ExecuteSettlementResult {
+  hash: string;
+  onchainId: string;
+}
+
+/**
+ * POST /settlements/execute — server-signed settle(), no Freighter. The
+ * backend signs with its own service key (see
+ * apps/api/src/services/settlement-orchestrator.ts); this call only needs
+ * the caller's Supabase access token (role must be "kmp") and the
+ * agreement's on-chain id. Returns once the tx result is known (success or
+ * failure) — no polling.
+ */
+export async function executeSettlement(
+  onchainId: bigint,
+  accessToken: string,
+): Promise<ExecuteSettlementResult> {
+  const res = await fetch(`${API_BASE}/settlements/execute`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ onchainId: onchainId.toString() }),
+  });
+  const data = (await res.json().catch(() => ({}))) as {
+    error?: string;
+    hash?: string;
+  };
+  if (!res.ok || !data.hash) {
+    throw new Error(data.error ?? `[api] POST /settlements/execute -> ${res.status}`);
+  }
+  return { hash: data.hash, onchainId: onchainId.toString() };
+}
+
 export async function fetchResidu(): Promise<ApiResidu[]> {
   const { items } = await getJSON<{ items: Raw<ApiResidu>[] }>("/residu");
   return items.map(parseResidu);
