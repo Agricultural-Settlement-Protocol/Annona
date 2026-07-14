@@ -38,6 +38,20 @@ async function postJSON<T>(path: string, body: unknown): Promise<T> {
   return data as T;
 }
 
+/** PATCH a JSON body (partial update of an off-chain row). */
+async function patchJSON<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = (await res.json().catch(() => ({}))) as T & { error?: string };
+  if (!res.ok) {
+    throw new Error(data?.error ? `${data.error}` : `[api] PATCH ${path} -> ${res.status}`);
+  }
+  return data as T;
+}
+
 /** Money/volume come off the wire as decimal strings; back to bigint. */
 const big = (v: string): bigint => BigInt(v);
 
@@ -337,6 +351,23 @@ export async function fetchResidu(): Promise<ApiResidu[]> {
 
 export async function fetchCoop(): Promise<{ coop: ApiCoop; supplier: ApiSupplier }> {
   const r = await getJSON<{ coop: Raw<ApiCoop>; supplier: ApiSupplier }>("/coop");
+  return {
+    coop: { ...r.coop, prefundedCashBalance: big(r.coop.prefundedCashBalance) },
+    supplier: r.supplier,
+  };
+}
+
+/** Off-chain edit of the coop profile identity fields (Screen Pengaturan). */
+export interface UpdateCoopInput {
+  name?: string;
+  kecamatan?: string;
+  kabupaten?: string;
+  provinsi?: string;
+}
+export async function updateCoop(
+  patch: UpdateCoopInput,
+): Promise<{ coop: ApiCoop; supplier: ApiSupplier }> {
+  const r = await patchJSON<{ coop: Raw<ApiCoop>; supplier: ApiSupplier }>("/coop", patch);
   return {
     coop: { ...r.coop, prefundedCashBalance: big(r.coop.prefundedCashBalance) },
     supplier: r.supplier,

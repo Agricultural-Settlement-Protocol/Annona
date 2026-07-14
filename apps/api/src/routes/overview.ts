@@ -1,5 +1,5 @@
 import { computeSplitSettlement, kgToGrams } from "@annona/core";
-import { inArray, ne } from "drizzle-orm";
+import { eq, inArray, ne } from "drizzle-orm";
 import { Hono } from "hono";
 import { getDb, schema } from "../db/client.js";
 import { type EnrichedAgreement, jsonSafe, listAgreements } from "../lib/read-model.js";
@@ -122,8 +122,32 @@ export const overviewRoute = new Hono().get("/", async (c) => {
 });
 
 /** Coop parties + prefunded cash (Screen A header). */
-export const coopRoute = new Hono().get("/", async (c) => {
-  const rows = await getDb().select().from(schema.coop);
-  const supplierRows = await getDb().select().from(schema.supplier);
-  return c.json(jsonSafe({ coop: rows[0] ?? null, supplier: supplierRows[0] ?? null }));
-});
+export const coopRoute = new Hono()
+  .get("/", async (c) => {
+    const rows = await getDb().select().from(schema.coop);
+    const supplierRows = await getDb().select().from(schema.supplier);
+    return c.json(jsonSafe({ coop: rows[0] ?? null, supplier: supplierRows[0] ?? null }));
+  })
+  // Off-chain coop profile edit (Screen Pengaturan). Only the editable identity
+  // fields — wallet/cash balance are chain/authoritative and not touched here.
+  .patch("/", async (c) => {
+    const body = (await c.req.json().catch(() => null)) as Record<string, unknown> | null;
+    const db = getDb();
+    const rows = await db.select({ id: schema.coop.id }).from(schema.coop).limit(1);
+    const coop = rows[0];
+    if (!coop) return c.json({ error: "Belum ada koperasi terkonfigurasi." }, 404);
+
+    const patch: Record<string, string> = {};
+    for (const field of ["name", "kecamatan", "kabupaten", "provinsi"] as const) {
+      const v = body?.[field];
+      if (typeof v === "string" && v.trim()) patch[field] = v.trim();
+    }
+    if (Object.keys(patch).length === 0) {
+      return c.json({ error: "Tidak ada perubahan untuk disimpan." }, 400);
+    }
+
+    await db.update(schema.coop).set(patch).where(eq(schema.coop.id, coop.id));
+    const updated = await db.select().from(schema.coop).where(eq(schema.coop.id, coop.id));
+    const supplierRows = await db.select().from(schema.supplier);
+    return c.json(jsonSafe({ coop: updated[0] ?? null, supplier: supplierRows[0] ?? null }));
+  });
