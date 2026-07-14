@@ -7,6 +7,8 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
+    "indexer": "tsx src/indexer/index.ts",
+    "indexer:once": "tsx src/indexer/index.ts --once",
     "lint": "biome lint src",
     "check-types": "tsc --noEmit",
     "test": "tsx --test src/**/*.test.ts",

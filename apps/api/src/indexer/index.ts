@@ -8,6 +8,7 @@
  * Config comes from scripts/artifacts.testnet.json (written by deploy.sh) and
  * SOROBAN_RPC_URL. Run standalone: `pnpm --filter @annona/api tsx src/indexer`.
  */
+import "dotenv/config";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { rpc } from "@stellar/stellar-sdk";
@@ -55,17 +56,38 @@ async function setCursor(contractId: string, lastLedger: number): Promise<void> 
     });
 }
 
+/** How many ledgers back the FIRST run (empty cursor) scans. History is already
+ *  projected by seed-chain, and testnet RPC only retains ~17k ledgers, so the
+ *  default starts effectively at "now" and catches new writes forward. Set
+ *  INDEXER_BACKFILL_LEDGERS higher (≤ ~17000) to backfill on a fresh DB. */
+const BACKFILL_LEDGERS = Number(process.env.INDEXER_BACKFILL_LEDGERS ?? 10);
+
 /** One poll → fold → advance-cursor cycle. Exported for tests / one-shot runs. */
 export async function runOnce(server: rpc.Server, registryId: string): Promise<number> {
   const db = getDb();
   const cursor = await getCursor(registryId);
-  const startLedger = cursor > 0 ? cursor + 1 : (await server.getLatestLedger()).sequence - 17000;
+  const startLedger =
+    cursor > 0
+      ? cursor + 1
+      : (await server.getLatestLedger()).sequence - Math.max(0, BACKFILL_LEDGERS);
   const page = await pollEvents(server, registryId, Math.max(startLedger, 1));
 
   let maxLedger = cursor;
   for (const event of page.events) {
-    // DecodedEvent is structurally the typed EventEnvelope applyEvent expects.
-    await applyEvent(db, event as unknown as Parameters<typeof applyEvent>[1]);
+    try {
+      // DecodedEvent is structurally the typed EventEnvelope applyEvent expects.
+      await applyEvent(db, event as unknown as Parameters<typeof applyEvent>[1]);
+    } catch (err) {
+      // A single bad/unresolvable event must not crash the whole loop. The most
+      // common cause is a wallet the read-model doesn't know — i.e. the DB was
+      // seeded by the SYNTHETIC seed.ts (placeholder wallets) instead of
+      // seed-chain.ts (the real on-chain wallets these events reference). Log
+      // once and keep going so the cursor still advances.
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(
+        `[indexer] skipped ${event.type} @ ${event.txHash.slice(0, 8)}: ${msg} (is the DB seeded via \`pnpm seed:chain\`?)`,
+      );
+    }
     if (event.ledger > maxLedger) maxLedger = event.ledger;
   }
   // Advance to the RPC's latest processed ledger even when no events landed, so
@@ -75,12 +97,30 @@ export async function runOnce(server: rpc.Server, registryId: string): Promise<n
   return page.events.length;
 }
 
+/** Resolve the registry id from env (preferred) or the deploy artifacts file. */
+function resolveRegistryId(): string {
+  return process.env.OFFTAKE_REGISTRY_CONTRACT_ID?.trim() || loadArtifacts().registryId;
+}
+
 async function main(): Promise<void> {
-  const { registryId } = loadArtifacts();
+  const registryId = resolveRegistryId();
   const rpcUrl = process.env.SOROBAN_RPC_URL ?? "https://soroban-testnet.stellar.org";
   const server = new rpc.Server(rpcUrl);
-  console.log(`[indexer] polling ${registryId} on ${rpcUrl} every ${POLL_INTERVAL_MS}ms`);
 
+  // ── One-shot mode (`--once`): poll a single cycle and EXIT. This is the
+  //    serverless / cron path — a scheduled job (GitHub Actions, Vercel Cron,
+  //    Supabase pg_cron) invokes this every ~1 min, no always-on server needed. ──
+  const once = process.argv.includes("--once");
+  if (once) {
+    console.log(`[indexer] one-shot poll of ${registryId} on ${rpcUrl}`);
+    const n = await runOnce(server, registryId);
+    console.log(`[indexer] folded ${n} event(s); exiting (--once)`);
+    return;
+  }
+
+  // ── Loop mode (default): long-running. For local dev + the demo, and for a
+  //    Railway/Render always-on worker later. ──
+  console.log(`[indexer] polling ${registryId} on ${rpcUrl} every ${POLL_INTERVAL_MS}ms`);
   for (;;) {
     try {
       const n = await runOnce(server, registryId);

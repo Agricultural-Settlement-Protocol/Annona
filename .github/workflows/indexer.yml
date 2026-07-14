@@ -1,0 +1,46 @@
+name: Indexer (serverless cron)
+
+# Serverless indexer — no always-on backend needed. A scheduled job runs ONE
+# poll cycle (`pnpm indexer:once`): Soroban getEvents -> applyEvent -> Supabase,
+# advancing the per-contract cursor so each run resumes where the last stopped.
+#
+# GitHub's minimum schedule granularity is 5 minutes (and free runners can be
+# delayed under load), so this gives ~5 min freshness. For real-time (demo),
+# run the loop locally: `pnpm --filter @annona/api indexer`. For a true always-on
+# worker, deploy apps/api to Railway/Render and run the same command.
+#
+# Required repo secrets: DATABASE_URL (Supabase). Optional vars:
+#   OFFTAKE_REGISTRY_CONTRACT_ID (else read from scripts/artifacts.testnet.json),
+#   SOROBAN_RPC_URL (defaults to soroban-testnet.stellar.org).
+
+on:
+  schedule:
+    - cron: "*/5 * * * *" # every 5 minutes
+  workflow_dispatch: # manual "Run workflow" button
+
+concurrency:
+  group: indexer
+  cancel-in-progress: false # never run two poll cycles at once (cursor safety)
+
+jobs:
+  poll:
+    name: Poll + fold one cycle
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    if: ${{ github.repository == 'Agricultural-Settlement-Protocol/Annona' }}
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      OFFTAKE_REGISTRY_CONTRACT_ID: ${{ vars.OFFTAKE_REGISTRY_CONTRACT_ID }}
+      SOROBAN_RPC_URL: ${{ vars.SOROBAN_RPC_URL || 'https://soroban-testnet.stellar.org' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Indexer one-shot poll
+        run: pnpm --filter @annona/api indexer:once
