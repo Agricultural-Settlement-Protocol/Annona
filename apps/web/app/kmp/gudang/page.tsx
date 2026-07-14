@@ -342,8 +342,8 @@ function TambahStokForm({
       ) : null}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="sm:col-span-2">
-          <label className="block text-xs font-semibold text-gray-600 mb-1">Nama Barang</label>
           <Input
+            label="Nama Barang"
             name="tambah-item-name"
             value={itemName}
             onChange={(e) => setItemName(e.target.value)}
@@ -351,22 +351,38 @@ function TambahStokForm({
             className="rounded-2xl"
           />
         </div>
-        <div>
-          <label className="block text-xs font-semibold text-gray-600 mb-1">Qty Masuk</label>
-          <Input name="tambah-in-qty" value={inQty} onChange={(e) => setInQty(e.target.value)} placeholder="mis. 18 karung" className="rounded-2xl" />
-        </div>
-        <div>
-          <label className="block text-xs font-semibold text-gray-600 mb-1">Qty Keluar</label>
-          <Input name="tambah-out-qty" value={outQty} onChange={(e) => setOutQty(e.target.value)} placeholder="mis. 16 karung" className="rounded-2xl" />
-        </div>
-        <div>
-          <label className="block text-xs font-semibold text-gray-600 mb-1">Sisa</label>
-          <Input name="tambah-balance" value={balance} onChange={(e) => setBalance(e.target.value)} placeholder="mis. 2 karung" className="rounded-2xl" />
-        </div>
-        <div>
-          <label className="block text-xs font-semibold text-gray-600 mb-1">Catatan</label>
-          <Input name="tambah-note" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Catatan opsional" className="rounded-2xl" />
-        </div>
+        <Input
+          label="Qty Masuk"
+          name="tambah-in-qty"
+          value={inQty}
+          onChange={(e) => setInQty(e.target.value)}
+          placeholder="mis. 18 karung"
+          className="rounded-2xl"
+        />
+        <Input
+          label="Qty Keluar"
+          name="tambah-out-qty"
+          value={outQty}
+          onChange={(e) => setOutQty(e.target.value)}
+          placeholder="mis. 16 karung"
+          className="rounded-2xl"
+        />
+        <Input
+          label="Sisa"
+          name="tambah-balance"
+          value={balance}
+          onChange={(e) => setBalance(e.target.value)}
+          placeholder="mis. 2 karung"
+          className="rounded-2xl"
+        />
+        <Input
+          label="Catatan"
+          name="tambah-note"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="Catatan opsional"
+          className="rounded-2xl"
+        />
       </div>
       <div className="mt-4 flex gap-2">
         <Button

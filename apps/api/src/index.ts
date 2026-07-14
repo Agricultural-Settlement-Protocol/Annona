@@ -3,6 +3,7 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { agreementsRoute } from "./routes/agreements.js";
+import { catalogRoute } from "./routes/catalog.js";
 import { deliveriesRoute } from "./routes/deliveries.js";
 import { farmersRoute } from "./routes/farmers.js";
 import { financierRoute } from "./routes/financier.js";
@@ -42,6 +43,7 @@ app.route("/financier", financierRoute);
 app.route("/payable", payableRoute);
 app.route("/subsidy", subsidyRoute);
 app.route("/warehouse-stock", warehouseRoute);
+app.route("/catalog", catalogRoute);
 
 app.get("/", (c) => c.json({ name: "annona-api", status: "ok" }));
 
