@@ -52,6 +52,16 @@ async function patchJSON<T>(path: string, body: unknown): Promise<T> {
   return data as T;
 }
 
+/** DELETE request for removing an off-chain row. */
+async function delJSON<T>(path: string): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, { method: "DELETE" });
+  const data = (await res.json().catch(() => ({}))) as T & { error?: string };
+  if (!res.ok) {
+    throw new Error(data?.error ? `${data.error}` : `[api] DELETE ${path} -> ${res.status}`);
+  }
+  return data as T;
+}
+
 /** Money/volume come off the wire as decimal strings; back to bigint. */
 const big = (v: string): bigint => BigInt(v);
 
@@ -410,11 +420,45 @@ export async function fetchOverview(): Promise<ApiOverview> {
 
 export interface ApiCatalogItem {
   id: string;
+  supplierId: string;
   code: string;
   name: string;
   category: string;
+  region: string;
   basePriceSupplier: bigint;
-  source: string;
+  subsidiFlag: boolean;
+  priceTier: string;
+  hetPrice: bigint | null;
+  erdkkGated: boolean;
+  /** Nullable in schema (no .notNull()). */
+  source: string | null;
+  stockStatus: string;
+  unitLabel: string;
+}
+
+/** Wire shape returned by GET/POST/PATCH /catalog: bigint columns are decimal strings. */
+type RawCatalogItem = Omit<ApiCatalogItem, "basePriceSupplier" | "hetPrice"> & {
+  basePriceSupplier: string;
+  hetPrice: string | null;
+};
+
+function parseCatalogItem(r: RawCatalogItem): ApiCatalogItem {
+  return {
+    id: r.id,
+    supplierId: r.supplierId,
+    code: r.code,
+    name: r.name,
+    category: r.category,
+    region: r.region,
+    basePriceSupplier: big(r.basePriceSupplier),
+    subsidiFlag: r.subsidiFlag,
+    priceTier: r.priceTier,
+    hetPrice: r.hetPrice != null ? big(r.hetPrice) : null,
+    erdkkGated: r.erdkkGated,
+    source: r.source,
+    stockStatus: r.stockStatus,
+    unitLabel: r.unitLabel,
+  };
 }
 
 export interface ApiPriceRef {
@@ -425,17 +469,42 @@ export interface ApiPriceRef {
 }
 
 export async function fetchCatalog(): Promise<ApiCatalogItem[]> {
-  const { items } = await getJSON<{ items: (Raw<ApiCatalogItem> & Record<string, unknown>)[] }>(
-    "/reference/catalog",
-  );
-  return items.map((r) => ({
-    id: r.id,
-    code: r.code,
-    name: r.name,
-    category: r.category,
-    basePriceSupplier: big(r.basePriceSupplier),
-    source: r.source,
-  }));
+  const { items } = await getJSON<{ items: RawCatalogItem[] }>("/catalog");
+  return items.map(parseCatalogItem);
+}
+
+/** Input body for creating or patching a catalog item.
+ *  `basePriceWhole` is the whole-rupiah amount as a string; the server
+ *  converts to smallest unit (whole * 10_000_000). */
+export interface CatalogItemInput {
+  code?: string;
+  name?: string;
+  category?: string;
+  region?: string;
+  basePriceWhole?: string;
+  subsidiFlag?: boolean;
+  priceTier?: string;
+  erdkkGated?: boolean;
+  source?: string;
+  stockStatus?: string;
+  unitLabel?: string;
+}
+
+export async function createCatalogItem(input: CatalogItemInput): Promise<ApiCatalogItem> {
+  const r = await postJSON<RawCatalogItem>("/catalog", input);
+  return parseCatalogItem(r);
+}
+
+export async function updateCatalogItem(
+  id: string,
+  patch: CatalogItemInput,
+): Promise<ApiCatalogItem> {
+  const r = await patchJSON<RawCatalogItem>(`/catalog/${id}`, patch);
+  return parseCatalogItem(r);
+}
+
+export async function deleteCatalogItem(id: string): Promise<void> {
+  await delJSON<{ ok: boolean }>(`/catalog/${id}`);
 }
 
 export interface ApiYieldRow {
