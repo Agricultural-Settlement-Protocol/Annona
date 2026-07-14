@@ -819,3 +819,127 @@ export async function updateWarehouseStock(
 ): Promise<ApiWarehouseStock> {
   return patchJSON<ApiWarehouseStock>(`/warehouse-stock/${id}`, patch);
 }
+
+// ── Logistics + derived warehouse (Screen F Gudang zones + Logistik) ─────────
+// The gudang stock is DERIVED from real data: saprotan received (from accepted
+// agreement inputs), harvest received (deliveries) minus forwarded (shipments).
+// A logistik dispatch persists a shipment, which auto-reduces the harvest balance.
+
+export interface ApiWarehouseSaprotan {
+  name: string;
+  category: string;
+  unit: string;
+  qty: string; // numeric string, e.g. "10.00"
+}
+export interface ApiWarehouseHasil {
+  commodityCode: string;
+  receivedG: bigint;
+  forwardedG: bigint;
+  balanceG: bigint;
+}
+export interface ApiWarehouseSummary {
+  saprotan: ApiWarehouseSaprotan[];
+  hasilPanen: ApiWarehouseHasil[];
+}
+export async function fetchWarehouseSummary(): Promise<ApiWarehouseSummary> {
+  const r = await getJSON<{
+    saprotan: ApiWarehouseSaprotan[];
+    hasilPanen: Array<{ commodityCode: string; receivedG: string; forwardedG: string; balanceG: string }>;
+  }>("/logistics/summary");
+  return {
+    saprotan: r.saprotan,
+    hasilPanen: r.hasilPanen.map((h) => ({
+      commodityCode: h.commodityCode,
+      receivedG: BigInt(h.receivedG),
+      forwardedG: BigInt(h.forwardedG),
+      balanceG: BigInt(h.balanceG),
+    })),
+  };
+}
+
+export interface ApiUnshippedDelivery {
+  id: string;
+  agreementId: string;
+  agreementOnchainId: string | null;
+  commodityCode: string;
+  farmerId: string;
+  farmerName: string | null;
+  seq: number;
+  volumeG: bigint;
+  grade: string;
+  moistureBps: number | null;
+  deliveredAt: string;
+}
+export async function fetchUnshippedDeliveries(): Promise<ApiUnshippedDelivery[]> {
+  const { items } = await getJSON<{
+    items: Array<Omit<ApiUnshippedDelivery, "volumeG"> & { volumeG: string }>;
+  }>("/logistics/unshipped");
+  return items.map((d) => ({ ...d, volumeG: BigInt(d.volumeG) }));
+}
+
+export interface ApiShipmentLine {
+  id: string;
+  shipmentId: string;
+  deliveryId: string | null;
+  agreementId: string;
+  farmerId: string;
+  volumeG: bigint;
+  grade: string;
+  moistureBps: number;
+}
+export type ShipmentStatus = "Draft" | "Dikirim" | "Diterima" | "Selisih";
+export interface ApiShipment {
+  id: string;
+  coopId: string;
+  supplierId: string;
+  commodityCode: string;
+  status: ShipmentStatus;
+  totalVolumeG: bigint;
+  receivedVolumeG: bigint | null;
+  discrepancyNote: string | null;
+  sentAt: string | null;
+  receivedAt: string | null;
+  createdAt: string;
+  lines: ApiShipmentLine[];
+}
+interface RawShipment {
+  id: string;
+  coopId: string;
+  supplierId: string;
+  commodityCode: string;
+  status: ShipmentStatus;
+  totalVolumeG: string;
+  receivedVolumeG: string | null;
+  discrepancyNote: string | null;
+  sentAt: string | null;
+  receivedAt: string | null;
+  createdAt: string;
+  lines?: Array<Omit<ApiShipmentLine, "volumeG"> & { volumeG: string }>;
+}
+function parseShipment(s: RawShipment): ApiShipment {
+  return {
+    ...s,
+    totalVolumeG: BigInt(s.totalVolumeG),
+    receivedVolumeG: s.receivedVolumeG != null ? BigInt(s.receivedVolumeG) : null,
+    lines: (s.lines ?? []).map((l) => ({ ...l, volumeG: BigInt(l.volumeG) })),
+  };
+}
+export async function fetchShipments(): Promise<ApiShipment[]> {
+  const { items } = await getJSON<{ items: RawShipment[] }>("/logistics/shipments");
+  return items.map(parseShipment);
+}
+export async function createShipment(deliveryIds: string[], note?: string): Promise<ApiShipment> {
+  return parseShipment(await postJSON<RawShipment>("/logistics/shipments", { deliveryIds, note }));
+}
+export async function receiveShipment(
+  id: string,
+  receivedVolumeG?: bigint,
+  note?: string,
+): Promise<ApiShipment> {
+  return parseShipment(
+    await patchJSON<RawShipment>(`/logistics/shipments/${id}/receive`, {
+      receivedVolumeG: receivedVolumeG?.toString(),
+      note,
+    }),
+  );
+}

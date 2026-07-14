@@ -3,39 +3,30 @@
 /**
  * Logistik — KMP forwards stored harvest to gudang Agrinas.
  *
- * Data: MOCK_SHIPMENTS, unshippedDeliveries(), weightedMoistureBps() from lib/mock-data.
+ * REAL data (off-chain ledger): unshipped deliveries + shipments come from the
+ * API (/logistics). Dispatching persists a harvest_shipment, which auto-reduces
+ * the gudang harvest balance (Screen F). Two-way gate: a shipment is "Dikirim"
+ * until Agrinas confirms receipt ("Diterima").
  *
- * Layout:
- *   1. PageHeader
- *   2. Stat row: stok gudang KMP / dalam perjalanan / sudah diterima Agrinas
- *   3. "Stok Siap Kirim" — unshipped deliveries grouped by commodity + grade lot
- *   4. "Buat Pengiriman" — select deliveries via checkboxes, preview lot, pick tujuan,
- *      confirm (off-chain only; no fake tx; shows "Dicatat off-chain" notice)
- *   5. "Riwayat Pengiriman" — always-visible searchable table + DateRangePicker;
- *      row click opens ShipmentDetailSheet (portal-free fixed overlay, button backdrop).
- *
- * No em dashes. Money via RupiahAmount. No Stellar tx shown for off-chain logistics.
+ * No em dashes. No Stellar tx shown for off-chain logistics.
  */
 
-import { DateRangePicker, type DateRange } from "@/components/kmp/date-range-picker";
 import { PageHeader } from "@/components/kmp/page-header";
-import { SearchSelect, type SearchSelectItem } from "@/components/kmp/search-select";
 import { TBody, THead, Table, TableFrame, Td, Th, Tr } from "@/components/kmp/table";
 import { ScrollArea } from "@/components/scroll-area";
 import {
-  MOCK_SUPPLIER,
-  MOCK_SHIPMENTS,
-  type MockDelivery,
-  type MockShipment,
+  type ApiShipment,
+  type ApiUnshippedDelivery,
   type ShipmentStatus,
-  getFarmer,
-  getAgreement,
-  unshippedDeliveries,
-  weightedMoistureBps,
-} from "@/lib/mock-data";
-import { Alert, Button, Card, CardContent, CardHeader, StatCard } from "@annona/ui";
+  createShipment,
+  fetchShipments,
+  fetchUnshippedDeliveries,
+  receiveShipment,
+} from "@/lib/api";
+import { useApi } from "@/lib/use-api";
+import { useI18n } from "@/lib/i18n/use-i18n";
+import { Alert, Button, Card, CardContent, CardHeader, Skeleton, StatCard } from "@annona/ui";
 import {
-  AlertTriangle,
   ArrowRight,
   Box,
   CheckCircle2,
@@ -44,19 +35,12 @@ import {
   Search,
   Truck,
   Warehouse,
-  X,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useI18n } from "@/lib/i18n/use-i18n";
-import { motion, AnimatePresence } from "motion/react";
+import { useMemo, useState } from "react";
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function shipmentStatusLabel(s: ShipmentStatus): string {
-  if (s === "Draft") return "Draft";
-  if (s === "Dikirim") return "Dikirim";
-  if (s === "Diterima") return "Diterima";
-  return "Selisih";
+const g2kg = (g: bigint): number => Number(g) / 1000;
+function commodityLabel(code: string): string {
+  return code === "GABAH" ? "Gabah Kering Panen" : code === "JAGUNG" ? "Jagung Pipilan Kering" : code;
 }
 
 function shipmentStatusColors(s: ShipmentStatus): string {
@@ -65,403 +49,154 @@ function shipmentStatusColors(s: ShipmentStatus): string {
   if (s === "Selisih") return "bg-amber-50 text-amber-800 border border-amber-200/50";
   return "bg-gray-50 text-gray-500 border border-gray-200/40";
 }
-
 function ShipmentBadge({ status }: { status: ShipmentStatus }) {
   return (
     <span
       className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold ${shipmentStatusColors(status)}`}
     >
-      {shipmentStatusLabel(status)}
+      {status}
     </span>
   );
 }
 
-function inDateRange(dateStr: string | null, range: DateRange): boolean {
-  if (!range.start) return true;
-  if (!dateStr) return true;
-  const d = new Date(dateStr).getTime();
-  const s = range.start.getTime();
-  const e = range.end ? range.end.getTime() : s;
-  return d >= s && d <= e + 86_399_999; // inclusive of end day
-}
-
-// ─── Shipment detail side sheet ───────────────────────────────────────────────
-
-function ShipmentDetailSheet({
-  shipment,
-  onClose,
-}: {
-  shipment: MockShipment;
-  onClose: () => void;
-}) {
-  // ESC closes
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [onClose]);
-
-  return (
-    <>
-      {/* Backdrop */}
-      <motion.button
-        type="button"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        aria-label="Tutup panel"
-        className="fixed inset-0 z-40 cursor-default bg-gray-950/20 backdrop-blur-sm pointer-events-auto"
-        onClick={onClose}
-      />
-
-      {/* Panel */}
-      {/* biome-ignore lint/a11y/useSemanticElements: native dialog UA styles conflict with the fixed slide-over layout */}
-      <motion.div
-        role="dialog"
-        aria-modal="true"
-        aria-label={`Detail pengiriman ${shipment.ref}`}
-        initial={{ x: "100%" }}
-        animate={{ x: 0 }}
-        exit={{ x: "100%" }}
-        transition={{ type: "spring", damping: 25, stiffness: 200 }}
-        className="fixed right-0 top-0 bottom-0 z-50 flex h-full w-full max-w-lg flex-col border-l border-gray-150 bg-[#fcf9f8] rounded-l-[2rem] shadow-[0_0_50px_0_rgba(0,0,0,0.08)] overflow-hidden pointer-events-auto"
-      >
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4 border-b border-gray-100 bg-white px-6 py-4.5">
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-lg font-bold text-gray-900">{shipment.ref}</h2>
-              <ShipmentBadge status={shipment.status} />
-            </div>
-            <p className="mt-1 text-xs text-gray-500 font-medium">
-              {shipment.commodityCode === "GABAH" ? "Gabah Kering Panen" : "Jagung Pipilan Kering"}{" "}
-              ke {shipment.supplierName}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="shrink-0 rounded-full p-2 hover:bg-gray-100 text-gray-500 hover:text-gray-800 transition-colors"
-            aria-label="Tutup"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        {/* Body */}
-        <ScrollArea className="min-h-0 flex-1" viewportClassName="px-6 py-6" fade>
-          <div className="space-y-6">
-            {/* Meta */}
-            <div className="grid grid-cols-2 gap-x-4 gap-y-3.5 text-sm bg-white border border-gray-100 rounded-2xl p-5 shadow-sm font-semibold text-gray-700">
-              <div>
-                <p className="text-xs text-gray-400 font-medium">Total dikirim</p>
-                <p className="font-bold text-gray-900 tabular-nums mt-0.5">
-                  {shipment.totalVolumeKg.toLocaleString("id-ID")} kg
-                </p>
-              </div>
-              {shipment.receivedVolumeKg !== null && (
-                <div>
-                  <p className="text-xs text-gray-400 font-medium">Diterima Agrinas</p>
-                  <p className="font-bold text-emerald-800 tabular-nums mt-0.5">
-                    {shipment.receivedVolumeKg.toLocaleString("id-ID")} kg
-                  </p>
-                </div>
-              )}
-              {shipment.sentAt && (
-                <div className="border-t border-gray-50 pt-2 col-span-2 sm:col-span-1">
-                  <p className="text-xs text-gray-400 font-medium">Tanggal kirim</p>
-                  <p className="text-gray-900 font-bold mt-0.5">{shipment.sentAt}</p>
-                </div>
-              )}
-              {shipment.receivedAt && (
-                <div className="border-t border-gray-50 pt-2 col-span-2 sm:col-span-1">
-                  <p className="text-xs text-gray-400 font-medium">Tanggal terima</p>
-                  <p className="text-gray-900 font-bold mt-0.5">{shipment.receivedAt}</p>
-                </div>
-              )}
-            </div>
-
-            {/* Discrepancy note */}
-            {shipment.status === "Selisih" && shipment.discrepancyNote && (
-              <Alert tone="warning" title="Catatan Selisih" className="rounded-xl">
-                {shipment.discrepancyNote}
-              </Alert>
-            )}
-            {shipment.discrepancyNote && shipment.status === "Diterima" && (
-              <Alert tone="info" title="Catatan Penerimaan" className="rounded-xl">
-                {shipment.discrepancyNote}
-              </Alert>
-            )}
-
-            {/* Line items per farmer */}
-            <div>
-              <h3 className="mb-3 text-sm font-bold text-gray-900">
-                Rincian per Petani
-              </h3>
-              <div className="overflow-x-auto rounded-2xl border border-gray-100 bg-white shadow-sm">
-                <table className="min-w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-100 bg-gray-50/50">
-                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">
-                        Petani
-                      </th>
-                      <th className="px-4 py-3 text-right text-xs font-bold text-gray-400 uppercase tracking-wider">
-                        Volume
-                      </th>
-                      <th className="px-4 py-3 text-center text-xs font-bold text-gray-400 uppercase tracking-wider">
-                        Grade
-                      </th>
-                      <th className="px-4 py-3 text-right text-xs font-bold text-gray-400 uppercase tracking-wider">
-                        Kadar Air
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {shipment.lines.map((line) => {
-                      const farmer = getFarmer(line.farmerId);
-                      return (
-                        <tr key={line.id} className="bg-white">
-                          <td className="px-4 py-3 font-bold text-gray-900">
-                            {farmer?.name ?? line.farmerId}
-                          </td>
-                          <td className="px-4 py-3 text-right font-bold text-gray-900 tabular-nums">
-                            {line.volumeKg.toLocaleString("id-ID")} kg
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <span
-                              className={
-                                line.grade === "A"
-                                  ? "font-bold text-emerald-800"
-                                  : line.grade === "B"
-                                    ? "font-bold text-gray-900"
-                                    : "font-bold text-amber-700"
-                              }
-                            >
-                              Grade {line.grade}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-right tabular-nums text-gray-500 font-semibold">
-                            {(line.moistureBps / 100).toFixed(1)}%
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <p className="rounded-2xl bg-gray-50 border border-gray-100 px-4 py-3.5 text-xs text-gray-500 font-semibold leading-relaxed">
-              Data logistik ini dicatat off-chain. Konfirmasi penerimaan dilakukan oleh Agrinas.
-            </p>
-          </div>
-        </ScrollArea>
-      </motion.div>
-    </>
-  );
-}
-
-// ─── Lot grouping helpers ─────────────────────────────────────────────────────
+// ─── Lot grouping ──────────────────────────────────────────────────────────
 
 interface DeliveryLot {
   commodityCode: string;
   grade: string;
   totalKg: number;
   avgMoistureBps: number;
-  lines: Array<{ delivery: MockDelivery; farmerName: string; agreementRef: string }>;
+  lines: ApiUnshippedDelivery[];
 }
-
-function groupIntoLots(deliveries: MockDelivery[]): DeliveryLot[] {
+function groupIntoLots(deliveries: ApiUnshippedDelivery[]): DeliveryLot[] {
   const map = new Map<string, DeliveryLot>();
   for (const d of deliveries) {
-    const agreement = getAgreement(d.agreementId);
-    const farmer = agreement ? getFarmer(agreement.farmerId) : undefined;
-    const commodity = agreement?.commodityCode ?? "GABAH";
-    const key = `${commodity}|${d.grade}`;
+    const key = `${d.commodityCode}|${d.grade}`;
     let lot = map.get(key);
     if (!lot) {
-      lot = {
-        commodityCode: commodity,
-        grade: d.grade,
-        totalKg: 0,
-        avgMoistureBps: 0,
-        lines: [],
-      };
+      lot = { commodityCode: d.commodityCode, grade: d.grade, totalKg: 0, avgMoistureBps: 0, lines: [] };
       map.set(key, lot);
     }
-    lot.lines.push({
-      delivery: d,
-      farmerName: farmer?.name ?? d.agreementId,
-      agreementRef: `#${agreement ? String(agreement.onchainId) : d.agreementId}`,
-    });
-    lot.totalKg += d.volumeKg;
+    lot.lines.push(d);
+    lot.totalKg += g2kg(d.volumeG);
   }
-  // compute weighted average moisture per lot
   for (const lot of map.values()) {
-    lot.avgMoistureBps = weightedMoistureBps(
-      lot.lines.map((l) => ({
-        id: l.delivery.id,
-        deliveryId: l.delivery.id,
-        agreementId: l.delivery.agreementId,
-        farmerId: getAgreement(l.delivery.agreementId)?.farmerId ?? "",
-        volumeKg: l.delivery.volumeKg,
-        grade: l.delivery.grade,
-        moistureBps: l.delivery.moistureBps,
-      })),
-    );
+    const totalG = lot.lines.reduce((s, l) => s + Number(l.volumeG), 0);
+    lot.avgMoistureBps = totalG
+      ? Math.round(lot.lines.reduce((s, l) => s + (l.moistureBps ?? 0) * Number(l.volumeG), 0) / totalG)
+      : 0;
   }
   return [...map.values()];
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
-const SUPPLIER_OPTIONS: SearchSelectItem[] = [
-  {
-    id: MOCK_SUPPLIER.id,
-    label: "Gudang Agrinas Cianjur",
-    sublabel: MOCK_SUPPLIER.name,
-  },
-];
-
-type LocalShipment = MockShipment & { isLocal?: boolean };
-
 export default function LogistikPage() {
   const { t } = useI18n();
-  const [search, setSearch] = useState<string>("");
-  const [dateRange, setDateRange] = useState<DateRange>({ start: null, end: null });
-  const [selectedShipment, setSelectedShipment] = useState<LocalShipment | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const bump = () => setRefreshKey((k) => k + 1);
 
-  // Buat Pengiriman state
-  const [selectedDeliveryIds, setSelectedDeliveryIds] = useState<Set<string>>(new Set());
-  const [tujuanId, setTujuanId] = useState<string | null>(MOCK_SUPPLIER.id);
-  const [shipmentSent, setShipmentSent] = useState(false);
-  const [sending, setSending] = useState(false);
-
-  // Local shipments created in this session
-  const [localShipments, setLocalShipments] = useState<LocalShipment[]>([]);
-
-  const unshipped = useMemo(() => unshippedDeliveries(), []);
+  const { data: unshippedData, loading: unshippedLoading } = useApi<ApiUnshippedDelivery[]>(
+    fetchUnshippedDeliveries,
+    [refreshKey],
+  );
+  const { data: shipmentsData } = useApi<ApiShipment[]>(fetchShipments, [refreshKey]);
+  const unshipped = useMemo(() => unshippedData ?? [], [unshippedData]);
+  const shipments = useMemo(() => shipmentsData ?? [], [shipmentsData]);
   const lots = useMemo(() => groupIntoLots(unshipped), [unshipped]);
 
-  // Shipments to show in history (mock + locally created)
-  const allShipments: LocalShipment[] = useMemo(
-    () => [...MOCK_SHIPMENTS, ...localShipments],
-    [localShipments],
-  );
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [sending, setSending] = useState(false);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   // Stats
-  const stokKMPKg = useMemo(() => unshipped.reduce((s, d) => s + d.volumeKg, 0), [unshipped]);
+  const stokKMPKg = useMemo(() => unshipped.reduce((s, d) => s + g2kg(d.volumeG), 0), [unshipped]);
   const dalamPerjalananKg = useMemo(
-    () =>
-      allShipments
-        .filter((s) => s.status === "Dikirim")
-        .reduce((sum, s) => sum + s.totalVolumeKg, 0),
-    [allShipments],
+    () => shipments.filter((s) => s.status === "Dikirim").reduce((sum, s) => sum + g2kg(s.totalVolumeG), 0),
+    [shipments],
   );
   const sudahDiterimaKg = useMemo(
     () =>
-      allShipments
-        .filter((s) => s.status === "Diterima")
-        .reduce((sum, s) => sum + (s.receivedVolumeKg ?? s.totalVolumeKg), 0),
-    [allShipments],
+      shipments
+        .filter((s) => s.status === "Diterima" || s.status === "Selisih")
+        .reduce((sum, s) => sum + g2kg(s.receivedVolumeG ?? s.totalVolumeG), 0),
+    [shipments],
   );
 
-  // Selected deliveries for preview
   const selectedDeliveries = useMemo(
-    () => unshipped.filter((d) => selectedDeliveryIds.has(d.id)),
-    [unshipped, selectedDeliveryIds],
+    () => unshipped.filter((d) => selectedIds.has(d.id)),
+    [unshipped, selectedIds],
   );
-  const previewLots = useMemo(() => groupIntoLots(selectedDeliveries), [selectedDeliveries]);
-  const previewTotalKg = selectedDeliveries.reduce((s, d) => s + d.volumeKg, 0);
+  const previewTotalKg = selectedDeliveries.reduce((s, d) => s + g2kg(d.volumeG), 0);
 
-  function toggleDelivery(id: string) {
-    setSelectedDeliveryIds((prev) => {
+  function toggle(id: string) {
+    setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
-    setShipmentSent(false);
+    setFeedback(null);
   }
-
   function toggleLot(lot: DeliveryLot) {
-    const lotIds = lot.lines.map((l) => l.delivery.id);
-    const allSelected = lotIds.every((id) => selectedDeliveryIds.has(id));
-    setSelectedDeliveryIds((prev) => {
+    const ids = lot.lines.map((l) => l.id);
+    const allSelected = ids.every((id) => selectedIds.has(id));
+    setSelectedIds((prev) => {
       const next = new Set(prev);
-      for (const id of lotIds) {
+      for (const id of ids) {
         if (allSelected) next.delete(id);
         else next.add(id);
       }
       return next;
     });
-    setShipmentSent(false);
+    setFeedback(null);
   }
 
-  function handleKirim() {
-    if (!tujuanId || selectedDeliveries.length === 0) return;
+  async function handleKirim() {
+    if (selectedDeliveries.length === 0 || sending) return;
     setSending(true);
-    // Simulate a brief async off-chain record (no tx hash)
-    setTimeout(() => {
-      const now = new Date().toISOString().slice(0, 10);
-      const newId = `shp-local-${Date.now()}`;
-      const newShipment: LocalShipment = {
-        id: newId,
-        ref: `SHP-2026-${String(allShipments.length + 1).padStart(3, "0")}`,
-        coopName: "KMP Sukamaju",
-        supplierId: MOCK_SUPPLIER.id,
-        supplierName: "Gudang Agrinas Cianjur",
-        commodityCode: selectedDeliveries[0]?.agreementId
-          ? (getAgreement(selectedDeliveries[0].agreementId)?.commodityCode ?? "GABAH")
-          : "GABAH",
-        status: "Dikirim",
-        totalVolumeKg: previewTotalKg,
-        receivedVolumeKg: null,
-        discrepancyNote: null,
-        sentAt: now,
-        receivedAt: null,
-        createdAt: now,
-        lines: selectedDeliveries.map((d, idx) => {
-          const agr = getAgreement(d.agreementId);
-          return {
-            id: `shl-local-${idx}-${d.id}`,
-            deliveryId: d.id,
-            agreementId: d.agreementId,
-            farmerId: agr?.farmerId ?? "",
-            volumeKg: d.volumeKg,
-            grade: d.grade,
-            moistureBps: d.moistureBps,
-          };
-        }),
-        isLocal: true,
-      };
-      setLocalShipments((prev) => [...prev, newShipment]);
+    setError(null);
+    try {
+      await createShipment([...selectedIds]);
+      setSelectedIds(new Set());
+      setFeedback("Pengiriman dicatat. Status: Dikirim. Menunggu konfirmasi Agrinas.");
+      bump();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Gagal mencatat pengiriman.");
+    } finally {
       setSending(false);
-      setShipmentSent(true);
-      setSelectedDeliveryIds(new Set());
-    }, 1200);
+    }
   }
 
-  // Filtered history
+  async function handleConfirm(id: string) {
+    setConfirmingId(id);
+    setError(null);
+    try {
+      await receiveShipment(id);
+      setFeedback("Agrinas mengkonfirmasi penerimaan. Status: Diterima.");
+      bump();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Gagal mengkonfirmasi penerimaan.");
+    } finally {
+      setConfirmingId(null);
+    }
+  }
+
   const q = search.trim().toLowerCase();
   const filteredShipments = useMemo(
     () =>
-      allShipments.filter((s) => {
-        const matchSearch =
+      shipments.filter(
+        (s) =>
           !q ||
-          s.ref.toLowerCase().includes(q) ||
           s.commodityCode.toLowerCase().includes(q) ||
           s.status.toLowerCase().includes(q) ||
-          s.supplierName.toLowerCase().includes(q);
-        const matchDate = inDateRange(s.sentAt ?? s.createdAt, dateRange);
-        return matchSearch && matchDate;
-      }),
-    [allShipments, q, dateRange],
+          (s.discrepancyNote ?? "").toLowerCase().includes(q),
+      ),
+    [shipments, q],
   );
 
-  const canKirim = selectedDeliveries.length > 0 && !!tujuanId && !sending && !shipmentSent;
+  const canKirim = selectedDeliveries.length > 0 && !sending;
 
   return (
     <div className="space-y-6">
@@ -470,7 +205,7 @@ export default function LogistikPage() {
         description={t("page.kmp.logistik.desc")}
       />
 
-      {/* ── Stat row ── */}
+      {/* Stat row */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard
           label={t("page.kmp.gudang.stats.totalStock")}
@@ -495,7 +230,11 @@ export default function LogistikPage() {
         />
       </div>
 
-      {/* ── Stok Siap Kirim ── */}
+      {error ? (
+        <Alert tone="warning" className="rounded-xl">{error}</Alert>
+      ) : null}
+
+      {/* Stok Siap Kirim */}
       <Card className="rounded-[2rem] border-gray-100 bg-white shadow-sm overflow-hidden p-5 sm:p-6">
         <CardHeader
           title={t("page.kmp.gudang.stats.readyShip")}
@@ -504,7 +243,12 @@ export default function LogistikPage() {
           className="pb-3"
         />
         <CardContent className="pt-3">
-          {unshipped.length === 0 ? (
+          {unshippedLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-14 w-full rounded-2xl" />
+              <Skeleton className="h-14 w-full rounded-2xl" />
+            </div>
+          ) : unshipped.length === 0 ? (
             <div className="flex items-center gap-3.5 rounded-2xl bg-gray-55/40 px-5 py-6">
               <CheckCircle2 size={20} className="shrink-0 text-emerald-700" />
               <p className="text-sm text-gray-500 font-semibold">
@@ -514,14 +258,11 @@ export default function LogistikPage() {
           ) : (
             <div className="space-y-4">
               {lots.map((lot) => {
-                const lotIds = lot.lines.map((l) => l.delivery.id);
-                const allSelected = lotIds.every((id) => selectedDeliveryIds.has(id));
-                const someSelected = lotIds.some((id) => selectedDeliveryIds.has(id));
-                const commodityLabel =
-                  lot.commodityCode === "GABAH" ? "Gabah Kering Panen" : "Jagung Pipilan Kering";
+                const ids = lot.lines.map((l) => l.id);
+                const allSelected = ids.every((id) => selectedIds.has(id));
+                const someSelected = ids.some((id) => selectedIds.has(id));
                 return (
                   <div key={`${lot.commodityCode}-${lot.grade}`} className="rounded-2xl border border-gray-100 bg-white overflow-hidden shadow-sm">
-                    {/* Lot header */}
                     <div className="flex items-center gap-3 border-b border-gray-100 px-5 py-4 bg-gray-50/50">
                       <input
                         type="checkbox"
@@ -538,7 +279,7 @@ export default function LogistikPage() {
                         className="flex flex-1 cursor-pointer flex-wrap items-center gap-3"
                       >
                         <span className="font-bold text-gray-900 text-sm">
-                          {commodityLabel} / Grade {lot.grade}
+                          {commodityLabel(lot.commodityCode)} / Grade {lot.grade}
                         </span>
                         <span className="tabular-nums text-xs text-gray-500 font-bold bg-gray-100 rounded-full px-2.5 py-0.5">
                           {lot.totalKg.toLocaleString("id-ID")} kg total
@@ -548,36 +289,29 @@ export default function LogistikPage() {
                         </span>
                       </label>
                     </div>
-                    {/* Per-farmer lines */}
                     <div className="divide-y divide-gray-55/70">
-                      {lot.lines.map(({ delivery, farmerName, agreementRef }) => (
-                        <div
-                          key={delivery.id}
-                          className="flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50/40 transition-colors"
-                        >
+                      {lot.lines.map((d) => (
+                        <div key={d.id} className="flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50/40 transition-colors">
                           <input
                             type="checkbox"
-                            id={`dlv-${delivery.id}`}
-                            checked={selectedDeliveryIds.has(delivery.id)}
-                            onChange={() => toggleDelivery(delivery.id)}
+                            id={`dlv-${d.id}`}
+                            checked={selectedIds.has(d.id)}
+                            onChange={() => toggle(d.id)}
                             className="h-4 w-4 rounded border-gray-300 accent-primary"
                           />
-                          <label
-                            htmlFor={`dlv-${delivery.id}`}
-                            className="flex flex-1 cursor-pointer flex-wrap items-center gap-3 text-sm"
-                          >
-                            <span className="font-bold text-gray-900">{farmerName}</span>
+                          <label htmlFor={`dlv-${d.id}`} className="flex flex-1 cursor-pointer flex-wrap items-center gap-3 text-sm">
+                            <span className="font-bold text-gray-900">{d.farmerName ?? d.farmerId}</span>
                             <span className="text-xs text-gray-400 font-semibold bg-gray-55/60 rounded px-1.5 py-0.5">
-                              Perjanjian {agreementRef}
+                              Perjanjian #{d.agreementOnchainId ?? "-"}
                             </span>
                             <span className="tabular-nums text-gray-800 font-semibold">
-                              {delivery.volumeKg.toLocaleString("id-ID")} kg
+                              {g2kg(d.volumeG).toLocaleString("id-ID")} kg
                             </span>
                             <span className="text-gray-550 font-medium">
-                              {(delivery.moistureBps / 100).toFixed(1)}% air
+                              {((d.moistureBps ?? 0) / 100).toFixed(1)}% air
                             </span>
                             <span className="text-xs text-gray-400 font-medium">
-                              Disetor {delivery.deliveredAt}
+                              Disetor {String(d.deliveredAt).slice(0, 10)}
                             </span>
                           </label>
                         </div>
@@ -591,99 +325,46 @@ export default function LogistikPage() {
         </CardContent>
       </Card>
 
-      {/* ── Buat Pengiriman ── */}
-      {unshipped.length > 0 && (
+      {/* Buat Pengiriman */}
+      {unshipped.length > 0 ? (
         <Card className="rounded-[2rem] border-gray-100 bg-white shadow-sm p-5 sm:p-6">
           <CardHeader
             title={t("page.kmp.logistik.shipments")}
-            description="Pilih lot di atas, tentukan tujuan gudang, lalu kirim."
+            description="Pilih lot di atas, lalu kirim ke gudang Agrinas."
             action={<Truck size={18} className="text-cyan-800" />}
             className="pb-3"
           />
           <CardContent className="space-y-5 pt-3">
-            {/* Tujuan gudang */}
-            <div>
-              {/* biome-ignore lint/a11y/noLabelWithoutControl: SearchSelect renders its own combobox trigger internally, htmlFor cannot target it */}
-              <label className="mb-2 block text-sm font-bold text-gray-900">
-                Tujuan Gudang
-              </label>
-              <SearchSelect
-                items={SUPPLIER_OPTIONS}
-                value={tujuanId}
-                onChange={setTujuanId}
-                placeholder="Pilih gudang Agrinas..."
-                searchPlaceholder="Cari gudang..."
-              />
-            </div>
-
-            {/* Preview lot summary */}
-            {selectedDeliveries.length > 0 && (
-              <div className="rounded-2xl border border-gray-100 bg-gray-55/20 p-5 space-y-3.5 shadow-sm">
-                <p className="text-sm font-bold text-gray-900">
-                  Ringkasan Pengiriman
-                </p>
+            {selectedDeliveries.length > 0 ? (
+              <div className="rounded-2xl border border-gray-100 bg-gray-55/20 p-5 space-y-2 shadow-sm">
+                <p className="text-sm font-bold text-gray-900">Ringkasan Pengiriman</p>
                 <div className="text-sm font-bold text-gray-700">
                   <span className="text-gray-400 font-medium">Total volume: </span>
                   <span className="font-bold text-gray-950 tabular-nums">
                     {previewTotalKg.toLocaleString("id-ID")} kg
                   </span>
+                  <span className="text-gray-400 font-medium"> dari {selectedDeliveries.length} setoran</span>
                 </div>
-                {previewLots.map((lot) => (
-                  <div
-                    key={`prev-${lot.commodityCode}-${lot.grade}`}
-                    className="rounded-2xl border border-gray-100 bg-white px-4.5 py-3.5 text-sm shadow-sm"
-                  >
-                    <div className="flex flex-wrap items-center gap-2 font-bold text-gray-900">
-                      <span>
-                        {lot.commodityCode === "GABAH" ? "Gabah" : "Jagung"} / Grade {lot.grade}
-                      </span>
-                      <span className="tabular-nums text-gray-550 font-bold">
-                        {lot.totalKg.toLocaleString("id-ID")} kg
-                      </span>
-                      <span className="text-gray-500 font-semibold">
-                        Kadar air rata-rata: {(lot.avgMoistureBps / 100).toFixed(1)}%
-                      </span>
-                    </div>
-                    <div className="mt-2 text-xs text-gray-500 font-medium leading-relaxed border-t border-gray-50 pt-2">
-                      {lot.lines
-                        .map((l) => `${l.farmerName} (${l.delivery.volumeKg.toLocaleString("id-ID")} kg)`)
-                        .join(", ")}
-                    </div>
-                  </div>
-                ))}
               </div>
-            )}
-
-            {selectedDeliveries.length === 0 && (
+            ) : (
               <div className="flex items-center gap-2.5 rounded-2xl bg-gray-50 border border-gray-100 px-5 py-4 text-sm text-gray-500 font-semibold shadow-sm">
                 <Info size={15} className="text-gray-400 shrink-0" />
                 Pilih setoran di atas untuk membuat pengiriman.
               </div>
             )}
 
-            {/* Off-chain notice */}
             <Alert tone="info" title="Dicatat off-chain untuk MVP" className="rounded-xl">
-              Pengiriman ini dicatat secara lokal (bukan di blockchain). Gerbang ganda: catatan
-              ini menunggu konfirmasi penerimaan dari Agrinas. Tidak ada transaksi Stellar untuk
-              logistik di tahap ini.
+              Pengiriman dicatat di ledger lokal koperasi. Mengirim otomatis mengurangi sisa hasil
+              panen di Gudang. Gerbang ganda: catatan ini menunggu konfirmasi penerimaan dari Agrinas.
             </Alert>
 
-            {/* Success state */}
-            {shipmentSent && (
+            {feedback ? (
               <div className="flex items-center gap-3 rounded-2xl border border-[#d2f9de] bg-[#ebf5e9] px-5 py-4 shadow-sm">
                 <CheckCircle2 size={18} className="shrink-0 text-[#0c7a48]" />
-                <div>
-                  <p className="text-sm font-bold text-gray-900">
-                    Pengiriman dicatat. Menunggu konfirmasi Agrinas.
-                  </p>
-                  <p className="text-xs text-gray-500 font-semibold mt-0.5">
-                    Status: Dikirim. Agrinas akan mengkonfirmasi penerimaan.
-                  </p>
-                </div>
+                <p className="text-sm font-bold text-gray-900">{feedback}</p>
               </div>
-            )}
+            ) : null}
 
-            {/* Send button */}
             <Button
               type="button"
               variant="primary"
@@ -697,72 +378,75 @@ export default function LogistikPage() {
             </Button>
           </CardContent>
         </Card>
-      )}
+      ) : null}
 
-      {/* ── Riwayat Pengiriman ── */}
+      {/* Riwayat Pengiriman */}
       <Card className="rounded-[2rem] border-gray-100 bg-white shadow-sm overflow-hidden p-5 sm:p-6">
         <CardHeader
           title={t("page.kmp.logistik.history")}
-          description="Semua catatan pengiriman ke gudang Agrinas. Klik baris untuk detail rincian per petani."
+          description="Semua catatan pengiriman ke gudang Agrinas. Konfirmasi penerimaan untuk menutup gerbang kedua."
           action={<Box size={18} className="text-cyan-800" />}
           className="pb-3"
         />
         <CardContent className="space-y-4 pt-3">
-          {/* Filters */}
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex h-12 min-w-52 flex-1 items-center gap-3 rounded-2xl border border-gray-100 bg-white px-4 shadow-sm focus-within:ring-2 focus-within:ring-ring">
-              <Search size={15} className="shrink-0 text-gray-400" />
-              <input
-                type="search"
-                placeholder="Cari referensi, komoditas, status..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="h-full w-full bg-transparent text-sm text-gray-800 outline-none placeholder:text-gray-400 font-semibold"
-              />
-            </div>
-            <DateRangePicker value={dateRange} onChange={setDateRange} />
+          <div className="flex h-12 min-w-52 max-w-md items-center gap-3 rounded-2xl border border-gray-100 bg-white px-4 shadow-sm focus-within:ring-2 focus-within:ring-ring">
+            <Search size={15} className="shrink-0 text-gray-400" />
+            <input
+              type="search"
+              placeholder="Cari komoditas, status, catatan..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-full w-full bg-transparent text-sm text-gray-800 outline-none placeholder:text-gray-400 font-semibold"
+            />
           </div>
 
-          {/* Table */}
           {filteredShipments.length === 0 ? (
             <div className="flex items-center gap-3.5 rounded-2xl bg-gray-50 border border-gray-100 px-4 py-8 justify-center shadow-sm">
               <Truck size={20} className="shrink-0 text-gray-400" />
-              <p className="text-sm text-gray-500 font-semibold">Tidak ada pengiriman yang cocok.</p>
+              <p className="text-sm text-gray-500 font-semibold">Belum ada pengiriman.</p>
             </div>
           ) : (
             <ScrollArea maxHeight={480} fade>
               <TableFrame className="border-0 shadow-none">
                 <Table>
                   <THead>
-                    <Th>Referensi</Th>
                     <Th>Komoditas</Th>
-                    <Th className="text-right">Volume</Th>
+                    <Th className="text-right">Dikirim</Th>
+                    <Th className="text-right">Diterima</Th>
                     <Th>Tanggal Kirim</Th>
                     <Th>Status</Th>
-                    <Th>Catatan</Th>
+                    <Th className="text-right">Aksi</Th>
                   </THead>
                   <TBody>
                     {filteredShipments.map((s) => (
-                      <Tr
-                        key={s.id}
-                        className="cursor-pointer"
-                        onClick={() => setSelectedShipment(s)}
-                      >
-                        <Td className="font-mono text-xs font-bold text-gray-900">{s.ref}</Td>
-                        <Td className="font-bold text-gray-900">
-                          {s.commodityCode === "GABAH" ? "Gabah" : "Jagung"}
-                        </Td>
+                      <Tr key={s.id}>
+                        <Td className="font-bold text-gray-900">{commodityLabel(s.commodityCode)}</Td>
                         <Td className="text-right tabular-nums font-bold text-gray-900">
-                          {s.totalVolumeKg.toLocaleString("id-ID")} kg
+                          {g2kg(s.totalVolumeG).toLocaleString("id-ID")} kg
+                        </Td>
+                        <Td className="text-right tabular-nums text-gray-600 font-semibold">
+                          {s.receivedVolumeG != null ? `${g2kg(s.receivedVolumeG).toLocaleString("id-ID")} kg` : "-"}
                         </Td>
                         <Td className="text-gray-500 font-semibold">
-                          {s.sentAt ?? s.createdAt}
+                          {s.sentAt ? String(s.sentAt).slice(0, 10) : String(s.createdAt).slice(0, 10)}
                         </Td>
                         <Td>
                           <ShipmentBadge status={s.status} />
                         </Td>
-                        <Td className="text-xs text-gray-550 max-w-40 truncate font-medium">
-                          {s.discrepancyNote ?? "-"}
+                        <Td className="text-right">
+                          {s.status === "Dikirim" ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={confirmingId === s.id}
+                              onClick={() => handleConfirm(s.id)}
+                              className="rounded-full h-7 px-3 text-xs"
+                            >
+                              {confirmingId === s.id ? "..." : "Konfirmasi Diterima"}
+                            </Button>
+                          ) : (
+                            <span className="text-xs text-gray-400 font-medium">-</span>
+                          )}
                         </Td>
                       </Tr>
                     ))}
@@ -773,16 +457,6 @@ export default function LogistikPage() {
           )}
         </CardContent>
       </Card>
-
-      {/* Detail side sheet */}
-      <AnimatePresence>
-        {selectedShipment && (
-          <ShipmentDetailSheet
-            shipment={selectedShipment}
-            onClose={() => setSelectedShipment(null)}
-          />
-        )}
-      </AnimatePresence>
     </div>
   );
 }
