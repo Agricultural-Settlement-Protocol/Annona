@@ -47,9 +47,11 @@ export function FloatingNav() {
             Design
           </Link>
         </div>
-        <Button variant="gradient" size="sm" rightIcon={<ArrowRight size={15} />}>
-          Masuk
-        </Button>
+        <Link href="/kmp">
+          <Button variant="gradient" size="sm" rightIcon={<ArrowRight size={15} />}>
+            Masuk
+          </Button>
+        </Link>
       </nav>
     </motion.header>
   );

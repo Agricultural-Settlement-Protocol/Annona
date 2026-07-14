@@ -1,0 +1,55 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1783065932936,
+      "tag": "0000_init_offchain_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1783386802396,
+      "tag": "0001_lame_aaron_stack",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783395658410,
+      "tag": "0002_fluffy_skin",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1783444502710,
+      "tag": "0003_silky_hiroim",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1783848968293,
+      "tag": "0004_loose_big_bertha",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1783864054681,
+      "tag": "0005_supplier_rename",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1784000872526,
+      "tag": "0006_peaceful_quasimodo",
+      "breakpoints": true
+    }
+  ]
+}

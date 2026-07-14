@@ -1,17 +1,20 @@
-import type { Agreement } from "@annona/core";
 import { Hono } from "hono";
+import { getDb } from "../db/client.js";
+import { getAgreementDetail, jsonSafe, listAgreements } from "../lib/read-model.js";
 
 /**
- * Read endpoints over indexed agreement read-models.
- * MVP: returns empty / 501 until the indexer + DB are wired.
- * These also back @annona/sdk (the composability surface).
+ * Agreement reads over the indexed read-models. Running money is DERIVED by SUM
+ * over settlement/delivery rows (see lib/read-model.ts). Output mirrors
+ * `apps/web/lib/mock-data.ts` MockAgreement; bigints cross the wire as strings.
  */
 export const agreementsRoute = new Hono()
-  .get("/", (c) => {
-    const items: Agreement[] = [];
-    return c.json({ items, note: "indexer not wired yet (MVP skeleton)" });
+  .get("/", async (c) => {
+    const items = await listAgreements(getDb());
+    return c.json({ items: jsonSafe(items) });
   })
-  .get("/:id", (c) => {
+  .get("/:id", async (c) => {
     const id = c.req.param("id");
-    return c.json({ error: "not_implemented", id }, 501);
+    const detail = await getAgreementDetail(getDb(), id);
+    if (!detail) return c.json({ error: "not_found", id }, 404);
+    return c.json(jsonSafe(detail));
   });

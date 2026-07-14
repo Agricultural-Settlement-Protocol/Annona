@@ -8,25 +8,37 @@
     "build": "next build",
     "start": "next start",
     "lint": "biome lint app",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "test": "tsx --test lib/**/*.test.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:report": "playwright show-report",
+    "test:e2e:smoke": "E2E_SMOKE=1 playwright test smoke"
   },
   "dependencies": {
     "@annona/core": "workspace:*",
     "@annona/sdk": "workspace:*",
     "@annona/ui": "workspace:*",
+    "@stellar/freighter-api": "^4.1.0",
+    "@stellar/stellar-sdk": "^16.0.1",
+    "@supabase/ssr": "^0.12.0",
+    "@supabase/supabase-js": "^2.110.0",
     "lucide-react": "^0.469.0",
     "motion": "^11.15.0",
     "next": "^15.1.3",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@annona/config": "workspace:*",
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4.0.0",
     "@types/node": "^22.10.2",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "tailwindcss": "^4.0.0",
+    "tsx": "^4.22.4",
     "typescript": "^5.6.3"
   }
 }

@@ -1,0 +1,50 @@
+name: Indexer (serverless cron)
+
+# Serverless indexer — no always-on backend needed. A scheduled job runs ONE
+# poll cycle (`pnpm indexer:once`): Soroban getEvents -> applyEvent -> Supabase,
+# advancing the per-contract cursor so each run resumes where the last stopped.
+#
+# BUDGET NOTE (free GitHub org = 2000 CI min/month on private repos):
+# a */5 cron is ~8,640 runs/month * ~1.5 min = ~13,000 min -> blows the 2000
+# budget in ~3 days. So this backstop runs HOURLY (~720 min/month), which leaves
+# headroom for CI. It is only a safety net: it catches on-chain writes made
+# outside the app. For real-time freshness (demo), run the loop locally:
+# `pnpm --filter @annona/api indexer` (5s poll). For an always-on production
+# worker, deploy apps/api to Railway/Render and run the same command, or add a
+# trigger-based POST /indexer/poll the app calls right after a confirmed tx.
+#
+# Required repo secrets: DATABASE_URL (Supabase). Optional vars:
+#   OFFTAKE_REGISTRY_CONTRACT_ID (else read from scripts/artifacts.testnet.json),
+#   SOROBAN_RPC_URL (defaults to soroban-testnet.stellar.org).
+
+on:
+  schedule:
+    - cron: "0 * * * *" # hourly backstop (budget-safe on the free plan)
+  workflow_dispatch: # manual "Run workflow" button
+
+concurrency:
+  group: indexer
+  cancel-in-progress: false # never run two poll cycles at once (cursor safety)
+
+jobs:
+  poll:
+    name: Poll + fold one cycle
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    if: ${{ github.repository == 'Agricultural-Settlement-Protocol/Annona' }}
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      OFFTAKE_REGISTRY_CONTRACT_ID: ${{ vars.OFFTAKE_REGISTRY_CONTRACT_ID }}
+      SOROBAN_RPC_URL: ${{ vars.SOROBAN_RPC_URL || 'https://soroban-testnet.stellar.org' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Indexer one-shot poll
+        run: pnpm --filter @annona/api indexer:once

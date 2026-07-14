@@ -1,9 +1,21 @@
 packages:
   - "apps/*"
   - "packages/*"
+  - "scripts"
 
+# pnpm's pre-run deps-status-check must not hard-fail script runs over a stale
+# ignoredBuilds entry — the binaries are present and working.
+verifyDepsBeforeRun: false
+
+# pnpm 11 approves native build scripts via `allowBuilds` (booleans). This is what
+# lets biome/esbuild/sharp run their install/postinstall on a FRESH install (CI).
+# Leaving these as placeholders ("set this to true or false") makes `pnpm install
+# --frozen-lockfile` fail with ERR_PNPM_IGNORED_BUILDS. The `onlyBuiltDependencies`
+# array is the old pnpm<=10 key and is IGNORED by v11 — kept only for back-compat.
 allowBuilds:
-  '@biomejs/biome': set this to true or false
+  '@biomejs/biome': true
+  esbuild: true
+  sharp: true
 
 onlyBuiltDependencies:
   - "@biomejs/biome"

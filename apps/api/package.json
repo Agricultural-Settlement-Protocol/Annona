@@ -7,19 +7,29 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
+    "indexer": "tsx src/indexer/index.ts",
+    "indexer:once": "tsx src/indexer/index.ts --once",
     "lint": "biome lint src",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "test": "tsx --test src/**/*.test.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:check": "drizzle-kit check",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@annona/core": "workspace:*",
     "@annona/sdk": "workspace:*",
     "@hono/node-server": "^1.13.7",
-    "@stellar/stellar-sdk": "^13.0.0",
-    "hono": "^4.6.14"
+    "@stellar/stellar-sdk": "^16.0.1",
+    "drizzle-orm": "^0.45.2",
+    "hono": "^4.6.14",
+    "postgres": "^3.4.9",
+    "dotenv": "^17.2.3"
   },
   "devDependencies": {
     "@annona/config": "workspace:*",
     "@types/node": "^22.10.2",
+    "drizzle-kit": "^0.31.10",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3"
   }
