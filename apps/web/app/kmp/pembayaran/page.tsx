@@ -12,13 +12,12 @@
  * cash moves via kas koperasi / BRILink.
  */
 
-import { fetchAgreements, fetchFarmers, farmerMap } from "@/lib/api";
+import { executeSettlement, fetchAgreements, fetchFarmers, farmerMap } from "@/lib/api";
 import { PageHeader } from "@/components/kmp/page-header";
 import { PaymentHistoryTable } from "@/components/kmp/payment-history-table";
 import { SearchSelect } from "@/components/kmp/search-select";
 import type { SearchSelectItem } from "@/components/kmp/search-select";
-import { useTx } from "@/components/kmp/use-tx";
-import { settle } from "@/lib/invocations";
+import { getSupabase } from "@/lib/supabase";
 import { useApi } from "@/lib/use-api";
 import { formatKg } from "@/lib/mock-data";
 import { computeSplitSettlement, formatRupiah, gramsToKg } from "@annona/core";
@@ -72,14 +71,39 @@ export default function PembayaranPage() {
   const historyRef = useRef<HTMLDivElement>(null);
   const [showHistory, setShowHistory] = useState(false);
 
-  /* ── TX hook — gradient button: the ONE allowed use across setor trio ── */
-  const txSettle = useTx();
+  /* ── Settlement execution — server-signed, no Freighter ─────────────────
+   * POST /settlements/execute: the backend signs+submits settle() with its
+   * own service key (the coop's key). This tab just calls the API, waits,
+   * and shows loading -> done (success + hash, or the error). */
+  type SettleState = "idle" | "submitting" | "success";
+  const [settleState, setSettleState] = useState<SettleState>("idle");
+  const [settleHash, setSettleHash] = useState<string | null>(null);
+  const [settleError, setSettleError] = useState<string | null>(null);
 
-  // settle(caller, id): the coop signs; the contract applies the §5 three-way
-  // split, nets debt, and pays only net_to_farmer.
-  function handleSettle() {
+  async function handleSettle() {
     if (!agreement) return;
-    txSettle.run((coop) => settle(coop, agreement.onchainId));
+    setSettleError(null);
+    setSettleState("submitting");
+    try {
+      const {
+        data: { session },
+      } = await getSupabase().auth.getSession();
+      if (!session) {
+        throw new Error("Sesi berakhir. Silakan masuk kembali.");
+      }
+      const result = await executeSettlement(agreement.onchainId, session.access_token);
+      setSettleHash(result.hash);
+      setSettleState("success");
+    } catch (e) {
+      setSettleError(e instanceof Error ? e.message : String(e));
+      setSettleState("idle");
+    }
+  }
+
+  function resetSettle() {
+    setSettleState("idle");
+    setSettleHash(null);
+    setSettleError(null);
   }
 
   /* ── Derived ─────────────────────────────────────────────────────────── */
@@ -128,7 +152,7 @@ export default function PembayaranPage() {
 
   function handleSelectAgreement(id: string) {
     setSelectedId(id);
-    txSettle.reset();
+    resetSettle();
   }
 
   function handleToggleHistory() {
@@ -145,8 +169,8 @@ export default function PembayaranPage() {
     }
   }
 
-  const canSettle = !!agreement && txSettle.state === "idle" && split !== null;
-  const showLunas = txSettle.state === "success" && txSettle.txHash;
+  const canSettle = !!agreement && settleState === "idle" && split !== null;
+  const showLunas = settleState === "success" && settleHash;
 
   /* ── JSX ─────────────────────────────────────────────────────────────── */
   return (
@@ -295,29 +319,26 @@ export default function PembayaranPage() {
               onClick={handleSettle}
               className="w-full sm:w-auto"
             >
-              {txSettle.state === "signing"
-                ? "Menandatangani..."
-                : txSettle.state === "submitting"
-                  ? "Mencatat di Stellar..."
-                  : t("page.kmp.pembayaran.settle")}
+              {settleState === "submitting"
+                ? "Mencatat di Stellar..."
+                : t("page.kmp.pembayaran.settle")}
             </Button>
-            {txSettle.state === "signing" && (
+            {settleState === "submitting" && (
               <p className="text-xs text-muted-foreground">
-                {t("page.kmp.permintaanDana.signHint")}
+                Mencatat split tiga arah di blockchain. Proses beberapa detik.
               </p>
             )}
-            {txSettle.state === "submitting" && (
-              <p className="text-xs text-muted-foreground">
-                Mencatat split tiga arah di blockchain. Proses 5 hingga 10
-                detik.
-              </p>
+            {settleError && (
+              <Alert tone="warning" title={t("common.error")}>
+                {settleError}
+              </Alert>
             )}
           </CardContent>
         </Card>
       )}
 
       {/* Lunas panel */}
-      {showLunas && txSettle.txHash && split && agreement && farmer && (
+      {showLunas && settleHash && split && agreement && farmer && (
         <div className="rounded-xl border-2 border-emerald-200 bg-emerald-50/80 p-6 space-y-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -333,7 +354,7 @@ export default function PembayaranPage() {
                 </p>
               </div>
             </div>
-            <TxHashLink hash={txSettle.txHash} />
+            <TxHashLink hash={settleHash} />
           </div>
 
           {/* Final split */}
@@ -386,7 +407,7 @@ export default function PembayaranPage() {
               size="md"
               onClick={() => {
                 setSelectedId(null);
-                txSettle.reset();
+                resetSettle();
               }}
             >
               Bayar Perjanjian Lain
