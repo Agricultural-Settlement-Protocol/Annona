@@ -186,6 +186,19 @@ const farmerAddr = (farmerId: string): string => {
   return f.walletAddress;
 };
 
+/** Re-anchor still-pending harvest dates to the CURRENT week so the KMP
+ *  "Panen Minggu Ini" panel + cash-needed estimate are never empty on demo day.
+ *  The fixture stores absolute dates that drift stale relative to the run date;
+ *  overview's window is today +/- 7d. Settled/closed rows keep their historical
+ *  fixture date (past harvests read fine as history). */
+const HARVEST_PENDING = new Set(["Active", "PartiallyDelivered"]);
+function seedHarvestDate(status: string, oid: bigint, fallback: string): string {
+  if (!HARVEST_PENDING.has(status)) return fallback;
+  const d = new Date();
+  d.setDate(d.getDate() + (Number(oid) % 6) + 1); // +1..+6 days from now
+  return d.toISOString().slice(0, 10);
+}
+
 async function replayAgreement(a: (typeof MOCK_AGREEMENTS)[number]): Promise<void> {
   const oid = a.onchainId;
   let at = secondsOf(a.createdAt);
@@ -333,7 +346,7 @@ async function replayAgreement(a: (typeof MOCK_AGREEMENTS)[number]): Promise<voi
   if (agreementUuid) {
     await db
       .update(schema.agreement)
-      .set({ expectedHarvestDate: a.expectedHarvestDate })
+      .set({ expectedHarvestDate: seedHarvestDate(a.status, oid, a.expectedHarvestDate) })
       .where(sql`${schema.agreement.id} = ${agreementUuid}`);
     if (a.inputs.length > 0) {
       await db.insert(schema.agreementInput).values(

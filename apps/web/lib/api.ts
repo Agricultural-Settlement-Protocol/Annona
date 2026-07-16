@@ -38,6 +38,30 @@ async function postJSON<T>(path: string, body: unknown): Promise<T> {
   return data as T;
 }
 
+/** PATCH a JSON body (partial update of an off-chain row). */
+async function patchJSON<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = (await res.json().catch(() => ({}))) as T & { error?: string };
+  if (!res.ok) {
+    throw new Error(data?.error ? `${data.error}` : `[api] PATCH ${path} -> ${res.status}`);
+  }
+  return data as T;
+}
+
+/** DELETE request for removing an off-chain row. */
+async function delJSON<T>(path: string): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, { method: "DELETE" });
+  const data = (await res.json().catch(() => ({}))) as T & { error?: string };
+  if (!res.ok) {
+    throw new Error(data?.error ? `${data.error}` : `[api] DELETE ${path} -> ${res.status}`);
+  }
+  return data as T;
+}
+
 /** Money/volume come off the wire as decimal strings; back to bigint. */
 const big = (v: string): bigint => BigInt(v);
 
@@ -378,6 +402,23 @@ export async function fetchCoop(): Promise<{ coop: ApiCoop; supplier: ApiSupplie
   };
 }
 
+/** Off-chain edit of the coop profile identity fields (Screen Pengaturan). */
+export interface UpdateCoopInput {
+  name?: string;
+  kecamatan?: string;
+  kabupaten?: string;
+  provinsi?: string;
+}
+export async function updateCoop(
+  patch: UpdateCoopInput,
+): Promise<{ coop: ApiCoop; supplier: ApiSupplier }> {
+  const r = await patchJSON<{ coop: Raw<ApiCoop>; supplier: ApiSupplier }>("/coop", patch);
+  return {
+    coop: { ...r.coop, prefundedCashBalance: big(r.coop.prefundedCashBalance) },
+    supplier: r.supplier,
+  };
+}
+
 export async function fetchOverview(): Promise<ApiOverview> {
   const r = await getJSON<{
     coopOverview: { outstandingDebt: string; activeAgreements: number; settlementRatePct: number; residuOwed: string };
@@ -414,11 +455,45 @@ export async function fetchOverview(): Promise<ApiOverview> {
 
 export interface ApiCatalogItem {
   id: string;
+  supplierId: string;
   code: string;
   name: string;
   category: string;
+  region: string;
   basePriceSupplier: bigint;
-  source: string;
+  subsidiFlag: boolean;
+  priceTier: string;
+  hetPrice: bigint | null;
+  erdkkGated: boolean;
+  /** Nullable in schema (no .notNull()). */
+  source: string | null;
+  stockStatus: string;
+  unitLabel: string;
+}
+
+/** Wire shape returned by GET/POST/PATCH /catalog: bigint columns are decimal strings. */
+type RawCatalogItem = Omit<ApiCatalogItem, "basePriceSupplier" | "hetPrice"> & {
+  basePriceSupplier: string;
+  hetPrice: string | null;
+};
+
+function parseCatalogItem(r: RawCatalogItem): ApiCatalogItem {
+  return {
+    id: r.id,
+    supplierId: r.supplierId,
+    code: r.code,
+    name: r.name,
+    category: r.category,
+    region: r.region,
+    basePriceSupplier: big(r.basePriceSupplier),
+    subsidiFlag: r.subsidiFlag,
+    priceTier: r.priceTier,
+    hetPrice: r.hetPrice != null ? big(r.hetPrice) : null,
+    erdkkGated: r.erdkkGated,
+    source: r.source,
+    stockStatus: r.stockStatus,
+    unitLabel: r.unitLabel,
+  };
 }
 
 export interface ApiPriceRef {
@@ -429,17 +504,42 @@ export interface ApiPriceRef {
 }
 
 export async function fetchCatalog(): Promise<ApiCatalogItem[]> {
-  const { items } = await getJSON<{ items: (Raw<ApiCatalogItem> & Record<string, unknown>)[] }>(
-    "/reference/catalog",
-  );
-  return items.map((r) => ({
-    id: r.id,
-    code: r.code,
-    name: r.name,
-    category: r.category,
-    basePriceSupplier: big(r.basePriceSupplier),
-    source: r.source,
-  }));
+  const { items } = await getJSON<{ items: RawCatalogItem[] }>("/catalog");
+  return items.map(parseCatalogItem);
+}
+
+/** Input body for creating or patching a catalog item.
+ *  `basePriceWhole` is the whole-rupiah amount as a string; the server
+ *  converts to smallest unit (whole * 10_000_000). */
+export interface CatalogItemInput {
+  code?: string;
+  name?: string;
+  category?: string;
+  region?: string;
+  basePriceWhole?: string;
+  subsidiFlag?: boolean;
+  priceTier?: string;
+  erdkkGated?: boolean;
+  source?: string;
+  stockStatus?: string;
+  unitLabel?: string;
+}
+
+export async function createCatalogItem(input: CatalogItemInput): Promise<ApiCatalogItem> {
+  const r = await postJSON<RawCatalogItem>("/catalog", input);
+  return parseCatalogItem(r);
+}
+
+export async function updateCatalogItem(
+  id: string,
+  patch: CatalogItemInput,
+): Promise<ApiCatalogItem> {
+  const r = await patchJSON<RawCatalogItem>(`/catalog/${id}`, patch);
+  return parseCatalogItem(r);
+}
+
+export async function deleteCatalogItem(id: string): Promise<void> {
+  await delJSON<{ ok: boolean }>(`/catalog/${id}`);
 }
 
 export interface ApiYieldRow {
@@ -700,4 +800,181 @@ export async function fetchFinancierDetail(
     request: parseFundingRow(r.request),
     lines: r.lines.map(parseBackingLine),
   };
+}
+
+// ─── Warehouse stock (off-chain catatan lokal) ───────────────────────────────
+
+/** A single warehouse stock row. All qty fields are free-text (e.g. "18 karung",
+ *  "2.750 kg") so officers can record human-readable units without a numeric
+ *  schema. category is 'saprotan' or 'hasil-panen'. */
+export interface ApiWarehouseStock {
+  id: string;
+  coopId: string;
+  itemName: string;
+  /** 'saprotan' | 'hasil-panen' */
+  category: string;
+  inQty: string;
+  outQty: string;
+  balance: string;
+  note: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function fetchWarehouseStock(): Promise<ApiWarehouseStock[]> {
+  const { items } = await getJSON<{ items: ApiWarehouseStock[] }>("/warehouse-stock");
+  return items;
+}
+
+export interface CreateWarehouseStockInput {
+  itemName: string;
+  category: string;
+  inQty?: string;
+  outQty?: string;
+  balance?: string;
+  note?: string;
+}
+
+export async function createWarehouseStock(
+  input: CreateWarehouseStockInput,
+): Promise<ApiWarehouseStock> {
+  return postJSON<ApiWarehouseStock>("/warehouse-stock", input);
+}
+
+export interface UpdateWarehouseStockPatch {
+  inQty?: string;
+  outQty?: string;
+  balance?: string;
+  note?: string;
+}
+
+export async function updateWarehouseStock(
+  id: string,
+  patch: UpdateWarehouseStockPatch,
+): Promise<ApiWarehouseStock> {
+  return patchJSON<ApiWarehouseStock>(`/warehouse-stock/${id}`, patch);
+}
+
+// ── Logistics + derived warehouse (Screen F Gudang zones + Logistik) ─────────
+// The gudang stock is DERIVED from real data: saprotan received (from accepted
+// agreement inputs), harvest received (deliveries) minus forwarded (shipments).
+// A logistik dispatch persists a shipment, which auto-reduces the harvest balance.
+
+export interface ApiWarehouseSaprotan {
+  name: string;
+  category: string;
+  unit: string;
+  qty: string; // numeric string, e.g. "10.00"
+}
+export interface ApiWarehouseHasil {
+  commodityCode: string;
+  receivedG: bigint;
+  forwardedG: bigint;
+  balanceG: bigint;
+}
+export interface ApiWarehouseSummary {
+  saprotan: ApiWarehouseSaprotan[];
+  hasilPanen: ApiWarehouseHasil[];
+}
+export async function fetchWarehouseSummary(): Promise<ApiWarehouseSummary> {
+  const r = await getJSON<{
+    saprotan: ApiWarehouseSaprotan[];
+    hasilPanen: Array<{ commodityCode: string; receivedG: string; forwardedG: string; balanceG: string }>;
+  }>("/logistics/summary");
+  return {
+    saprotan: r.saprotan,
+    hasilPanen: r.hasilPanen.map((h) => ({
+      commodityCode: h.commodityCode,
+      receivedG: BigInt(h.receivedG),
+      forwardedG: BigInt(h.forwardedG),
+      balanceG: BigInt(h.balanceG),
+    })),
+  };
+}
+
+export interface ApiUnshippedDelivery {
+  id: string;
+  agreementId: string;
+  agreementOnchainId: string | null;
+  commodityCode: string;
+  farmerId: string;
+  farmerName: string | null;
+  seq: number;
+  volumeG: bigint;
+  grade: string;
+  moistureBps: number | null;
+  deliveredAt: string;
+}
+export async function fetchUnshippedDeliveries(): Promise<ApiUnshippedDelivery[]> {
+  const { items } = await getJSON<{
+    items: Array<Omit<ApiUnshippedDelivery, "volumeG"> & { volumeG: string }>;
+  }>("/logistics/unshipped");
+  return items.map((d) => ({ ...d, volumeG: BigInt(d.volumeG) }));
+}
+
+export interface ApiShipmentLine {
+  id: string;
+  shipmentId: string;
+  deliveryId: string | null;
+  agreementId: string;
+  farmerId: string;
+  volumeG: bigint;
+  grade: string;
+  moistureBps: number;
+}
+export type ShipmentStatus = "Draft" | "Dikirim" | "Diterima" | "Selisih";
+export interface ApiShipment {
+  id: string;
+  coopId: string;
+  supplierId: string;
+  commodityCode: string;
+  status: ShipmentStatus;
+  totalVolumeG: bigint;
+  receivedVolumeG: bigint | null;
+  discrepancyNote: string | null;
+  sentAt: string | null;
+  receivedAt: string | null;
+  createdAt: string;
+  lines: ApiShipmentLine[];
+}
+interface RawShipment {
+  id: string;
+  coopId: string;
+  supplierId: string;
+  commodityCode: string;
+  status: ShipmentStatus;
+  totalVolumeG: string;
+  receivedVolumeG: string | null;
+  discrepancyNote: string | null;
+  sentAt: string | null;
+  receivedAt: string | null;
+  createdAt: string;
+  lines?: Array<Omit<ApiShipmentLine, "volumeG"> & { volumeG: string }>;
+}
+function parseShipment(s: RawShipment): ApiShipment {
+  return {
+    ...s,
+    totalVolumeG: BigInt(s.totalVolumeG),
+    receivedVolumeG: s.receivedVolumeG != null ? BigInt(s.receivedVolumeG) : null,
+    lines: (s.lines ?? []).map((l) => ({ ...l, volumeG: BigInt(l.volumeG) })),
+  };
+}
+export async function fetchShipments(): Promise<ApiShipment[]> {
+  const { items } = await getJSON<{ items: RawShipment[] }>("/logistics/shipments");
+  return items.map(parseShipment);
+}
+export async function createShipment(deliveryIds: string[], note?: string): Promise<ApiShipment> {
+  return parseShipment(await postJSON<RawShipment>("/logistics/shipments", { deliveryIds, note }));
+}
+export async function receiveShipment(
+  id: string,
+  receivedVolumeG?: bigint,
+  note?: string,
+): Promise<ApiShipment> {
+  return parseShipment(
+    await patchJSON<RawShipment>(`/logistics/shipments/${id}/receive`, {
+      receivedVolumeG: receivedVolumeG?.toString(),
+      note,
+    }),
+  );
 }

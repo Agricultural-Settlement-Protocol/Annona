@@ -6,15 +6,22 @@
  *
  * Full-width table: kode, nama, kategori, satuan, harga pokok, subsidi, stok, region, aksi.
  * Add/Edit via side sheet (all fields). Hapus with confirm step.
- * All changes are local state (mock). Off-chain label shown subtly.
+ * Persists to Postgres via POST/PATCH/DELETE /catalog (off-chain Supplier reference data).
  * No em dashes anywhere in UI copy.
  */
 
 import { OversightPageHeader } from "@/components/oversight/page-header";
 import { TBody, THead, Table, TableFrame, Td, Th, Tr } from "@/components/kmp/table";
-import { buildEditableCatalog } from "@/lib/oversight-data";
 import type { StockStatus } from "@/lib/mock-data";
-import { Badge, Button, Card, CardContent, CardHeader, Input, RupiahAmount, StatCard } from "@annona/ui";
+import {
+  type ApiCatalogItem,
+  createCatalogItem,
+  deleteCatalogItem,
+  fetchCatalog,
+  updateCatalogItem,
+} from "@/lib/api";
+import { useApi } from "@/lib/use-api";
+import { Badge, Button, Card, CardContent, Input, RupiahAmount, Skeleton, StatCard } from "@annona/ui";
 import {
   AlertCircle,
   CheckCircle2,
@@ -78,6 +85,33 @@ const UNIT_PRESETS = [
   "botol 1L",
   "unit",
 ];
+
+// ─── Map API item to local CatalogEntry ─────────────────────────────────────
+
+function apiToEntry(item: ApiCatalogItem): CatalogEntry {
+  const VALID_CATEGORIES = ["pupuk", "benih", "pestisida", "alsintan"] as const;
+  type ValidCategory = (typeof VALID_CATEGORIES)[number];
+  const category: ValidCategory = VALID_CATEGORIES.includes(item.category as ValidCategory)
+    ? (item.category as ValidCategory)
+    : "pupuk";
+  const VALID_STOCK = ["Tersedia", "Menipis", "Habis"] as const;
+  type ValidStock = (typeof VALID_STOCK)[number];
+  const stockStatus: ValidStock = VALID_STOCK.includes(item.stockStatus as ValidStock)
+    ? (item.stockStatus as ValidStock)
+    : "Tersedia";
+  return {
+    id: item.id,
+    code: item.code,
+    name: item.name,
+    category,
+    region: item.region,
+    basePriceSupplier: item.basePriceSupplier,
+    unitLabel: item.unitLabel,
+    subsidiFlag: item.subsidiFlag,
+    source: item.source ?? "",
+    stockStatus,
+  };
+}
 
 // ─── Stock badge ──────────────────────────────────────────────────────────────
 
@@ -424,20 +458,22 @@ function HapusConfirm({
 
 export default function KatalogPage() {
   const { t } = useI18n();
-  const [catalog, setCatalog] = useState<CatalogEntry[]>(() =>
-    buildEditableCatalog().map((r) => ({
-      id: r.id,
-      code: r.code,
-      name: r.name,
-      category: r.category,
-      region: r.region,
-      basePriceSupplier: r.basePriceSupplier,
-      unitLabel: r.unitLabel,
-      subsidiFlag: r.subsidiFlag,
-      source: r.source,
-      stockStatus: r.stockStatus,
-    })),
+
+  // ─── API load ───────────────────────────────────────────────────────────────
+  const { data: apiItems, loading: catalogLoading, error: catalogError } = useApi(
+    () => fetchCatalog(),
+    [],
   );
+
+  // Local catalog state seeded from the API on first load.
+  // Mutations (add/edit/delete) update this directly so the table refreshes
+  // without a round-trip refetch.
+  const [catalog, setCatalog] = useState<CatalogEntry[]>([]);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (apiItems) setCatalog(apiItems.map(apiToEntry));
+  }, [apiItems]);
 
   // Sheet state
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -454,6 +490,7 @@ export default function KatalogPage() {
   const openAdd = useCallback(() => {
     setEditingId(null);
     setSheetInitial(EMPTY_FORM);
+    setSaveError(null);
     setSheetOpen(true);
   }, []);
 
@@ -470,61 +507,55 @@ export default function KatalogPage() {
       region: entry.region,
       source: entry.source,
     });
+    setSaveError(null);
     setSheetOpen(true);
   }, []);
 
-  const handleSave = useCallback((form: FormState, id: string | null) => {
-    const parsed = Number.parseInt(form.basePriceWhole.replace(/\D/g, ""), 10);
-    const price = BigInt(parsed) * 10_000_000n;
-    if (id) {
-      // Edit existing
-      setCatalog((prev) =>
-        prev.map((row) =>
-          row.id === id
-            ? {
-                ...row,
-                code: form.code.trim(),
-                name: form.name.trim(),
-                category: form.category,
-                unitLabel: form.unitLabel,
-                basePriceSupplier: price,
-                subsidiFlag: form.subsidiFlag === "Subsidi",
-                stockStatus: form.stockStatus,
-                region: form.region.trim(),
-                source: form.source.trim(),
-              }
-            : row,
-        ),
-      );
-    } else {
-      // Add new
-      const newId = `cat-new-${Date.now()}`;
-      setCatalog((prev) => [
-        ...prev,
-        {
-          id: newId,
-          code: form.code.trim(),
-          name: form.name.trim(),
-          category: form.category,
-          unitLabel: form.unitLabel,
-          basePriceSupplier: price,
-          subsidiFlag: form.subsidiFlag === "Subsidi",
-          stockStatus: form.stockStatus,
-          region: form.region.trim(),
-          source: form.source.trim(),
-        },
-      ]);
+  // async: calls POST /catalog or PATCH /catalog/:id, then updates local state
+  const handleSave = useCallback(async (form: FormState, id: string | null) => {
+    const priceInt = Number.parseInt(form.basePriceWhole.replace(/\D/g, ""), 10);
+    const input = {
+      code: form.code.trim(),
+      name: form.name.trim(),
+      category: form.category,
+      region: form.region.trim(),
+      basePriceWhole: String(priceInt),
+      subsidiFlag: form.subsidiFlag === "Subsidi",
+      stockStatus: form.stockStatus,
+      unitLabel: form.unitLabel,
+      source: form.source.trim(),
+    };
+
+    try {
+      setSaveError(null);
+      if (id) {
+        // Edit existing — PATCH then update in place
+        const updated = await updateCatalogItem(id, input);
+        setCatalog((prev) => prev.map((r) => (r.id === id ? apiToEntry(updated) : r)));
+      } else {
+        // Add new — POST then prepend
+        const created = await createCatalogItem(input);
+        setCatalog((prev) => [apiToEntry(created), ...prev]);
+      }
+      setSheetOpen(false);
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : "Gagal menyimpan item.");
     }
-    setSheetOpen(false);
   }, []);
 
   const handleHapus = useCallback((entry: CatalogEntry) => {
     setHapusTarget(entry);
   }, []);
 
-  const confirmHapus = useCallback(() => {
+  // async: calls DELETE /catalog/:id then removes from local state
+  const confirmHapus = useCallback(async () => {
     if (!hapusTarget) return;
-    setCatalog((prev) => prev.filter((r) => r.id !== hapusTarget.id));
+    try {
+      await deleteCatalogItem(hapusTarget.id);
+      setCatalog((prev) => prev.filter((r) => r.id !== hapusTarget.id));
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : "Gagal menghapus item.");
+    }
     setHapusTarget(null);
   }, [hapusTarget]);
 
@@ -564,27 +595,27 @@ export default function KatalogPage() {
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatCard
           label={t("page.oversight.supplier.katalog.total")}
-          value={String(catalog.length)}
+          value={catalogLoading ? "-" : String(catalog.length)}
           hint={t("page.oversight.supplier.katalog.desc")}
           icon={<Package size={18} />}
         />
         <StatCard
           label="Stok Menipis"
-          value={String(stokMenipis)}
+          value={catalogLoading ? "-" : String(stokMenipis)}
           hint={t("page.oversight.supplier.katalog.desc")}
           tone={stokMenipis > 0 ? "warn" : "neutral"}
           icon={<AlertCircle size={18} />}
         />
         <StatCard
           label="Stok Habis"
-          value={String(stokHabis)}
+          value={catalogLoading ? "-" : String(stokHabis)}
           hint={t("page.oversight.supplier.katalog.desc")}
           tone={stokHabis > 0 ? "bad" : "neutral"}
           icon={<PackageX size={18} />}
         />
         <StatCard
           label="Tersedia"
-          value={String(catalog.filter((r) => r.stockStatus === "Tersedia").length)}
+          value={catalogLoading ? "-" : String(catalog.filter((r) => r.stockStatus === "Tersedia").length)}
           hint={t("page.oversight.supplier.katalog.desc")}
           tone="good"
           icon={<CheckCircle2 size={18} />}
@@ -629,78 +660,98 @@ export default function KatalogPage() {
         {t("page.oversight.supplier.katalog.desc")}
       </p>
 
+      {/* Error banner (API save/delete errors) */}
+      {saveError && (
+        <div className="rounded-[10px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {saveError}
+        </div>
+      )}
+
       {/* Table */}
       <Card>
         <CardContent className="p-0">
-          <TableFrame>
-            <Table>
-              <THead>
-                <Th>{t("page.oversight.supplier.katalog.table.col.code")}</Th>
-                <Th>{t("page.oversight.supplier.katalog.table.col.name")}</Th>
-                <Th>{t("page.oversight.supplier.katalog.table.col.category")}</Th>
-                <Th>Satuan</Th>
-                <Th className="text-right">{t("page.oversight.supplier.katalog.table.col.price")}</Th>
-                <Th>{t("page.oversight.supplier.katalog.table.col.source")}</Th>
-                <Th>Stok</Th>
-                <Th>Wilayah</Th>
-                <Th>{t("page.oversight.supplier.katalog.table.col.actions")}</Th>
-              </THead>
-              <TBody>
-                {filtered.length === 0 ? (
-                  <Tr>
-                    <Td colSpan={9} className="py-10 text-center text-muted-foreground">
-                      {t("page.oversight.supplier.katalog.table.empty")}
-                    </Td>
-                  </Tr>
-                ) : (
-                  filtered.map((row) => (
-                    <Fragment key={row.id}>
-                      <Tr>
-                        <Td className="font-mono text-xs text-muted-foreground">{row.code}</Td>
-                        <Td className="font-medium">{row.name}</Td>
-                        <Td>
-                          <KategoriBadge cat={row.category} />
-                        </Td>
-                        <Td className="text-xs text-muted-foreground">{row.unitLabel}</Td>
-                        <Td className="text-right">
-                          <RupiahAmount smallest={row.basePriceSupplier} className="text-sm" />
-                        </Td>
-                        <Td>
-                          <Badge tone={row.subsidiFlag ? "success" : "neutral"}>
-                            {row.subsidiFlag ? "Subsidi" : "Non-subsidi"}
-                          </Badge>
-                        </Td>
-                        <Td>
-                          <StockBadge status={row.stockStatus} />
-                        </Td>
-                        <Td className="text-xs text-muted-foreground">{row.region}</Td>
-                        <Td>
-                          <div className="flex items-center gap-1">
-                            <button
-                              type="button"
-                              onClick={() => openEdit(row)}
-                              className="flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:border-ring hover:text-foreground"
-                            >
-                              <Edit3 size={11} />
-                              {t("common.edit")}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleHapus(row)}
-                              className="flex items-center gap-1 rounded-md border border-red-200 px-2 py-1 text-xs text-red-600 hover:border-red-400 hover:bg-red-50"
-                            >
-                              <Trash2 size={11} />
-                              {t("common.delete")}
-                            </button>
-                          </div>
-                        </Td>
-                      </Tr>
-                    </Fragment>
-                  ))
-                )}
-              </TBody>
-            </Table>
-          </TableFrame>
+          {catalogLoading ? (
+            <div className="space-y-3 p-6">
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-4/5" />
+            </div>
+          ) : catalogError ? (
+            <div className="px-6 py-10 text-center text-sm text-muted-foreground">
+              Gagal memuat katalog. Periksa koneksi API.
+            </div>
+          ) : (
+            <TableFrame>
+              <Table>
+                <THead>
+                  <Th>{t("page.oversight.supplier.katalog.table.col.code")}</Th>
+                  <Th>{t("page.oversight.supplier.katalog.table.col.name")}</Th>
+                  <Th>{t("page.oversight.supplier.katalog.table.col.category")}</Th>
+                  <Th>Satuan</Th>
+                  <Th className="text-right">{t("page.oversight.supplier.katalog.table.col.price")}</Th>
+                  <Th>{t("page.oversight.supplier.katalog.table.col.source")}</Th>
+                  <Th>Stok</Th>
+                  <Th>Wilayah</Th>
+                  <Th>{t("page.oversight.supplier.katalog.table.col.actions")}</Th>
+                </THead>
+                <TBody>
+                  {filtered.length === 0 ? (
+                    <Tr>
+                      <Td colSpan={9} className="py-10 text-center text-muted-foreground">
+                        {t("page.oversight.supplier.katalog.table.empty")}
+                      </Td>
+                    </Tr>
+                  ) : (
+                    filtered.map((row) => (
+                      <Fragment key={row.id}>
+                        <Tr>
+                          <Td className="font-mono text-xs text-muted-foreground">{row.code}</Td>
+                          <Td className="font-medium">{row.name}</Td>
+                          <Td>
+                            <KategoriBadge cat={row.category} />
+                          </Td>
+                          <Td className="text-xs text-muted-foreground">{row.unitLabel}</Td>
+                          <Td className="text-right">
+                            <RupiahAmount smallest={row.basePriceSupplier} className="text-sm" />
+                          </Td>
+                          <Td>
+                            <Badge tone={row.subsidiFlag ? "success" : "neutral"}>
+                              {row.subsidiFlag ? "Subsidi" : "Non-subsidi"}
+                            </Badge>
+                          </Td>
+                          <Td>
+                            <StockBadge status={row.stockStatus} />
+                          </Td>
+                          <Td className="text-xs text-muted-foreground">{row.region}</Td>
+                          <Td>
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => openEdit(row)}
+                                className="flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:border-ring hover:text-foreground"
+                              >
+                                <Edit3 size={11} />
+                                {t("common.edit")}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleHapus(row)}
+                                className="flex items-center gap-1 rounded-md border border-red-200 px-2 py-1 text-xs text-red-600 hover:border-red-400 hover:bg-red-50"
+                              >
+                                <Trash2 size={11} />
+                                {t("common.delete")}
+                              </button>
+                            </div>
+                          </Td>
+                        </Tr>
+                      </Fragment>
+                    ))
+                  )}
+                </TBody>
+              </Table>
+            </TableFrame>
+          )}
         </CardContent>
       </Card>
 

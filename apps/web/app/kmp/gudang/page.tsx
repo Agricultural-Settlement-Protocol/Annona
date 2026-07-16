@@ -2,15 +2,22 @@
 
 /** Screen F — Gudang dan Pasokan (PRD §8.1). Two clearly labeled zones:
  *  (1) Kargo masuk on-chain (aqua) — accept_supply double-confirmation gate.
- *  (2) Stok off-chain (muted badge) — local inventory log, not blockchain. */
+ *  (2) Stok gudang DERIVED (off-chain) — auto-computed from real data, NOT hand-kept:
+ *      - Saprotan received  = accepted agreement inputs.
+ *      - Hasil panen        = deliveries in, logistik shipments out, balance = in - out.
+ *      A logistik dispatch auto-reduces the harvest balance here. */
 
-import { type ApiAgreement, fetchOverview } from "@/lib/api";
+import {
+  type ApiWarehouseSummary,
+  fetchOverview,
+  fetchWarehouseSummary,
+} from "@/lib/api";
 import { PageHeader } from "@/components/kmp/page-header";
 import { TBody, THead, Table, TableFrame, Td, Th, Tr } from "@/components/kmp/table";
 import { type TxState, useTx } from "@/components/kmp/use-tx";
 import { acceptSupply } from "@/lib/invocations";
 import { useApi } from "@/lib/use-api";
-import { MOCK_STOCK, formatKg } from "@/lib/mock-data";
+import { formatKg } from "@/lib/mock-data";
 import {
   Alert,
   Badge,
@@ -18,11 +25,12 @@ import {
   Card,
   CardContent,
   CardHeader,
-  Input,
   RupiahAmount,
+  Skeleton,
   StatCard,
   TxHashLink,
 } from "@annona/ui";
+import type { ApiAgreement } from "@/lib/api";
 import {
   ArrowUpFromLine,
   CheckCircle2,
@@ -36,10 +44,11 @@ import {
 import { useI18n } from "@/lib/i18n/use-i18n";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-/** Parse a string like "19.150 kg" or "4.580 kg" to a number (ID locale: dots = thousands). */
-function parseKgQty(qty: string): number {
-  const clean = qty.replace(/\./g, "").replace(/[^0-9]/g, "");
-  return clean ? Number(clean) : 0;
+/** grams -> kg number */
+const g2kg = (g: bigint): number => Number(g) / 1000;
+
+function commodityLabel(code: string): string {
+  return code === "GABAH" ? "Gabah Kering Panen" : code === "JAGUNG" ? "Jagung Pipilan" : code;
 }
 
 /** Single inbound-supply card for one SupplyDispatched agreement.
@@ -50,7 +59,6 @@ function InboundCard({
   isAnyProcessing,
   onAccept,
   state,
-  txHash,
   isDone,
   doneTxHash,
 }: {
@@ -59,11 +67,9 @@ function InboundCard({
   isAnyProcessing: boolean;
   onAccept: () => void;
   state: TxState;
-  txHash: string | null;
   isDone: boolean;
   doneTxHash: string | null;
 }) {
-  const { t } = useI18n();
   const isMine = state !== "idle" && !isDone;
 
   if (isDone) {
@@ -101,7 +107,7 @@ function InboundCard({
             Perjanjian #{String(agreement.onchainId)}, {farmerName}
           </p>
           <p className="mt-1 text-xs text-gray-500 font-semibold">
-            {agreement.commodityCode === "GABAH" ? "Gabah Kering Panen" : "Jagung Pipilan"}
+            {commodityLabel(agreement.commodityCode)}
           </p>
           <div className="mt-4 flex flex-wrap gap-6 text-sm font-bold text-gray-700">
             <div>
@@ -122,7 +128,6 @@ function InboundCard({
           </p>
         </div>
 
-        {/* Accept button */}
         <div className="flex flex-col items-end gap-2">
           <Button
             type="button"
@@ -180,39 +185,35 @@ export default function GudangPage() {
   function handleAccept(id: string, onchainId: bigint) {
     if (txAccept.state !== "idle") return;
     setActiveId(id);
-    // GATE 2: KMP confirms physical receipt of dispatched supply -> Active.
     txAccept.run((coop) => acceptSupply(coop, onchainId));
   }
 
   const isAnyProcessing = txAccept.state !== "idle" && txAccept.state !== "success";
 
-  // Split MOCK_STOCK by category
-  const saprotanStock = MOCK_STOCK.filter((s) => s.category === "saprotan");
-  const hasilPanenStock = MOCK_STOCK.filter((s) => s.category === "hasil-panen");
+  // Derived warehouse summary (auto from deliveries + shipments + inputs).
+  const { data: summary, loading: summaryLoading, error: summaryError } =
+    useApi<ApiWarehouseSummary>(fetchWarehouseSummary);
+  const saprotan = summary?.saprotan ?? [];
+  const hasilPanen = summary?.hasilPanen ?? [];
 
-  // Summary totals for the stat strip
-  const totalPanenDiterima = hasilPanenStock.reduce((sum, s) => sum + parseKgQty(s.inQty), 0);
-  const totalDiteruskan = hasilPanenStock.reduce((sum, s) => sum + parseKgQty(s.outQty), 0);
-
-  // Stock table search
   const [stockSearch, setStockSearch] = useState("");
-  const filteredSaprotan = useMemo(() => {
-    const q = stockSearch.toLowerCase().trim();
-    if (!q) return saprotanStock;
-    return saprotanStock.filter((s) => s.itemName.toLowerCase().includes(q));
-  }, [saprotanStock, stockSearch]);
-  const filteredHasil = useMemo(() => {
-    const q = stockSearch.toLowerCase().trim();
-    if (!q) return hasilPanenStock;
-    return hasilPanenStock.filter((s) => s.itemName.toLowerCase().includes(q));
-  }, [hasilPanenStock, stockSearch]);
+  const q = stockSearch.toLowerCase().trim();
+  const filteredSaprotan = useMemo(
+    () => (q ? saprotan.filter((s) => s.name.toLowerCase().includes(q)) : saprotan),
+    [saprotan, q],
+  );
+  const filteredHasil = useMemo(
+    () => (q ? hasilPanen.filter((h) => commodityLabel(h.commodityCode).toLowerCase().includes(q)) : hasilPanen),
+    [hasilPanen, q],
+  );
+
+  // Stat strip totals.
+  const totalReceivedKg = hasilPanen.reduce((s, h) => s + g2kg(h.receivedG), 0);
+  const totalForwardedKg = hasilPanen.reduce((s, h) => s + g2kg(h.forwardedG), 0);
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title={t("page.kmp.gudang.title")}
-        description={t("page.kmp.gudang.desc")}
-      />
+      <PageHeader title={t("page.kmp.gudang.title")} description={t("page.kmp.gudang.desc")} />
 
       {/* Summary stat strip */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -225,13 +226,13 @@ export default function GudangPage() {
         />
         <StatCard
           label={t("page.kmp.gudang.stats.totalStock")}
-          value={`${totalPanenDiterima.toLocaleString("id-ID")} kg`}
+          value={`${totalReceivedKg.toLocaleString("id-ID")} kg`}
           hint="Total hasil panen yang diterima di gudang"
           icon={<Package size={18} />}
         />
         <StatCard
           label={t("page.kmp.gudang.stats.readyShip")}
-          value={`${totalDiteruskan.toLocaleString("id-ID")} kg`}
+          value={`${totalForwardedKg.toLocaleString("id-ID")} kg`}
           hint="Total yang sudah dikirim ke gudang Agrinas"
           icon={<ArrowUpFromLine size={18} />}
         />
@@ -256,30 +257,27 @@ export default function GudangPage() {
               Tidak ada kiriman saprotan yang sedang menunggu konfirmasi.
             </div>
           ) : (
-            inbound.map((a) => {
-              return (
-                <InboundCard
-                  key={a.id}
-                  agreement={a}
-                  farmerName={a.farmerName}
-                  isAnyProcessing={isAnyProcessing}
-                  onAccept={() => handleAccept(a.id, a.onchainId)}
-                  state={activeId === a.id ? txAccept.state : "idle"}
-                  txHash={activeId === a.id ? txAccept.txHash : null}
-                  isDone={!!doneMap[a.id]}
-                  doneTxHash={doneMap[a.id] ?? null}
-                />
-              );
-            })
+            inbound.map((a) => (
+              <InboundCard
+                key={a.id}
+                agreement={a}
+                farmerName={a.farmerName}
+                isAnyProcessing={isAnyProcessing}
+                onAccept={() => handleAccept(a.id, a.onchainId)}
+                state={activeId === a.id ? txAccept.state : "idle"}
+                isDone={!!doneMap[a.id]}
+                doneTxHash={doneMap[a.id] ?? null}
+              />
+            ))
           )}
         </CardContent>
       </Card>
 
-      {/* Zone 2: Off-chain stock (clearly labeled) */}
+      {/* Zone 2: Derived off-chain stock */}
       <Card className="rounded-[2rem] border-gray-100 bg-white shadow-sm overflow-hidden p-5 sm:p-6">
         <CardHeader
           title={t("page.kmp.gudang.title")}
-          description={t("page.kmp.gudang.desc")}
+          description="Stok dihitung otomatis dari data nyata: saprotan diterima dari perjanjian, hasil panen dari setoran petani dikurangi yang sudah diteruskan lewat Logistik."
           action={
             <Badge tone="neutral" icon={<Database size={11} />} className="rounded-full font-bold">
               {t("page.kmp.gudang.label.offChain")}
@@ -288,142 +286,129 @@ export default function GudangPage() {
           className="pb-3"
         />
         <CardContent className="space-y-6 p-0 pb-4 pt-3">
-          {/* Warning banner */}
           <div className="mx-5">
-            <Alert tone="warning" title="Data off-chain" className="rounded-xl">
-              Tabel stok di bawah adalah catatan lokal koperasi. Tidak ada catatan blockchain untuk
-              ini. Konfirmasi kargo Supplier di zona atas yang menciptakan rekam on-chain.
+            <Alert tone="info" title="Dihitung otomatis (off-chain)" className="rounded-xl">
+              Angka di bawah bukan input manual. Saprotan diakumulasi dari perjanjian yang sudah
+              diterima; hasil panen = total setoran dikurangi yang sudah dikirim ke gudang Agrinas
+              di menu Logistik. Mengirim lewat Logistik otomatis mengurangi sisa di gudang.
             </Alert>
           </div>
 
-          {/* Stock search */}
           <div className="mx-5">
-            <Input
-              name="stock-search"
-              placeholder="Cari nama barang..."
-              leading={<Search size={15} className="text-gray-400" />}
-              value={stockSearch}
-              onChange={(e) => setStockSearch(e.target.value)}
-              className="max-w-xs rounded-2xl border-gray-150"
-            />
+            <div className="flex h-11 w-full max-w-xs items-center gap-2.5 rounded-2xl border border-gray-150 bg-white px-3.5 shadow-sm focus-within:ring-2 focus-within:ring-ring">
+              <Search size={15} className="shrink-0 text-gray-400" />
+              <input
+                type="search"
+                placeholder="Cari nama barang..."
+                value={stockSearch}
+                onChange={(e) => setStockSearch(e.target.value)}
+                className="h-full w-full bg-transparent text-sm text-gray-800 outline-none placeholder:text-gray-400 font-semibold"
+              />
+            </div>
           </div>
 
-          {/* Saprotan stock */}
-          <div>
-            <div className="flex items-center gap-2 border-b border-gray-100 bg-[#ebf5e9]/30 px-5 py-4">
-              <Warehouse size={15} className="text-emerald-700" />
-              <span className="text-sm font-bold text-gray-900">{t("page.kmp.gudang.zone.saprotan")}</span>
-              <Badge tone="verdant" className="rounded-full">Pertanian</Badge>
+          {summaryLoading ? (
+            <div className="mx-5 space-y-2">
+              <Skeleton className="h-8 w-full rounded-xl" />
+              <Skeleton className="h-8 w-full rounded-xl" />
+              <Skeleton className="h-8 w-full rounded-xl" />
             </div>
-            <TableFrame className="border-0 shadow-none rounded-none overflow-visible">
-              <Table>
-                <THead>
-                  <Th>Barang</Th>
-                  <Th className="text-right">Masuk</Th>
-                  <Th className="text-right">Keluar</Th>
-                  <Th className="text-right">Sisa</Th>
-                  <Th>Catatan</Th>
-                </THead>
-                <TBody>
-                  {filteredSaprotan.length > 0 ? (
-                    filteredSaprotan.map((s) => (
-                      <Tr key={s.id}>
-                        <Td className="font-bold text-gray-900">{s.itemName}</Td>
-                        <Td className="text-right tabular-nums text-gray-500 font-medium">{s.inQty}</Td>
-                        <Td className="text-right tabular-nums text-gray-500 font-medium">
-                          {s.outQty}
+          ) : null}
+
+          {summaryError ? (
+            <div className="mx-5">
+              <Alert tone="warning" className="rounded-xl text-sm">{summaryError}</Alert>
+            </div>
+          ) : null}
+
+          {/* Saprotan (derived) */}
+          {!summaryLoading ? (
+            <div>
+              <div className="flex items-center gap-2 border-b border-gray-100 bg-[#ebf5e9]/30 px-5 py-4">
+                <Warehouse size={15} className="text-emerald-700" />
+                <span className="text-sm font-bold text-gray-900">{t("page.kmp.gudang.zone.saprotan")}</span>
+                <Badge tone="verdant" className="rounded-full">Pertanian</Badge>
+              </div>
+              <TableFrame className="border-0 shadow-none rounded-none overflow-visible">
+                <Table>
+                  <THead>
+                    <Th>Barang</Th>
+                    <Th>Kategori</Th>
+                    <Th className="text-right">Diterima</Th>
+                  </THead>
+                  <TBody>
+                    {filteredSaprotan.length > 0 ? (
+                      filteredSaprotan.map((s) => (
+                        <Tr key={`${s.name}-${s.category}`}>
+                          <Td className="font-bold text-gray-900">{s.name}</Td>
+                          <Td className="text-gray-500 font-medium capitalize">{s.category}</Td>
+                          <Td className="text-right tabular-nums font-bold text-emerald-800">
+                            {Number(s.qty).toLocaleString("id-ID")} {s.unit}
+                          </Td>
+                        </Tr>
+                      ))
+                    ) : (
+                      <Tr>
+                        <Td colSpan={3} className="py-6 text-center text-gray-450 font-medium">
+                          {q ? "Tidak ada barang saprotan yang cocok." : "Belum ada saprotan diterima."}
                         </Td>
-                        <Td className="text-right tabular-nums">
-                          <span
-                            className={
-                              s.balance === "0"
-                                ? "text-gray-400 font-medium"
-                                : "font-bold text-emerald-800"
-                            }
-                          >
-                            {s.balance}
-                          </span>
-                        </Td>
-                        <Td className="text-gray-500 font-medium">{s.note}</Td>
                       </Tr>
-                    ))
-                  ) : (
-                    <Tr>
-                      <Td colSpan={5} className="py-6 text-center text-gray-450 font-medium">
-                        Tidak ada barang saprotan yang cocok.
-                      </Td>
-                    </Tr>
-                  )}
-                </TBody>
-              </Table>
-            </TableFrame>
-          </div>
-
-          {/* Hasil panen stock */}
-          <div>
-            <div className="flex items-center gap-2 border-b border-gray-100 bg-cyan-50/20 px-5 py-4">
-              <Warehouse size={15} className="text-[#0c6a78]" />
-              <span className="text-sm font-bold text-gray-900">Hasil Panen</span>
-              <Badge tone="aqua" className="rounded-full">Diteruskan ke Gudang Agrinas</Badge>
+                    )}
+                  </TBody>
+                </Table>
+              </TableFrame>
             </div>
-            <TableFrame className="border-0 shadow-none rounded-none overflow-visible">
-              <Table>
-                <THead>
-                  <Th>Komoditas</Th>
-                  <Th className="text-right">Diterima</Th>
-                  <Th className="text-right">Diteruskan</Th>
-                  <Th className="text-right">Sisa di Gudang</Th>
-                  <Th>Catatan</Th>
-                </THead>
-                <TBody>
-                  {filteredHasil.length > 0 ? (
-                    filteredHasil.map((s) => (
-                      <Tr key={s.id}>
-                        <Td className="font-bold text-gray-900">{s.itemName}</Td>
-                        <Td className="text-right tabular-nums text-gray-500 font-medium">{s.inQty}</Td>
-                        <Td className="text-right tabular-nums text-gray-500 font-medium">
-                          {s.outQty}
+          ) : null}
+
+          {/* Hasil panen (derived: in - out = balance) */}
+          {!summaryLoading ? (
+            <div>
+              <div className="flex items-center gap-2 border-b border-gray-100 bg-cyan-50/20 px-5 py-4">
+                <Warehouse size={15} className="text-[#0c6a78]" />
+                <span className="text-sm font-bold text-gray-900">Hasil Panen</span>
+                <Badge tone="aqua" className="rounded-full">Diteruskan ke Gudang Agrinas</Badge>
+              </div>
+              <TableFrame className="border-0 shadow-none rounded-none overflow-visible">
+                <Table>
+                  <THead>
+                    <Th>Komoditas</Th>
+                    <Th className="text-right">Diterima</Th>
+                    <Th className="text-right">Diteruskan</Th>
+                    <Th className="text-right">Sisa di Gudang</Th>
+                  </THead>
+                  <TBody>
+                    {filteredHasil.length > 0 ? (
+                      filteredHasil.map((h) => {
+                        const balance = g2kg(h.balanceG);
+                        return (
+                          <Tr key={h.commodityCode}>
+                            <Td className="font-bold text-gray-900">{commodityLabel(h.commodityCode)}</Td>
+                            <Td className="text-right tabular-nums text-gray-500 font-medium">
+                              {g2kg(h.receivedG).toLocaleString("id-ID")} kg
+                            </Td>
+                            <Td className="text-right tabular-nums text-gray-500 font-medium">
+                              {g2kg(h.forwardedG).toLocaleString("id-ID")} kg
+                            </Td>
+                            <Td className="text-right tabular-nums">
+                              <span className={balance <= 0 ? "text-gray-400 font-medium" : "font-bold text-[#0c6a78]"}>
+                                {balance.toLocaleString("id-ID")} kg
+                              </span>
+                            </Td>
+                          </Tr>
+                        );
+                      })
+                    ) : (
+                      <Tr>
+                        <Td colSpan={4} className="py-6 text-center text-gray-450 font-medium">
+                          {q ? "Tidak ada hasil panen yang cocok." : "Belum ada hasil panen diterima."}
                         </Td>
-                        <Td className="text-right tabular-nums">
-                          <span
-                            className={
-                              s.balance === "0"
-                                ? "text-gray-400 font-medium"
-                                : "font-bold text-[#0c6a78]"
-                            }
-                          >
-                            {s.balance}
-                          </span>
-                        </Td>
-                        <Td className="text-gray-500 font-medium">{s.note}</Td>
                       </Tr>
-                    ))
-                  ) : (
-                    <Tr>
-                      <Td colSpan={5} className="py-6 text-center text-gray-450 font-medium">
-                        Tidak ada hasil panen yang cocok.
-                      </Td>
-                    </Tr>
-                  )}
-                </TBody>
-              </Table>
-            </TableFrame>
-
-            {/* Summary row */}
-            <div className="mt-4 flex flex-wrap gap-4 px-5 text-sm">
-              {hasilPanenStock.map((s) => (
-                <div key={s.id} className="rounded-2xl border border-gray-100 bg-gray-50/50 p-4 shadow-sm font-semibold">
-                  <p className="font-bold text-gray-900">{s.itemName}</p>
-                  <p className="text-xs text-gray-500 font-medium mt-1 leading-normal">
-                    Diterima: {s.inQty}. Diteruskan ke Gudang Agrinas: {s.outQty}
-                  </p>
-                  <p className="mt-1.5 text-xs font-bold text-[#0c6a78]">
-                    Sisa di gudang: {s.balance}
-                  </p>
-                </div>
-              ))}
+                    )}
+                  </TBody>
+                </Table>
+              </TableFrame>
             </div>
-          </div>
+          ) : null}
         </CardContent>
       </Card>
     </div>

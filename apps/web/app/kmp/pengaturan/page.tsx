@@ -5,7 +5,7 @@
  *  Sections: profil koperasi, dompet, preferensi perjanjian, bahasa/tampilan,
  *  notifikasi, tim pengurus. */
 
-import { type ApiCoop, fetchCoop } from "@/lib/api";
+import { type ApiCoop, fetchCoop, updateCoop } from "@/lib/api";
 import { PageHeader } from "@/components/kmp/page-header";
 import { useApi } from "@/lib/use-api";
 import { shortAddr } from "@/lib/mock-data";
@@ -40,10 +40,22 @@ function ProfilSection({ coop }: { coop: ApiCoop }) {
   const [kabupaten, setKabupaten] = useState<string>(coop.kabupaten);
   const [provinsi, setProvinsi] = useState<string>(coop.provinsi);
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function handleSave() {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3500);
+  async function handleSave() {
+    setSaving(true);
+    setError(null);
+    try {
+      // Persists to Postgres (off-chain coop profile) — survives a refresh.
+      await updateCoop({ name, kecamatan, kabupaten, provinsi });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3500);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Gagal menyimpan.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -104,13 +116,19 @@ function ProfilSection({ coop }: { coop: ApiCoop }) {
             variant="primary"
             size="md"
             onClick={handleSave}
+            disabled={saving}
             className="rounded-full bg-primary-dark hover:bg-opacity-95 text-white px-5 py-2.5"
           >
-            {t("common.save")}
+            {saving ? "Menyimpan..." : t("common.save")}
           </Button>
           {saved && (
             <Alert tone="success" className="py-1.5 px-3 text-sm rounded-xl">
-              Tersimpan (lokal, demo)
+              Tersimpan.
+            </Alert>
+          )}
+          {error && (
+            <Alert tone="danger" className="py-1.5 px-3 text-sm rounded-xl">
+              {error}
             </Alert>
           )}
         </div>

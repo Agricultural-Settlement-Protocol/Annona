@@ -9,9 +9,23 @@ import { ACCOUNTS, type Role } from "./accounts";
 export async function login(page: Page, role: Role): Promise<void> {
   const acc = ACCOUNTS[role];
   await page.goto("/auth");
-  await page.locator('input[name="email"]').fill(acc.email);
-  await page.locator('input[type="password"]').fill(acc.password);
-  await page.locator('button[type="submit"]').click();
+  const email = page.locator('input[name="email"]');
+  await expect(email).toBeVisible();
+
+  // Click the demo-account card: its onClick sets email + password in ONE React
+  // state update, which avoids the two-field fill race that leaves the submit
+  // button disabled. Fall back to typing if the card isn't found.
+  const card = page.locator("button", { hasText: acc.email });
+  if (await card.count()) {
+    await card.first().click();
+  } else {
+    await email.fill(acc.email);
+    await page.locator('input[type="password"]').fill(acc.password);
+  }
+
+  const submit = page.locator('button[type="submit"]');
+  await expect(submit).toBeEnabled();
+  await submit.click();
   await page.waitForURL(`**${acc.home}**`, { timeout: 30_000 });
 }
 

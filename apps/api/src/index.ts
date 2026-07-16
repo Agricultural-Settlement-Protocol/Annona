@@ -3,16 +3,19 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { agreementsRoute } from "./routes/agreements.js";
+import { catalogRoute } from "./routes/catalog.js";
 import { deliveriesRoute } from "./routes/deliveries.js";
 import { farmersRoute } from "./routes/farmers.js";
 import { financierRoute } from "./routes/financier.js";
 import { healthRoute } from "./routes/health.js";
+import { logisticsRoute } from "./routes/logistics.js";
 import { coopRoute, overviewRoute } from "./routes/overview.js";
 import { payableRoute } from "./routes/payable.js";
 import { referenceRoute } from "./routes/reference.js";
 import { residuRoute } from "./routes/residu.js";
 import { settlementsRoute } from "./routes/settlements.js";
 import { subsidyRoute } from "./routes/subsidy.js";
+import { warehouseRoute } from "./routes/warehouse.js";
 
 /**
  * Annona API (abstraction layer).
@@ -46,6 +49,9 @@ app.route("/residu", residuRoute);
 app.route("/financier", financierRoute);
 app.route("/payable", payableRoute);
 app.route("/subsidy", subsidyRoute);
+app.route("/warehouse-stock", warehouseRoute);
+app.route("/catalog", catalogRoute);
+app.route("/logistics", logisticsRoute);
 
 app.get("/", (c) => c.json({ name: "annona-api", status: "ok" }));
 

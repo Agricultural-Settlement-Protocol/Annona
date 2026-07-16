@@ -12,9 +12,18 @@
  * Lazy singleton: the connection is only created on first use, so routes
  * that never touch the DB (and `pnpm dev` without a .env) keep working.
  */
+import { setDefaultResultOrder } from "node:dns";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema.js";
+
+// Supabase pooler hostnames resolve to BOTH AAAA and A records. On hosts with
+// no global IPv6 route (WSL2, many CI runners) Node may try the IPv6 address
+// first and hang until CONNECT_TIMEOUT (~30s) before falling back -- which
+// surfaces as flaky "pool fetch failed" errors in the API and indexer. Prefer
+// IPv4 process-wide; same class of bug as the IPv6-only soroban RPC endpoint
+// documented in CLAUDE.md (2026-07-13).
+setDefaultResultOrder("ipv4first");
 
 export type Db = ReturnType<typeof drizzle<typeof schema>>;
 
