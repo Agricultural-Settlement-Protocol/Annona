@@ -1,0 +1,59 @@
+## Production compose for the Annona backend on a bare VPS.
+##
+## Scope: apps/api (REST) + the same image running the indexer in loop mode,
+## fronted by Caddy for automatic HTTPS. Postgres is NOT included here —
+## production uses the existing hosted Supabase project (see apps/api/.env.example,
+## DATABASE_URL must be the Supabase TRANSACTION pooler, port 6543).
+##
+## Usage (from repo root on the VPS):
+##   docker compose -f deploy/vps/docker-compose.yml up -d --build
+##
+## Requires apps/api/.env to exist (see apps/api/.env.example); it is NOT baked
+## into the image (.dockerignore excludes it) and is injected at container
+## start via env_file.
+
+services:
+  api:
+    build:
+      context: ../..
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ../../apps/api/.env
+    expose:
+      - "8787"
+    networks:
+      - annona
+
+  indexer:
+    build:
+      context: ../..
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    # Loop mode (default, no --once): long-running poll, this box IS the
+    # always-on worker referenced in apps/api/src/indexer/index.ts.
+    command: ["pnpm", "--filter", "@annona/api", "indexer"]
+    env_file:
+      - ../../apps/api/.env
+    networks:
+      - annona
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - annona
+
+networks:
+  annona:
+
+volumes:
+  caddy_data:
+  caddy_config:

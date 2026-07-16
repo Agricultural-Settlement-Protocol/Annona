@@ -27,9 +27,15 @@ import { warehouseRoute } from "./routes/warehouse.js";
  */
 const app = new Hono();
 
-// Browser reads come from the web app on another origin (:3000 -> :8787).
-// Read-only API; permissive CORS is fine for the testnet MVP.
-app.use("*", cors());
+// Browser reads come from the web app on another origin (web -> api).
+// POST /settlements/execute is gated by requireKmpAuth regardless of origin,
+// but scope CORS to known origins rather than a wildcard now that it's a
+// real admin-signing endpoint, not just read-only routes.
+const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? "http://localhost:3000")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+app.use("*", cors({ origin: allowedOrigins }));
 
 app.route("/health", healthRoute);
 app.route("/agreements", agreementsRoute);
