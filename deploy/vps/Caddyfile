@@ -1,0 +1,6 @@
+# nip.io resolves to the embedded IP, so Caddy can issue a real Let's Encrypt
+# cert without owning a domain. Swap this line for a real hostname later if
+# one is bought (see deploy/vps/README.md).
+43-129-38-115.nip.io {
+	reverse_proxy api:8787
+}
