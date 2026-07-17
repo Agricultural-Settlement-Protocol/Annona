@@ -90,9 +90,16 @@ export async function runOnce(server: rpc.Server, registryId: string): Promise<n
     }
     if (event.ledger > maxLedger) maxLedger = event.ledger;
   }
-  // Advance to the RPC's latest processed ledger even when no events landed, so
-  // the window keeps moving and we never re-scan an empty range.
-  const advanceTo = Math.max(maxLedger, page.latestLedger);
+  // Advance the cursor to the ledger the server ACTUALLY scanned to, not to
+  // latestLedger: getEvents scans a bounded chunk (~10k ledgers) per call, so
+  // when the cursor lags far behind, jumping to latest would silently skip
+  // every event between the chunk end and the tip. The continuation cursor's
+  // first half is a TOID whose upper 32 bits are the last scanned ledger; no
+  // cursor means the scan reached the tip.
+  const scannedTo = page.cursor
+    ? Number(BigInt(page.cursor.split("-")[0] ?? "0") >> 32n)
+    : page.latestLedger;
+  const advanceTo = Math.max(maxLedger, scannedTo);
   if (advanceTo > cursor) await setCursor(registryId, advanceTo);
   return page.events.length;
 }

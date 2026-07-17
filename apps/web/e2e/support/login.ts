@@ -14,17 +14,20 @@ export async function login(page: Page, role: Role): Promise<void> {
 
   // Click the demo-account card: its onClick sets email + password in ONE React
   // state update, which avoids the two-field fill race that leaves the submit
-  // button disabled. Fall back to typing if the card isn't found.
+  // button disabled. Fall back to typing if the card isn't found. Retried as a
+  // unit: a click that lands before React hydration is a silent no-op, so
+  // "clicked but submit still disabled" must re-click, not just re-wait.
   const card = page.locator("button", { hasText: acc.email });
-  if (await card.count()) {
-    await card.first().click();
-  } else {
-    await email.fill(acc.email);
-    await page.locator('input[type="password"]').fill(acc.password);
-  }
-
   const submit = page.locator('button[type="submit"]');
-  await expect(submit).toBeEnabled();
+  await expect(async () => {
+    if (await card.count()) {
+      await card.first().click();
+    } else {
+      await email.fill(acc.email);
+      await page.locator('input[type="password"]').fill(acc.password);
+    }
+    await expect(submit).toBeEnabled({ timeout: 2_000 });
+  }).toPass({ timeout: 20_000 });
   await submit.click();
   await page.waitForURL(`**${acc.home}**`, { timeout: 30_000 });
 }

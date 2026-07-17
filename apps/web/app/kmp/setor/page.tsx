@@ -18,7 +18,7 @@ import { SearchSelect } from "@/components/kmp/search-select";
 import type { SearchSelectItem } from "@/components/kmp/search-select";
 import { useMockTx } from "@/components/kmp/use-mock-tx";
 import { useTx } from "@/components/kmp/use-tx";
-import { markForceMajeure, recordDelivery } from "@/lib/invocations";
+import { markForceMajeure, recordDelivery, toReasonSymbol } from "@/lib/invocations";
 import { useApi } from "@/lib/use-api";
 import { classifyFlag } from "@annona/core";
 import type { Status } from "@annona/core";
@@ -50,17 +50,6 @@ import { useRef, useState } from "react";
 
 /** Agreements that can receive a new deposit. */
 const DEPOSIT_ELIGIBLE: Status[] = ["Active", "PartiallyDelivered"];
-
-/** Free-text force-majeure reason -> a Soroban Symbol-safe token (<=32 chars,
- *  [A-Z0-9_]). The full narrative stays off-chain; only this tag is anchored. */
-function toReasonSymbol(reason: string): string {
-  const tag = reason
-    .toUpperCase()
-    .replace(/[^A-Z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "")
-    .slice(0, 32);
-  return tag || "FORCE_MAJEURE";
-}
 
 /** Flag banner metadata for a given classification. No em dashes. */
 function flagMeta(flag: ReturnType<typeof classifyFlag> | null): {
@@ -463,6 +452,11 @@ export default function SetorPage() {
                     Menunggu konfirmasi Stellar. Proses 5 hingga 10 detik.
                   </p>
                 )}
+                {txDeliver.error && (
+                  <Alert tone="warning" title={t("common.error")}>
+                    {txDeliver.error}
+                  </Alert>
+                )}
                 {!canDeliver && txDeliver.state === "idle" && (
                   <p className="text-xs text-muted-foreground">
                     Pilih perjanjian dan masukkan volume setoran untuk melanjutkan.
@@ -648,6 +642,11 @@ export default function SetorPage() {
                         {t("common.cancel")}
                       </Button>
                     </div>
+                    {txFm.error && (
+                      <Alert tone="warning" title={t("common.error")}>
+                        {txFm.error}
+                      </Alert>
+                    )}
                   </div>
                 )}
               </div>

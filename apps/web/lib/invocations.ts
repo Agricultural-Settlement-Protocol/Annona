@@ -147,6 +147,19 @@ export function settle(caller: string, id: bigint): Invocation {
   return { method: "settle", args: [addr(caller), u64(id)] };
 }
 
+/** Free-text reason -> a Soroban Symbol-safe token (<=32 chars, [A-Z0-9_]).
+ *  The full narrative stays off-chain; only this tag is anchored. Used by every
+ *  fn that takes a `reason: Symbol` (mark_force_majeure, reject_funding,
+ *  flag_remittance_dispute) — an unsanitized string with spaces traps encoding. */
+export function toReasonSymbol(reason: string, fallback = "FORCE_MAJEURE"): string {
+  const tag = reason
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 32);
+  return tag || fallback;
+}
+
 export function markForceMajeure(coop: string, id: bigint, reason: string): Invocation {
   return { method: "mark_force_majeure", args: [addr(coop), u64(id), sym(reason)] };
 }

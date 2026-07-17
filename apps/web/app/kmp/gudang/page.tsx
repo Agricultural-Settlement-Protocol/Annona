@@ -215,6 +215,12 @@ export default function GudangPage() {
     <div className="space-y-6">
       <PageHeader title={t("page.kmp.gudang.title")} description={t("page.kmp.gudang.desc")} />
 
+      {txAccept.error && (
+        <Alert tone="warning" title={t("common.error")}>
+          {txAccept.error}
+        </Alert>
+      )}
+
       {/* Summary stat strip */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard

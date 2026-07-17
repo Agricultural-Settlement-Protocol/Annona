@@ -4,7 +4,9 @@
  * Logistik Saprotan (Supplier view) — saprotan dispatch desk.
  *
  * Pending dispatch requests from KMPs (from buildDispatchRequests) shown as
- * responsive cards. Each dispatch records dispatch_supply on Stellar via useMockTx.
+ * responsive cards. Each dispatch records dispatch_supply on Stellar via useTx
+ * (one invocation per backing agreement, Supplier-signed); requests without
+ * on-chain backing stay demo-disabled.
  * Dispatched cards move to "Riwayat Dispatch" searchable table below.
  * "Cara Kerja Dispatch" explainer sits at the bottom, full-width 3-step horizontal.
  * No em dashes anywhere.
@@ -13,7 +15,9 @@
 import { OversightPageHeader } from "@/components/oversight/page-header";
 import { TBody, THead, Table, TableFrame, Td, Th, Tr } from "@/components/kmp/table";
 import { ScrollArea } from "@/components/scroll-area";
-import { useMockTx } from "@/components/kmp/use-mock-tx";
+import { useTx } from "@/components/kmp/use-tx";
+import { dispatchSupply } from "@/lib/invocations";
+import { MOCK_AGREEMENTS } from "@/lib/mock-data";
 import {
   DISPATCH_HISTORY,
   type DispatchHistoryRow,
@@ -54,8 +58,27 @@ function DispatchCard({
   onDispatched: (requestId: string, txHash: string) => void;
 }) {
   const { t } = useI18n();
-  const tx = useMockTx();
+  const tx = useTx();
   const prevState = useRef(tx.state);
+
+  // dispatch_supply is per AGREEMENT (Supplier-signed), so a grouped request
+  // fires one invocation per backing agreement, sequentially. Only agreements
+  // that exist on-chain can be dispatched for real (seed-chain drives
+  // MOCK_AGREEMENTS in order: chain id == mock onchainId - 1); the synthetic
+  // multi-coop requests (agm-mj-*) have no chain backing and stay demo-only.
+  const chainAgreementIds = request.agreementIds
+    .map((mockId) => MOCK_AGREEMENTS.find((a) => a.id === mockId)?.onchainId)
+    .filter((v): v is bigint => v !== undefined)
+    .map((v) => v - 1n);
+  const canWriteOnchain = tx.demoMode || chainAgreementIds.length > 0;
+
+  function handleDispatch() {
+    tx.runAll(
+      tx.demoMode
+        ? [() => dispatchSupply("", 0n)]
+        : chainAgreementIds.map((id) => (signer: string) => dispatchSupply(signer, id)),
+    );
+  }
 
   useEffect(() => {
     const prev = prevState.current;
@@ -99,13 +122,13 @@ function DispatchCard({
         </div>
       </div>
 
-      <div className="mt-4">
+      <div className="mt-4 space-y-2">
         <Button
           variant="accent"
           size="sm"
           leftIcon={<Send size={13} />}
-          disabled={tx.state !== "idle"}
-          onClick={() => tx.run()}
+          disabled={tx.state !== "idle" || !canWriteOnchain}
+          onClick={handleDispatch}
           className="w-full"
         >
           {tx.state === "signing"
@@ -114,6 +137,16 @@ function DispatchCard({
               ? "Mencatat di Stellar..."
                : t("page.oversight.supplier.logistik.dispatch")}
         </Button>
+        {!canWriteOnchain && (
+          <p className="text-xs text-muted-foreground">
+            Permintaan demo tanpa perjanjian on-chain, aksi Stellar dinonaktifkan.
+          </p>
+        )}
+        {tx.error && (
+          <Alert tone="warning" title={t("common.error")}>
+            {tx.error}
+          </Alert>
+        )}
       </div>
     </div>
   );

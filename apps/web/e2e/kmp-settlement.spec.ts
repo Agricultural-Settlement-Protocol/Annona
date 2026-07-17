@@ -36,6 +36,19 @@ test.describe("KMP settlement journey", () => {
   });
 
   test("settle a payable agreement (demo write) surfaces a tx hash", async ({ page }) => {
+    // The settle button POSTs /settlements/execute, where the BACKEND signs and
+    // submits a REAL settle() with its service key (no Freighter, so web demo
+    // mode does not stop it). Route-mock it here: the CI suite must be
+    // deterministic and must not consume the payable queue on the live chain.
+    // The real end-to-end settle is covered by real-mode.spec.ts.
+    const fakeHash = "e2e0".repeat(16);
+    await page.route("**/settlements/execute", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ ok: true, hash: fakeHash, ledger: 1, onchainId: "4" }),
+      }),
+    );
     await page.goto("/kmp/pembayaran");
 
     // Step 1: open the "Pilih Perjanjian" combobox and pick the first payable one.

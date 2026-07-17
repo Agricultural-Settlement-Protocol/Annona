@@ -39,7 +39,17 @@ export async function requireKmpAuth(c: Context, next: Next) {
     return c.json({ error: "Unauthorized: missing bearer token" }, 401);
   }
 
-  const user = await verifySupabaseToken(token);
+  let user: { id: string } | null;
+  try {
+    user = await verifySupabaseToken(token);
+  } catch (err) {
+    // Misconfigured server (missing SUPABASE_URL/SUPABASE_ANON_KEY) or GoTrue
+    // unreachable — surface a real message instead of a bare 500 the UI can't act on.
+    return c.json(
+      { error: `Auth backend unavailable: ${err instanceof Error ? err.message : String(err)}` },
+      500,
+    );
+  }
   if (!user) {
     return c.json({ error: "Unauthorized: invalid or expired session" }, 401);
   }

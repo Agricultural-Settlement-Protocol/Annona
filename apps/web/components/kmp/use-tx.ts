@@ -45,13 +45,18 @@ export function useTx() {
     };
   }, []);
 
-  const run = useCallback(
-    async (build: (signer: string) => Invocation | Promise<Invocation>) => {
+  /** Run one or more invocations SEQUENTIALLY under one signing session (e.g. a
+   *  dispatch request covering several agreements = one dispatch_supply each).
+   *  The reported txHash is the LAST submitted tx; an error midway stops the
+   *  remainder and surfaces which step failed. */
+  const runAll = useCallback(
+    async (builds: ReadonlyArray<(signer: string) => Invocation | Promise<Invocation>>) => {
+      if (builds.length === 0) return;
       setError(null);
       setState("signing");
 
       // Demo mode: no chain wired yet. Simulate the sign+submit cadence and
-      // skip the builder (it needs a real strkey signer address).
+      // skip the builders (they need a real strkey signer address).
       if (!isChainConfigured()) {
         await new Promise((r) => setTimeout(r, 700));
         if (!alive.current) return;
@@ -65,12 +70,23 @@ export function useTx() {
 
       try {
         const source = await connectWallet();
-        const invocation = await build(source);
-        const { hash } = await invoke(source, invocation, () => {
-          if (alive.current) setState("submitting");
-        });
+        let lastHash: string | null = null;
+        for (const [i, build] of builds.entries()) {
+          if (!alive.current) return;
+          setState("signing");
+          const invocation = await build(source);
+          try {
+            const { hash } = await invoke(source, invocation, () => {
+              if (alive.current) setState("submitting");
+            });
+            lastHash = hash;
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            throw new Error(builds.length > 1 ? `Langkah ${i + 1}/${builds.length}: ${msg}` : msg);
+          }
+        }
         if (!alive.current) return;
-        setTxHash(hash);
+        setTxHash(lastHash);
         setState("success");
       } catch (e) {
         if (!alive.current) return;
@@ -81,11 +97,16 @@ export function useTx() {
     [],
   );
 
+  const run = useCallback(
+    (build: (signer: string) => Invocation | Promise<Invocation>) => runAll([build]),
+    [runAll],
+  );
+
   const reset = useCallback(() => {
     setState("idle");
     setTxHash(null);
     setError(null);
   }, []);
 
-  return { state, txHash, error, demoMode, run, reset };
+  return { state, txHash, error, demoMode, run, runAll, reset };
 }
