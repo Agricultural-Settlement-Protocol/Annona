@@ -14,6 +14,7 @@ import { payableRoute } from "./routes/payable.js";
 import { referenceRoute } from "./routes/reference.js";
 import { residuRoute } from "./routes/residu.js";
 import { settlementsRoute } from "./routes/settlements.js";
+import { txRoute } from "./routes/tx.js";
 import { subsidyRoute } from "./routes/subsidy.js";
 import { warehouseRoute } from "./routes/warehouse.js";
 
@@ -46,6 +47,7 @@ app.route("/subsidy", subsidyRoute);
 app.route("/warehouse-stock", warehouseRoute);
 app.route("/catalog", catalogRoute);
 app.route("/logistics", logisticsRoute);
+app.route("/tx", txRoute);
 
 app.get("/", (c) => c.json({ name: "annona-api", status: "ok" }));
 

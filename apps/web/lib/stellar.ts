@@ -48,6 +48,17 @@ export function isChainConfigured(): boolean {
   return stellarConfig.contractId.length > 0;
 }
 
+/**
+ * How write buttons sign once a chain is configured:
+ *   - "server" (default): SEAMLESS — the API signs with the role's service key
+ *     (POST /tx/execute). No Freighter anywhere.
+ *   - "wallet": the original Freighter flow (browser signs). Set
+ *     NEXT_PUBLIC_TX_MODE=wallet to demo the self-custody story.
+ */
+export function getTxMode(): "server" | "wallet" {
+  return process.env.NEXT_PUBLIC_TX_MODE === "wallet" ? "wallet" : "server";
+}
+
 /** Lazy singleton RPC server (only constructed when a real chain is configured). */
 let _server: rpc.Server | undefined;
 export function getRpcServer(): rpc.Server {

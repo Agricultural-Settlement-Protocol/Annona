@@ -30,6 +30,32 @@ export function getSettlementServiceSecret(): string {
   return required("SETTLEMENT_SERVICE_SECRET");
 }
 
+/**
+ * Per-role server signing keys for the seamless (no-Freighter) write path.
+ *
+ * - kmp        -> SETTLEMENT_SERVICE_SECRET (the coop's own key; always set)
+ * - supplier   -> SUPPLIER_SERVICE_SECRET   (optional; from the deployer's
+ *                 `stellar keys show annona-agrinas`)
+ * - financier  -> FINANCIER_SERVICE_SECRET  (optional; from
+ *                 `stellar keys show annona-financier`)
+ *
+ * Returns null when the role's secret is not configured — callers surface a
+ * clear "server signer not configured" instead of a bare 500, and the
+ * corresponding dashboard's write buttons stay disabled until the env is set.
+ */
+export function getServiceSecretForRole(role: string): string | null {
+  switch (role) {
+    case "kmp":
+      return process.env.SETTLEMENT_SERVICE_SECRET ?? null;
+    case "supplier":
+      return process.env.SUPPLIER_SERVICE_SECRET ?? null;
+    case "financier":
+      return process.env.FINANCIER_SERVICE_SECRET ?? null;
+    default:
+      return null;
+  }
+}
+
 /** Supabase project creds needed to verify a caller's bearer token
  *  (GoTrue `/auth/v1/user`). Anon key only — verification never needs the
  *  service-role key, and the role lookup itself goes through our own
