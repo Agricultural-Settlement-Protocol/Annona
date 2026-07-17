@@ -231,6 +231,12 @@ export default function AntreanPage() {
         </Alert>
       )}
 
+      {tx.error && (
+        <Alert tone="warning" title={t("common.error")}>
+          {tx.error}
+        </Alert>
+      )}
+
       {/* Action result feed */}
       {actionLog.length > 0 && (
         <div className="space-y-2">

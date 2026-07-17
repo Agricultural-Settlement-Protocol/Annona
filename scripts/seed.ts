@@ -565,6 +565,28 @@ async function seedAppUsers(financierId: string | null): Promise<void> {
 }
 
 async function main(): Promise<void> {
+  // GUARD: this seed SYNTHESIZES events with fabricated on-chain ids. Once a
+  // real contract is deployed (artifacts.testnet.json exists), running it
+  // corrupts the read-model — DB ids stop matching chain ids, and every write
+  // button fails NothingToSettle / NotFound (exactly what happened on
+  // 2026-07-17). Post-deploy, use seed-chain.ts (drives the contract) or
+  // reindex-chain.ts (re-projects existing events) instead.
+  if (process.env.FORCE_SYNTHETIC_SEED !== "1") {
+    const { existsSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const artifacts = fileURLToPath(new URL("./artifacts.testnet.json", import.meta.url));
+    if (existsSync(artifacts)) {
+      console.error(
+        "[seed] REFUSING to run: scripts/artifacts.testnet.json exists, so a real contract is deployed.\n" +
+          "[seed] The synthetic seed would desync the DB from the chain (fabricated on-chain ids).\n" +
+          "[seed] Use `pnpm --filter @annona/scripts seed:chain` (deployer machine, needs keys)\n" +
+          "[seed] or  `pnpm --filter @annona/scripts reindex:chain` (any machine, re-projects events).\n" +
+          "[seed] To override anyway: FORCE_SYNTHETIC_SEED=1",
+      );
+      process.exit(1);
+    }
+  }
+
   console.log("[seed] truncating read-models...");
   await truncate();
   console.log("[seed] inserting base + reference rows...");

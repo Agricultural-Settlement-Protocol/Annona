@@ -378,6 +378,11 @@ export default function ResiduPage() {
                                     {t("common.cancel")}
                                   </Button>
                                 </div>
+                                {txRemit.error && (
+                                  <Alert tone="warning" title={t("common.error")}>
+                                    {txRemit.error}
+                                  </Alert>
+                                )}
                               </div>
                             ) : (
                               /* Success state — update local state and show result */

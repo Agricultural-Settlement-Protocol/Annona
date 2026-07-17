@@ -14,7 +14,8 @@
 import { OversightPageHeader } from "@/components/oversight/page-header";
 import { TBody, THead, Table, TableFrame, Td, Th, Tr } from "@/components/kmp/table";
 import { useTx } from "@/components/kmp/use-tx";
-import { confirmRemittance, flagRemittanceDispute } from "@/lib/invocations";
+import { confirmRemittance, flagRemittanceDispute, toReasonSymbol } from "@/lib/invocations";
+import { MOCK_AGREEMENTS } from "@/lib/mock-data";
 import { ScrollArea } from "@/components/scroll-area";
 import {
   MOCK_COOP_PROFILES,
@@ -95,6 +96,16 @@ function RemittanceActionPanel({
   const txApprove = useTx();
   const txDispute = useTx();
 
+  // On-chain agreement id for this remittance. Rows from the live coop map to a
+  // real agreement (seed-chain drives MOCK_AGREEMENTS in order, so chain id ==
+  // mock onchainId - 1); the synthetic multi-coop rows (agm-mj-*) have NO chain
+  // backing, so their write actions must stay disabled in real mode rather than
+  // submit a fabricated id the contract would reject (or worse, hit the wrong
+  // agreement).
+  const mockAgreement = MOCK_AGREEMENTS.find((a) => a.id === row.agreementId);
+  const chainAgreementId = mockAgreement ? mockAgreement.onchainId - 1n : null;
+  const canWriteOnchain = txApprove.demoMode || chainAgreementId !== null;
+
   const prevApprove = useRef(txApprove.state);
   const prevDispute = useRef(txDispute.state);
 
@@ -141,6 +152,17 @@ function RemittanceActionPanel({
             Verifikasi catatan bank sebelum menyetujui.
           </Alert>
 
+          {!canWriteOnchain && (
+            <Alert tone="warning" title="Data demo">
+              Baris ini tidak memiliki perjanjian on-chain, aksi Stellar dinonaktifkan.
+            </Alert>
+          )}
+          {(txApprove.error || txDispute.error) && (
+            <Alert tone="warning" title={t("common.error")}>
+              {txApprove.error ?? txDispute.error}
+            </Alert>
+          )}
+
           {mode === null && (
             <div className="flex flex-wrap gap-2">
               <Button
@@ -176,10 +198,10 @@ function RemittanceActionPanel({
                   variant="primary"
                   size="sm"
                   leftIcon={<ShieldCheck size={13} />}
-                  disabled={txApprove.state !== "idle"}
+                  disabled={txApprove.state !== "idle" || !canWriteOnchain}
                   onClick={() =>
                     txApprove.run((signer) =>
-                      confirmRemittance(signer, BigInt(row.id.replace(/\D/g, "").slice(0, 9) || "0")),
+                      confirmRemittance(signer, chainAgreementId ?? 0n),
                     )
                   }
                 >
@@ -222,10 +244,10 @@ function RemittanceActionPanel({
                   variant="outline"
                   size="sm"
                   leftIcon={<ShieldAlert size={13} />}
-                  disabled={!disputeReason.trim() || txDispute.state !== "idle"}
+                  disabled={!disputeReason.trim() || txDispute.state !== "idle" || !canWriteOnchain}
                   onClick={() =>
                     txDispute.run((signer) =>
-                      flagRemittanceDispute(signer, BigInt(row.id.replace(/\D/g, "").slice(0, 9) || "0"), disputeReason.trim().slice(0, 32).toUpperCase()),
+                      flagRemittanceDispute(signer, chainAgreementId ?? 0n, toReasonSymbol(disputeReason, "DISPUTE")),
                     )
                   }
                   className="border-amber-300 text-amber-700 hover:bg-amber-50"

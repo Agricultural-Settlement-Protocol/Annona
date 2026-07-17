@@ -24,6 +24,7 @@ End-to-end coverage of the three core journeys plus auth/role-routing.
 | `funding.spec.ts` | KMP Ajukan Dana → financier approve + disburse from the live queue |
 | `oversight-ai.spec.ts` | Government AI answers a grounded query (Groq mocked) |
 | `smoke.spec.ts` | Real-mode wallet smoke (skipped unless `E2E_SMOKE=1`) |
+| `real-mode.spec.ts` | REAL testnet write: create_agreement signed by the coop key through the wallet mock, tx verified via RPC. Excluded from the CI suite; runs only via `playwright.real.config.ts` |
 
 ## Run
 
@@ -31,7 +32,22 @@ End-to-end coverage of the three core journeys plus auth/role-routing.
 pnpm --filter @annona/web test:e2e          # headless, all specs
 pnpm --filter @annona/web test:e2e:ui       # interactive UI mode
 pnpm --filter @annona/web test:e2e:report   # open the last HTML report
+
+# REAL-MODE (chain-mutating, manual only): web boots with the real contract id,
+# the Freighter mock signs with SETTLEMENT_SERVICE_SECRET (apps/api/.env).
+pnpm --filter @annona/web exec playwright test --config playwright.real.config.ts
 ```
+
+## Freighter mock (v4)
+
+`@stellar/freighter-api` v4 does NOT read a `window.freighterApi` object — it
+talks to the extension over `window.postMessage`
+(`FREIGHTER_EXTERNAL_MSG_REQUEST` / `..._RESPONSE`, matched on the library's
+own `messagedId` typo), and only the connection-status/public-key requests have
+a timeout: an unanswered `requestAccess`/`signTransaction` hangs the UI
+forever. `e2e/support/freighter.ts` therefore answers the postMessage protocol
+directly and (when given a secret) signs the XDR Node-side with a real Keypair,
+so submits reach testnet for real.
 
 First time, install the browser:
 

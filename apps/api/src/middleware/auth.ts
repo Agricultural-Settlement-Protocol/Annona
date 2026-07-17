@@ -18,7 +18,7 @@
  * limiting / finer-grained authz (e.g. per-coop scoping) is deferred.
  */
 import { eq } from "drizzle-orm";
-import type { Context, Next } from "hono";
+import type { Context, MiddlewareHandler, Next } from "hono";
 import { getSupabaseAuthConfig } from "../config/env.js";
 import { getDb, schema } from "../db/client.js";
 
@@ -32,6 +32,52 @@ async function verifySupabaseToken(token: string): Promise<{ id: string } | null
   return user.id ? { id: user.id } : null;
 }
 
+/** Hono env for routes behind requireAnyRole: caller id + app_user role. */
+export interface AuthedEnv {
+  Variables: { userId: string; role: string };
+}
+
+/**
+ * Verify the bearer token and attach the caller's app_user role to the
+ * context (`c.get("role")`, `c.get("userId")`). Unlike requireKmpAuth it does
+ * not gate on a specific role — the /tx routes decide per contract method
+ * which role may call it (see routes/tx.ts).
+ */
+export const requireAnyRole: MiddlewareHandler<AuthedEnv> = async (c, next) => {
+  const header = c.req.header("Authorization") ?? c.req.header("authorization");
+  const token = header?.match(/^Bearer\s+(.+)$/i)?.[1];
+  if (!token) {
+    return c.json({ error: "Unauthorized: missing bearer token" }, 401);
+  }
+
+  let user: { id: string } | null;
+  try {
+    user = await verifySupabaseToken(token);
+  } catch (err) {
+    return c.json(
+      { error: `Auth backend unavailable: ${err instanceof Error ? err.message : String(err)}` },
+      500,
+    );
+  }
+  if (!user) {
+    return c.json({ error: "Unauthorized: invalid or expired session" }, 401);
+  }
+
+  const [profile] = await getDb()
+    .select({ role: schema.appUser.role })
+    .from(schema.appUser)
+    .where(eq(schema.appUser.id, user.id))
+    .limit(1);
+
+  if (!profile?.role) {
+    return c.json({ error: "Forbidden: account has no dashboard role" }, 403);
+  }
+
+  c.set("userId", user.id);
+  c.set("role", profile.role);
+  await next();
+};
+
 export async function requireKmpAuth(c: Context, next: Next) {
   const header = c.req.header("Authorization") ?? c.req.header("authorization");
   const token = header?.match(/^Bearer\s+(.+)$/i)?.[1];
@@ -39,7 +85,17 @@ export async function requireKmpAuth(c: Context, next: Next) {
     return c.json({ error: "Unauthorized: missing bearer token" }, 401);
   }
 
-  const user = await verifySupabaseToken(token);
+  let user: { id: string } | null;
+  try {
+    user = await verifySupabaseToken(token);
+  } catch (err) {
+    // Misconfigured server (missing SUPABASE_URL/SUPABASE_ANON_KEY) or GoTrue
+    // unreachable — surface a real message instead of a bare 500 the UI can't act on.
+    return c.json(
+      { error: `Auth backend unavailable: ${err instanceof Error ? err.message : String(err)}` },
+      500,
+    );
+  }
   if (!user) {
     return c.json({ error: "Unauthorized: invalid or expired session" }, 401);
   }

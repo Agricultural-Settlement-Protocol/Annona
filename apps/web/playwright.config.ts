@@ -24,6 +24,9 @@ const isCI = !!process.env.CI;
 
 export default defineConfig({
   testDir: "./e2e",
+  // real-mode.spec.ts mutates the live testnet contract — it runs only via
+  // playwright.real.config.ts, never in the demo/CI suite.
+  testIgnore: /real-mode\.spec\.ts/,
   outputDir: "./e2e/.results",
   fullyParallel: false,
   forbidOnly: isCI,

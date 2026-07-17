@@ -482,6 +482,12 @@ export default function PermintaanDanaPage() {
                 </p>
               )}
 
+              {tx.error && (
+                <Alert tone="warning" title={t("common.error")}>
+                  {tx.error}
+                </Alert>
+              )}
+
               <p className="text-[11px] text-gray-400 leading-relaxed">
                 {t("page.kmp.permintaanDana.disclaimer")}
               </p>
