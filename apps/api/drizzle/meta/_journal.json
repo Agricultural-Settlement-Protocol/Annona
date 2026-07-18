@@ -50,6 +50,13 @@
       "when": 1784000872526,
       "tag": "0006_peaceful_quasimodo",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1784363495234,
+      "tag": "0007_flippant_warhawk",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,9 @@
-import { computeSplitSettlement, kgToGrams } from "@annona/core";
+import {
+  DEBT_ACTIVE_STATUSES,
+  OPEN_AGREEMENT_STATUSES,
+  computeSplitSettlement,
+  kgToGrams,
+} from "@annona/core";
 import { eq, inArray, ne } from "drizzle-orm";
 import { Hono } from "hono";
 import { getDb, schema } from "../db/client.js";
@@ -11,10 +16,12 @@ import { type EnrichedAgreement, jsonSafe, listAgreements } from "../lib/read-mo
  * the landing page needs a single round trip.
  */
 
-const DEBT_ACTIVE = new Set(["Active", "PartiallyDelivered", "Delivered", "Flagged"]);
-const ACTIVE = new Set(["SupplyDispatched", "Active", "PartiallyDelivered", "Delivered"]);
-const CLOSED = new Set(["Settled", "Flagged", "ForceMajeure"]);
-const HARVEST_STATUSES = new Set(["Active", "PartiallyDelivered"]);
+// Shared definitions from @annona/core so every page shows the SAME numbers.
+const DEBT_ACTIVE = new Set<string>(DEBT_ACTIVE_STATUSES);
+const ACTIVE = new Set<string>(OPEN_AGREEMENT_STATUSES);
+// Terminal statuses only; Flagged is OPEN (can heal + settle), not closed.
+const CLOSED = new Set(["Settled", "ForceMajeure"]);
+const HARVEST_STATUSES = new Set(["Active", "PartiallyDelivered", "Delivered", "Flagged"]);
 const SUPPLY_REQUEST = new Set(["Created", "SupplyDispatched", "Active", "PartiallyDelivered"]);
 
 /** ISO yyyy-mm-dd `days` from now (window bounds for "this week"). */
@@ -80,8 +87,6 @@ export const overviewRoute = new Hono().get("/", async (c) => {
     return s + split.netToFarmer;
   }, 0n);
 
-  const inboundSupply = agreements.filter((a) => a.status === "SupplyDispatched");
-
   const supplyAgreements = agreements.filter((a) => SUPPLY_REQUEST.has(a.status));
   // Batch-load the saprotan input baskets for exactly these agreements (the
   // permintaan desk aggregates them); one query, grouped by agreement id.
@@ -98,12 +103,27 @@ export const overviewRoute = new Hono().get("/", async (c) => {
     list.push(row);
     inputsByAgreement.set(row.agreementId, list);
   }
+  // Inbound cards carry the input basket too, so the gudang shows WHAT is
+  // arriving, not just the money totals.
+  const inboundSupply = supplyAgreements
+    .filter((a) => a.status === "SupplyDispatched")
+    .map((a) => ({ ...a, inputs: inputsByAgreement.get(a.id) ?? [] }));
+
+  // Persistent request status: Created + not submitted = Draft; Created +
+  // supplyRequestedAt set = Terkirim (submitted to Supplier, off-chain);
+  // SupplyDispatched = Dikirim; past both gates = Diterima.
   const supplyRequestRows = supplyAgreements.map((a) => ({
     agreement: { ...a, inputs: inputsByAgreement.get(a.id) ?? [] },
     farmerId: a.farmerId,
     farmerName: a.farmerName,
     status:
-      a.status === "Created" ? "Draft" : a.status === "SupplyDispatched" ? "Dikirim" : "Diterima",
+      a.status === "Created"
+        ? a.supplyRequestedAt == null
+          ? "Draft"
+          : "Terkirim"
+        : a.status === "SupplyDispatched"
+          ? "Dikirim"
+          : "Diterima",
   }));
 
   return c.json(

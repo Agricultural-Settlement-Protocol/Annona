@@ -24,6 +24,124 @@ const json = (data: unknown) =>
 const ACCEPTED = ["Active", "PartiallyDelivered", "Delivered", "Flagged", "Settled"] as const;
 
 export const logisticsRoute = new Hono()
+  // ── Supplier dispatch desk: queue of submitted-but-undispatched requests ──
+  // Only agreements that are BOTH chain-status Created AND submitted by the
+  // KMP (supply_requested_at set) are dispatchable — dispatch_supply on any
+  // other status is a guaranteed contract InvalidStatus (#3).
+  .get("/dispatch-queue", async (c) => {
+    const db = getDb();
+    const rows = await db
+      .select({
+        agreementId: schema.agreement.id,
+        onchainId: schema.agreement.onchainId,
+        farmerName: schema.farmer.name,
+        commodityCode: schema.agreement.commodityCode,
+        coopName: schema.coop.name,
+        kabupaten: schema.coop.kabupaten,
+        basePriceSupplier: schema.agreement.basePriceSupplier,
+        inputDebt: schema.agreement.inputDebt,
+        expectedVolG: schema.agreement.expectedVolG,
+        supplyRequestedAt: schema.agreement.supplyRequestedAt,
+      })
+      .from(schema.agreement)
+      .innerJoin(schema.farmer, eq(schema.farmer.id, schema.agreement.farmerId))
+      .innerJoin(schema.coop, eq(schema.coop.id, schema.agreement.coopId))
+      .where(
+        sql`${schema.agreement.status} = 'Created' and ${schema.agreement.supplyRequestedAt} is not null`,
+      )
+      .orderBy(schema.agreement.supplyRequestedAt);
+
+    const ids = rows.map((r) => r.agreementId);
+    const inputRows = ids.length
+      ? await db
+          .select({
+            agreementId: schema.agreementInput.agreementId,
+            qty: schema.agreementInput.qty,
+            lineTotalPrincipal: schema.agreementInput.lineTotalPrincipal,
+            name: schema.saprotanCatalog.name,
+            unitLabel: schema.saprotanCatalog.unitLabel,
+          })
+          .from(schema.agreementInput)
+          .innerJoin(
+            schema.saprotanCatalog,
+            eq(schema.saprotanCatalog.id, schema.agreementInput.catalogId),
+          )
+          .where(inArray(schema.agreementInput.agreementId, ids))
+      : [];
+    const inputsBy = new Map<string, (typeof inputRows)[number][]>();
+    for (const r of inputRows) {
+      const list = inputsBy.get(r.agreementId) ?? [];
+      list.push(r);
+      inputsBy.set(r.agreementId, list);
+    }
+    return c.json({
+      items: json(rows.map((r) => ({ ...r, items: inputsBy.get(r.agreementId) ?? [] }))),
+    });
+  })
+
+  // ── Supplier dispatch history: everything already dispatched, on-chain ────
+  .get("/dispatch-history", async (c) => {
+    const db = getDb();
+    const rows = await db
+      .select({
+        agreementId: schema.agreement.id,
+        onchainId: schema.agreement.onchainId,
+        farmerName: schema.farmer.name,
+        status: schema.agreement.status,
+        coopName: schema.coop.name,
+        kabupaten: schema.coop.kabupaten,
+        basePriceSupplier: schema.agreement.basePriceSupplier,
+      })
+      .from(schema.agreement)
+      .innerJoin(schema.farmer, eq(schema.farmer.id, schema.agreement.farmerId))
+      .innerJoin(schema.coop, eq(schema.coop.id, schema.agreement.coopId))
+      .where(
+        inArray(schema.agreement.status, [
+          "SupplyDispatched",
+          "Active",
+          "PartiallyDelivered",
+          "Delivered",
+          "Flagged",
+          "Settled",
+        ]),
+      );
+
+    // tx hashes + timestamps off the event log (SupplyDispatched / SupplyAccepted).
+    const events = await db
+      .select({
+        type: schema.eventLog.type,
+        txHash: schema.eventLog.txHash,
+        data: schema.eventLog.data,
+        occurredAt: schema.eventLog.ledgerTimestamp,
+      })
+      .from(schema.eventLog)
+      .where(inArray(schema.eventLog.type, ["SupplyDispatched", "SupplyAccepted"]));
+    const dispatchBy = new Map<string, { txHash: string; at: Date | null }>();
+    const acceptBy = new Map<string, { txHash: string; at: Date | null }>();
+    for (const e of events) {
+      const id = (e.data as { id?: string | number }).id;
+      if (id == null) continue;
+      const entry = { txHash: e.txHash, at: e.occurredAt };
+      if (e.type === "SupplyDispatched") dispatchBy.set(String(id), entry);
+      else acceptBy.set(String(id), entry);
+    }
+
+    const items = rows.map((r) => {
+      const key = r.onchainId != null ? String(r.onchainId) : "";
+      const dispatch = dispatchBy.get(key) ?? null;
+      const accept = acceptBy.get(key) ?? null;
+      return {
+        ...r,
+        dispatchTxHash: dispatch?.txHash ?? null,
+        dispatchedAt: dispatch?.at ?? null,
+        acceptedAt: accept?.at ?? null,
+        received: r.status !== "SupplyDispatched",
+      };
+    });
+    items.sort((a, b) => (b.dispatchedAt?.getTime() ?? 0) - (a.dispatchedAt?.getTime() ?? 0));
+    return c.json({ items: json(items) });
+  })
+
   // ── Derived warehouse summary (gudang zones) ──────────────────────────────
   .get("/summary", async (c) => {
     const db = getDb();
@@ -43,7 +161,11 @@ export const logisticsRoute = new Hono()
         eq(schema.saprotanCatalog.id, schema.agreementInput.catalogId),
       )
       .where(inArray(schema.agreement.status, [...ACCEPTED]))
-      .groupBy(schema.saprotanCatalog.name, schema.saprotanCatalog.category, schema.saprotanCatalog.unitLabel);
+      .groupBy(
+        schema.saprotanCatalog.name,
+        schema.saprotanCatalog.category,
+        schema.saprotanCatalog.unitLabel,
+      );
 
     // Harvest received into the warehouse (all deliveries), per commodity.
     const received = await db
@@ -82,7 +204,12 @@ export const logisticsRoute = new Hono()
     // commodities that only appear in shipments (edge case) still surface.
     for (const [commodity, forwardedG] of fwdMap) {
       if (!hasilPanen.some((h) => h.commodityCode === commodity)) {
-        hasilPanen.push({ commodityCode: commodity, receivedG: 0n, forwardedG, balanceG: -forwardedG });
+        hasilPanen.push({
+          commodityCode: commodity,
+          receivedG: 0n,
+          forwardedG,
+          balanceG: -forwardedG,
+        });
       }
     }
 
@@ -147,7 +274,10 @@ export const logisticsRoute = new Hono()
 
   // ── Create a shipment from selected deliveries (dispatch to gudang Agrinas) ─
   .post("/shipments", async (c) => {
-    const body = (await c.req.json().catch(() => null)) as { deliveryIds?: unknown; note?: unknown } | null;
+    const body = (await c.req.json().catch(() => null)) as {
+      deliveryIds?: unknown;
+      note?: unknown;
+    } | null;
     const deliveryIds = Array.isArray(body?.deliveryIds)
       ? (body.deliveryIds.filter((x) => typeof x === "string") as string[])
       : [];
@@ -184,7 +314,9 @@ export const logisticsRoute = new Hono()
     }
 
     const coop = (await db.select({ id: schema.coop.id }).from(schema.coop).limit(1))[0];
-    const supplier = (await db.select({ id: schema.supplier.id }).from(schema.supplier).limit(1))[0];
+    const supplier = (
+      await db.select({ id: schema.supplier.id }).from(schema.supplier).limit(1)
+    )[0];
     if (!coop || !supplier) {
       return c.json({ error: "Koperasi atau Supplier belum terkonfigurasi." }, 500);
     }
@@ -237,7 +369,10 @@ export const logisticsRoute = new Hono()
     const db = getDb();
     const existing = (
       await db
-        .select({ id: schema.harvestShipment.id, totalVolumeG: schema.harvestShipment.totalVolumeG })
+        .select({
+          id: schema.harvestShipment.id,
+          totalVolumeG: schema.harvestShipment.totalVolumeG,
+        })
         .from(schema.harvestShipment)
         .where(eq(schema.harvestShipment.id, id))
         .limit(1)

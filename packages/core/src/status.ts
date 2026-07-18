@@ -28,6 +28,70 @@ export type SubsidyTier = "Subsidized" | "Commercial";
  *  Independent of the agreement state machine (SMART-CONTRACT.md §B). */
 export type FundingStatus = "Requested" | "Approved" | "Rejected" | "Disbursed" | "Reconciled";
 
+/* ── Shared status sets ──────────────────────────────────────────────────────
+ * ONE definition for every aggregate and picker. The API overview, the KMP
+ * pages (beranda/petani/setor/pembayaran/permintaan-dana) and the oversight
+ * dashboards must all read the SAME sets, or "Perjanjian Aktif" and "Utang
+ * Berjalan" silently disagree between pages. */
+
+/** Open (non-terminal) agreements: counted as "Perjanjian Aktif". Includes the
+ *  in-transit gate (SupplyDispatched) and review-worthy Flagged (still open:
+ *  it can heal upward and settle). Terminal = Settled / ForceMajeure. */
+export const OPEN_AGREEMENT_STATUSES: readonly Status[] = [
+  "SupplyDispatched",
+  "Active",
+  "PartiallyDelivered",
+  "Delivered",
+  "Flagged",
+];
+
+/** Statuses where input_debt is an ACTIVE liability (both gates fired, not
+ *  closed). Drives "Utang Saprotan Berjalan". */
+export const DEBT_ACTIVE_STATUSES: readonly Status[] = [
+  "Active",
+  "PartiallyDelivered",
+  "Delivered",
+  "Flagged",
+];
+
+/** Agreements that can receive a new harvest deposit (record_delivery). The
+ *  contract rejects only Created/SupplyDispatched (gates not done) and
+ *  Settled/ForceMajeure (closed) — Delivered and Flagged still accept more. */
+export const DEPOSIT_ELIGIBLE_STATUSES: readonly Status[] = [
+  "Active",
+  "PartiallyDelivered",
+  "Delivered",
+  "Flagged",
+];
+
+/** Statuses that can appear in the payment (settle) picker; the actual
+ *  eligibility is delivered > settled. Flagged shows but the UI disables it
+ *  (needs officer review first). */
+export const PAYABLE_STATUSES: readonly Status[] = [
+  "Active",
+  "PartiallyDelivered",
+  "Delivered",
+  "Flagged",
+];
+
+/** Statuses with projected future value that can back an offtake-financing
+ *  request. */
+export const FUNDING_BACKABLE_STATUSES: readonly Status[] = [
+  "Created",
+  "SupplyDispatched",
+  "Active",
+  "PartiallyDelivered",
+  "Delivered",
+];
+
+/** Funding statuses that still "consume" their backing agreements (a backing
+ *  agreement may not back another open request until the advance closes). */
+export const FUNDING_OPEN_STATUSES: readonly FundingStatus[] = [
+  "Requested",
+  "Approved",
+  "Disbursed",
+];
+
 /** Tolerance band thresholds (as a fraction of expected volume).
  *  Keep in sync with the contract's graded-flag logic. */
 export const FLAG_THRESHOLDS = {

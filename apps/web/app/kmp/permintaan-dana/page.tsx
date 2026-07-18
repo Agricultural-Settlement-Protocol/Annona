@@ -23,6 +23,7 @@ import { sha256Hex } from "@/lib/hash";
 import { requestFunding } from "@/lib/invocations";
 import type { Invocation } from "@/lib/tx";
 import {
+  annotateFunding,
   fetchAgreements,
   fetchFinancierAll,
   fetchFinancierOverview,
@@ -31,9 +32,13 @@ import {
   type FundingStatus,
   type RiskBadge,
 } from "@/lib/api";
+import { getSupabase } from "@/lib/supabase";
 import { useApi } from "@/lib/use-api";
-import { formatRupiah } from "@annona/core";
-import type { Status } from "@annona/core";
+import {
+  FUNDING_BACKABLE_STATUSES,
+  FUNDING_OPEN_STATUSES,
+  formatRupiah,
+} from "@annona/core";
 import {
   Alert,
   Button,
@@ -52,12 +57,13 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n/use-i18n";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-/** Statuses where an agreement has projected future value to back financing. */
-const BACKABLE_STATUSES: Status[] = ["Created", "Active", "PartiallyDelivered", "Delivered"];
+/** Statuses where an agreement has projected future value to back financing
+ *  (SHARED core set). */
+const BACKABLE_STATUSES = FUNDING_BACKABLE_STATUSES;
 
 /** Estimated backing value (in smallest units) for the *remaining* harvest of one
  *  agreement = remaining_kg * hppPerKg.
@@ -141,8 +147,15 @@ function AgreementRow({
   );
 }
 
-function FundingHistoryTable() {
-  const { data, loading, error } = useApi(fetchFinancierAll);
+function FundingHistoryTable({
+  data,
+  loading,
+  error,
+}: {
+  data: ApiFundingRequestRow[] | undefined;
+  loading: boolean;
+  error: string | undefined;
+}) {
   const [query, setQuery] = useState("");
 
   const rows = useMemo(() => {
@@ -209,15 +222,24 @@ function FundingHistoryTable() {
                 ) : (
                   rows.map((req) => (
                     <Tr key={req.id}>
-                      {/* Perjanjian column: link to financier detail for request context,
-                          from which the user can click each backing line to /kmp/perjanjian/[id] */}
+                      {/* Perjanjian column: direct deep-links to each backing
+                          agreement's detail page (KMP context). */}
                       <Td>
-                        <Link
-                          href={`/financier/${req.id}`}
-                          className="font-mono text-xs text-emerald-700 hover:underline"
-                        >
-                          Lihat detail
-                        </Link>
+                        {req.lines.length === 0 ? (
+                          <span className="text-xs text-gray-400">Tanpa rincian</span>
+                        ) : (
+                          <div className="flex flex-col gap-0.5">
+                            {req.lines.map((line) => (
+                              <Link
+                                key={line.id}
+                                href={`/kmp/perjanjian/${line.agreementId}`}
+                                className="font-mono text-xs text-emerald-700 hover:underline"
+                              >
+                                #{String(line.agreementOnchainId)} {line.farmerName}
+                              </Link>
+                            ))}
+                          </div>
+                        )}
                       </Td>
                       <Td className="text-gray-700">{req.financierName}</Td>
                       <Td>
@@ -269,6 +291,12 @@ export default function PermintaanDanaPage() {
   /* ── Live data ─────────────────────────────────────────────────────────── */
   const { data: agreements, loading: agrLoading } = useApi(fetchAgreements);
   const { data: ovData, loading: ovLoading } = useApi(fetchFinancierOverview);
+  const {
+    data: fundingRows,
+    loading: fundingLoading,
+    error: fundingError,
+    refetch: refetchFunding,
+  } = useApi(fetchFinancierAll);
 
   /* ── Selection state ───────────────────────────────────────────────────── */
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -279,10 +307,24 @@ export default function PermintaanDanaPage() {
   const [submitted, setSubmitted] = useState(false);
 
   /* ── Derived ────────────────────────────────────────────────────────────── */
+  // Agreements already backing an OPEN advance (Requested/Approved/Disbursed)
+  // are consumed and leave the picker; they come back once the request is
+  // Rejected or fully Reconciled.
+  const consumedAgreementIds = useMemo(() => {
+    const set = new Set<string>();
+    for (const req of fundingRows ?? []) {
+      if (!FUNDING_OPEN_STATUSES.includes(req.status)) continue;
+      for (const line of req.lines) set.add(line.agreementId);
+    }
+    return set;
+  }, [fundingRows]);
+
   const backableAgreements = useMemo(() => {
     const all = agreements ?? [];
-    return all.filter((a) => BACKABLE_STATUSES.includes(a.status));
-  }, [agreements]);
+    return all.filter(
+      (a) => BACKABLE_STATUSES.includes(a.status) && !consumedAgreementIds.has(a.id),
+    );
+  }, [agreements, consumedAgreementIds]);
 
   const filteredAgreements = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -318,10 +360,16 @@ export default function PermintaanDanaPage() {
     tx.reset();
   }
 
+  /** Ids captured at submit time, persisted as funding_request_line after the
+   *  tx confirms (the chain only anchors backing_hash). */
+  const pendingBackingIds = useRef<string[]>([]);
+  const annotatedTx = useRef<string | null>(null);
+
   async function handleAjukan() {
     if (selectedIds.size === 0 || tx.state !== "idle") return;
     if (!ovData) return;
     const ids = [...selectedIds].sort();
+    pendingBackingIds.current = ids;
     const backingHash = await sha256Hex(ids.join(":"));
     const projectedSettlement = totalBacking;
     const amountRequested = totalBacking; // full backing value as amount (simplified)
@@ -336,10 +384,30 @@ export default function PermintaanDanaPage() {
     );
   }
 
-  // Watch tx transition to success
-  if (tx.state === "success" && !submitted) {
+  // After the tx confirms: persist the backing lines, then refresh the history
+  // (the picker exclusion + riwayat links depend on them).
+  useEffect(() => {
+    if (tx.state !== "success" || !tx.txHash) return;
     setSubmitted(true);
-  }
+    if (annotatedTx.current === tx.txHash || pendingBackingIds.current.length === 0) return;
+    annotatedTx.current = tx.txHash;
+    const txHash = tx.txHash;
+    const agreementIds = pendingBackingIds.current;
+    (async () => {
+      try {
+        const {
+          data: { session },
+        } = await getSupabase().auth.getSession();
+        if (!session) return;
+        await annotateFunding({ txHash, agreementIds }, session.access_token);
+      } catch {
+        // Non-fatal: the request itself is on-chain; lines can be re-annotated.
+      } finally {
+        setSelectedIds(new Set());
+        refetchFunding();
+      }
+    })();
+  }, [tx.state, tx.txHash, refetchFunding]);
 
   const canSubmit = selectedIds.size > 0 && tx.state === "idle" && !submitted;
 
@@ -502,7 +570,7 @@ export default function PermintaanDanaPage() {
           description={t("page.kmp.permintaanDana.history.desc")}
         />
         <CardContent>
-          <FundingHistoryTable />
+          <FundingHistoryTable data={fundingRows} loading={fundingLoading} error={fundingError} />
         </CardContent>
       </Card>
     </div>

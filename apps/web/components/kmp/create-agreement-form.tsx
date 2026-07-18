@@ -12,8 +12,16 @@
 import { SearchSelect, type SearchSelectItem } from "@/components/kmp/search-select";
 import { useTx } from "@/components/kmp/use-tx";
 import { ScrollArea } from "@/components/scroll-area";
-import { fetchCatalog, fetchCoop, fetchFarmers, fetchHpp, fetchYield } from "@/lib/api";
+import {
+  annotateAgreement,
+  fetchCatalog,
+  fetchCoop,
+  fetchFarmers,
+  fetchHpp,
+  fetchYield,
+} from "@/lib/api";
 import { createAgreement } from "@/lib/invocations";
+import { getSupabase } from "@/lib/supabase";
 import { useApi } from "@/lib/use-api";
 import { deriveInputDebt, formatRupiah } from "@annona/core";
 import {
@@ -30,7 +38,15 @@ import {
   cn,
 } from "@annona/ui";
 import { Info, Lock, Minus, Plus, RotateCcw, Search, Wheat } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+/** Default expected harvest window: ~3 months out (transparent estimate, the
+ *  officer can adjust). */
+function defaultHarvestDate(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 90);
+  return d.toISOString().slice(0, 10);
+}
 
 // Catalog item category labels in Bahasa
 const CATEGORY_LABEL: Record<string, string> = {
@@ -75,9 +91,42 @@ export function CreateAgreementForm() {
   const [tolerancePct, setTolerancePct] = useState(20);
   // Subsidy tier — controls which price column (HET for Subsidized, standard for Commercial)
   const [subsidyTier, setSubsidyTier] = useState<"Subsidized" | "Commercial">("Subsidized");
+  // Expected harvest window start (off-chain estimate, drives "Panen Minggu Ini")
+  const [harvestDate, setHarvestDate] = useState<string>(defaultHarvestDate);
 
   // TX (create_agreement, coop-signed)
   const { state: txState, txHash, error: txError, run: runTx, reset: resetTx } = useTx();
+
+  // After the tx confirms, persist the OFF-CHAIN detail the chain never
+  // carries: the saprotan basket lines + harvest date. Runs once per tx hash.
+  const [annotateState, setAnnotateState] = useState<"idle" | "saving" | "done" | "error">("idle");
+  const [annotateError, setAnnotateError] = useState<string | null>(null);
+  const annotatedHash = useRef<string | null>(null);
+  useEffect(() => {
+    if (txState !== "success" || !txHash || annotatedHash.current === txHash) return;
+    annotatedHash.current = txHash;
+    const inputs = Object.entries(cart)
+      .filter(([, qty]) => qty > 0)
+      .map(([catalogId, qty]) => ({ catalogId, qty }));
+    (async () => {
+      setAnnotateState("saving");
+      setAnnotateError(null);
+      try {
+        const {
+          data: { session },
+        } = await getSupabase().auth.getSession();
+        if (!session) throw new Error("Sesi berakhir. Silakan masuk kembali.");
+        await annotateAgreement(
+          { txHash, expectedHarvestDate: harvestDate || undefined, inputs },
+          session.access_token,
+        );
+        setAnnotateState("done");
+      } catch (e) {
+        setAnnotateState("error");
+        setAnnotateError(e instanceof Error ? e.message : String(e));
+      }
+    })();
+  }, [txState, txHash, cart, harvestDate]);
 
   // ─── Derived values ────────────────────────────────────────────────────────
 
@@ -214,6 +263,9 @@ export function CreateAgreementForm() {
     setMarkupPct(10);
     setHandlingPct(5);
     setTolerancePct(20);
+    setHarvestDate(defaultHarvestDate());
+    setAnnotateState("idle");
+    setAnnotateError(null);
     resetTx();
   }
 
@@ -246,6 +298,15 @@ export function CreateAgreementForm() {
             <span className="text-xs text-gray-500 font-semibold">Transaksi:</span>
             <TxHashLink hash={txHash} />
           </div>
+          <p className="mt-2 text-xs text-gray-500 font-semibold">
+            {annotateState === "saving"
+              ? "Menyimpan rincian saprotan dan jadwal panen..."
+              : annotateState === "done"
+                ? "Rincian saprotan dan jadwal panen tersimpan."
+                : annotateState === "error"
+                  ? `Rincian saprotan gagal tersimpan: ${annotateError ?? "kesalahan tak dikenal"}`
+                  : null}
+          </p>
         </Alert>
         <Button type="button" variant="outline" leftIcon={<RotateCcw size={16} />} onClick={handleReset} className="rounded-full px-5 py-2.5">
           Buat Perjanjian Lagi
@@ -497,6 +558,19 @@ export function CreateAgreementForm() {
                 </div>
                 <p className="mt-1 text-xs text-gray-400 font-semibold">{toleranceBps} bps</p>
               </div>
+            </div>
+
+            {/* Expected harvest window (off-chain estimate) */}
+            <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
+              <Input
+                label="Perkiraan Tanggal Panen"
+                name="harvest-date"
+                type="date"
+                value={harvestDate}
+                onChange={(e) => setHarvestDate(e.target.value)}
+                className="rounded-2xl border-gray-150"
+                hint="Estimasi jadwal panen, bisa disesuaikan"
+              />
             </div>
 
             {/* Subsidy tier toggle */}

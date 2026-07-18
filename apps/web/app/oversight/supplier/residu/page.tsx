@@ -1,28 +1,22 @@
 "use client";
 
 /**
- * Screen I: Rekonsiliasi Residu (Supplier view).
+ * Screen I: Rekonsiliasi Residu (Supplier view) — LIVE.
  *
- * Inter-institutional ledger: per-KMP residu collected, owed, remitted, cleared.
- * Drill into a KMP to see its individual residu rows.
- * Two write actions:
- *   - Setujui Remitansi (confirm_remittance) -> Cleared + TxHashLink
- *   - Ajukan Sengketa (flag_remittance_dispute) -> Disputed + frozen indicator
- * Both via useMockTx. Disputed is a human-review indicator, never automatic accusation.
+ * Ledger = GET /residu (indexer-projected residu_remittance rows, keyed by the
+ * agreement's REAL on-chain id). Two write actions on Remitted rows:
+ *   - Setujui Remitansi (confirm_remittance)     -> Cleared
+ *   - Ajukan Sengketa  (flag_remittance_dispute) -> Disputed + frozen indicator
+ * Both Supplier-signed via useTx on row.agreementOnchainId — no mock mapping.
+ * Disputed is a human-review indicator, never an automatic accusation.
  */
 
 import { OversightPageHeader } from "@/components/oversight/page-header";
 import { TBody, THead, Table, TableFrame, Td, Th, Tr } from "@/components/kmp/table";
 import { useTx } from "@/components/kmp/use-tx";
 import { confirmRemittance, flagRemittanceDispute, toReasonSymbol } from "@/lib/invocations";
-import { MOCK_AGREEMENTS } from "@/lib/mock-data";
-import { ScrollArea } from "@/components/scroll-area";
-import {
-  MOCK_COOP_PROFILES,
-  OVERSIGHT_RESIDU_ROWS,
-  type OversightResiduRow,
-  protocolMetrics,
-} from "@/lib/oversight-data";
+import { type ApiResidu, fetchCoop, fetchResidu } from "@/lib/api";
+import { useApi } from "@/lib/use-api";
 import { formatRupiah } from "@annona/core";
 import type { ResiduStatus } from "@annona/core";
 import {
@@ -38,11 +32,8 @@ import {
   TxHashLink,
 } from "@annona/ui";
 import {
-  AlertTriangle,
   Building2,
   CheckCircle2,
-  ChevronDown,
-  ChevronRight,
   Landmark,
   Lock,
   ShieldAlert,
@@ -50,43 +41,29 @@ import {
   X,
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n/use-i18n";
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useMemo, useRef, useState, useEffect } from "react";
 
-// ─── Per-row local state ──────────────────────────────────────────────────────
+// ─── Per-row local overlay (until the indexer projects the new status) ────────
 
-interface RowState {
+interface RowOverlay {
   status: ResiduStatus;
   txHash: string | null;
   clearedAt: string | null;
-  disputed: boolean;
-  disputeReason: string | null;
-}
-
-function initRowStates(): Record<string, RowState> {
-  const init: Record<string, RowState> = {};
-  for (const row of OVERSIGHT_RESIDU_ROWS) {
-    init[row.id] = {
-      status: row.status,
-      txHash: row.txHash,
-      clearedAt: row.clearedAt,
-      disputed: row.status === "Disputed",
-      disputeReason: null,
-    };
-  }
-  return init;
 }
 
 // ─── Per-row action panel ─────────────────────────────────────────────────────
 
 function RemittanceActionPanel({
   row,
+  coopName,
   onCleared,
   onDisputed,
   onClose,
 }: {
-  row: OversightResiduRow;
+  row: ApiResidu;
+  coopName: string;
   onCleared: (rowId: string, txHash: string) => void;
-  onDisputed: (rowId: string, txHash: string, reason: string) => void;
+  onDisputed: (rowId: string, txHash: string) => void;
   onClose: () => void;
 }) {
   const [mode, setMode] = useState<"approve" | "dispute" | null>(null);
@@ -95,16 +72,6 @@ function RemittanceActionPanel({
   const { t } = useI18n();
   const txApprove = useTx();
   const txDispute = useTx();
-
-  // On-chain agreement id for this remittance. Rows from the live coop map to a
-  // real agreement (seed-chain drives MOCK_AGREEMENTS in order, so chain id ==
-  // mock onchainId - 1); the synthetic multi-coop rows (agm-mj-*) have NO chain
-  // backing, so their write actions must stay disabled in real mode rather than
-  // submit a fabricated id the contract would reject (or worse, hit the wrong
-  // agreement).
-  const mockAgreement = MOCK_AGREEMENTS.find((a) => a.id === row.agreementId);
-  const chainAgreementId = mockAgreement ? mockAgreement.onchainId - 1n : null;
-  const canWriteOnchain = txApprove.demoMode || chainAgreementId !== null;
 
   const prevApprove = useRef(txApprove.state);
   const prevDispute = useRef(txDispute.state);
@@ -121,20 +88,17 @@ function RemittanceActionPanel({
     const prev = prevDispute.current;
     prevDispute.current = txDispute.state;
     if (prev !== "success" && txDispute.state === "success" && txDispute.txHash) {
-      onDisputed(row.id, txDispute.txHash, disputeReason);
+      onDisputed(row.id, txDispute.txHash);
     }
-  }, [txDispute.state, txDispute.txHash, row.id, onDisputed, disputeReason]);
+  }, [txDispute.state, txDispute.txHash, row.id, onDisputed]);
 
   return (
     <tr>
-      <td
-        colSpan={9}
-        className="bg-aqua-50/60 px-4 py-4"
-      >
+      <td colSpan={9} className="bg-aqua-50/60 px-4 py-4">
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <p className="font-semibold text-aqua-800">
-              Tindakan untuk remitansi {row.coopName}
+              Tindakan untuk remitansi {coopName}, Perjanjian #{String(row.agreementOnchainId)}
             </p>
             <button
               type="button"
@@ -148,15 +112,10 @@ function RemittanceActionPanel({
           <Alert tone="info">
             Remitansi sebesar{" "}
             <span className="font-semibold">{formatRupiah(row.principalAmount)}</span> dari{" "}
-            {row.coopName} (Ref: {row.bankRef ?? "tidak ada referensi bank"}).
-            Verifikasi catatan bank sebelum menyetujui.
+            {coopName} (Ref: {row.bankRef ?? "tidak ada referensi bank"}). Verifikasi catatan bank
+            sebelum menyetujui.
           </Alert>
 
-          {!canWriteOnchain && (
-            <Alert tone="warning" title="Data demo">
-              Baris ini tidak memiliki perjanjian on-chain, aksi Stellar dinonaktifkan.
-            </Alert>
-          )}
           {(txApprove.error || txDispute.error) && (
             <Alert tone="warning" title={t("common.error")}>
               {txApprove.error ?? txDispute.error}
@@ -191,18 +150,18 @@ function RemittanceActionPanel({
           {mode === "approve" && txApprove.state !== "success" && (
             <div className="space-y-3">
               <Alert tone="info">
-                <span className="text-sm">{t("page.oversight.supplier.residu.action.approveHint")}</span>
+                <span className="text-sm">
+                  {t("page.oversight.supplier.residu.action.approveHint")}
+                </span>
               </Alert>
               <div className="flex gap-2">
                 <Button
                   variant="primary"
                   size="sm"
                   leftIcon={<ShieldCheck size={13} />}
-                  disabled={txApprove.state !== "idle" || !canWriteOnchain}
+                  disabled={txApprove.state !== "idle"}
                   onClick={() =>
-                    txApprove.run((signer) =>
-                      confirmRemittance(signer, chainAgreementId ?? 0n),
-                    )
+                    txApprove.run((signer) => confirmRemittance(signer, row.agreementOnchainId))
                   }
                 >
                   {txApprove.state === "signing"
@@ -221,7 +180,9 @@ function RemittanceActionPanel({
           {mode === "dispute" && txDispute.state !== "success" && (
             <div className="space-y-3">
               <Alert tone="warning" title="Ini hanya indikator untuk peninjauan manusia">
-                <span className="text-sm">{t("page.oversight.supplier.residu.action.disputeHint")}</span>
+                <span className="text-sm">
+                  {t("page.oversight.supplier.residu.action.disputeHint")}
+                </span>
               </Alert>
               <div>
                 <label
@@ -244,10 +205,14 @@ function RemittanceActionPanel({
                   variant="outline"
                   size="sm"
                   leftIcon={<ShieldAlert size={13} />}
-                  disabled={!disputeReason.trim() || txDispute.state !== "idle" || !canWriteOnchain}
+                  disabled={!disputeReason.trim() || txDispute.state !== "idle"}
                   onClick={() =>
                     txDispute.run((signer) =>
-                      flagRemittanceDispute(signer, chainAgreementId ?? 0n, toReasonSymbol(disputeReason, "DISPUTE")),
+                      flagRemittanceDispute(
+                        signer,
+                        row.agreementOnchainId,
+                        toReasonSymbol(disputeReason, "DISPUTE"),
+                      ),
                     )
                   }
                   className="border-amber-300 text-amber-700 hover:bg-amber-50"
@@ -270,283 +235,66 @@ function RemittanceActionPanel({
   );
 }
 
-// ─── KMP section (drillable) ─────────────────────────────────────────────────
-
-function CoopResiduSection({
-  coopId,
-  coopName,
-  rows,
-  rowStates,
-  onCleared,
-  onDisputed,
-  expanded,
-  onToggle,
-}: {
-  coopId: string;
-  coopName: string;
-  rows: OversightResiduRow[];
-  rowStates: Record<string, RowState>;
-  onCleared: (rowId: string, txHash: string) => void;
-  onDisputed: (rowId: string, txHash: string, reason: string) => void;
-  expanded: boolean;
-  onToggle: () => void;
-}) {
-  const { t } = useI18n();
-  const [activeRowId, setActiveRowId] = useState<string | null>(null);
-  const coop = MOCK_COOP_PROFILES.find((c) => c.id === coopId);
-
-  const pending = rows.reduce(
-    (s, r) =>
-      rowStates[r.id]?.status === "Pending" ? s + r.principalAmount : s,
-    0n,
-  );
-  const remitted = rows.reduce(
-    (s, r) =>
-      rowStates[r.id]?.status === "Remitted" ? s + r.principalAmount : s,
-    0n,
-  );
-  const cleared = rows.reduce(
-    (s, r) =>
-      rowStates[r.id]?.status === "Cleared" ? s + r.principalAmount : s,
-    0n,
-  );
-
-  const frozen = coop?.reputation.frozen ?? false;
-  const hasRemitted = rows.some((r) => rowStates[r.id]?.status === "Remitted");
-
-  return (
-    <Card>
-      {/* Header: collapsible */}
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex w-full items-start gap-4 rounded-t-xl p-5 text-left hover:bg-surface-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="font-semibold text-foreground">{coopName}</p>
-            {frozen && (
-              <Badge tone="danger" icon={<Lock size={10} />}>
-                Dibekukan
-              </Badge>
-            )}
-            {hasRemitted && (
-              <Badge tone="aqua">Menunggu Verifikasi</Badge>
-            )}
-          </div>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Pending: {formatRupiah(pending)} / Remitted: {formatRupiah(remitted)} /
-            Cleared: {formatRupiah(cleared)}
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-2 text-muted-foreground">
-          <span className="text-xs">
-            {rows.length} baris residu
-          </span>
-          {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-        </div>
-      </button>
-
-      {expanded ? (
-        <div className="border-t border-border">
-          <TableFrame className="rounded-none border-0 shadow-none">
-            <Table>
-              <THead>
-                <Th>{t("page.kmp.perjanjian.colHeader.farmer")}</Th>
-                <Th>{t("page.kmp.perjanjian.colHeader.commodity")}</Th>
-                <Th>Pokok Supplier</Th>
-                <Th>{t("common.status")}</Th>
-                <Th>Ref Bank</Th>
-                <Th>Tgl Remit</Th>
-                <Th>Tgl Verif</Th>
-                <Th>Tx</Th>
-                <Th>{t("page.kmp.permintaan.table.col.actions")}</Th>
-              </THead>
-              <TBody>
-                {rows.map((row) => {
-                  const state = rowStates[row.id];
-                  const currentStatus = state?.status ?? row.status;
-                  const currentTx = state?.txHash ?? row.txHash;
-                  const currentClearedAt = state?.clearedAt ?? row.clearedAt;
-                  const isActive = activeRowId === row.id;
-
-                  return (
-                    <Fragment key={row.id}>
-                      <Tr>
-                        <Td className="font-medium">{row.farmerName}</Td>
-                        <Td className="text-xs text-muted-foreground">
-                          {row.commodityCode}
-                        </Td>
-                        <Td>
-                          <RupiahAmount smallest={row.principalAmount} />
-                        </Td>
-                        <Td>
-                          <ResiduStatusBadge status={currentStatus} />
-                        </Td>
-                        <Td className="font-mono text-xs text-muted-foreground">
-                          {row.bankRef ?? (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </Td>
-                        <Td className="tabular-nums text-muted-foreground text-xs">
-                          {row.remittedAt ?? "-"}
-                        </Td>
-                        <Td className="tabular-nums text-muted-foreground text-xs">
-                          {currentClearedAt ?? "-"}
-                        </Td>
-                        <Td>
-                          {currentTx ? (
-                            <TxHashLink hash={currentTx} />
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </Td>
-                        <Td>
-                          {currentStatus === "Remitted" && !isActive && (
-                            <Button
-                              size="sm"
-                              variant="accent"
-                              onClick={() =>
-                                setActiveRowId(isActive ? null : row.id)
-                              }
-                            >
-                              {t("common.view")}
-                            </Button>
-                          )}
-                          {currentStatus === "Cleared" && (
-                            <span className="flex items-center gap-1 text-xs text-emerald-700">
-                              <CheckCircle2 size={12} />
-                              {t("badge.residu.Cleared")}
-                            </span>
-                          )}
-                          {currentStatus === "Disputed" && (
-                            <span className="flex items-center gap-1 text-xs text-red-700">
-                              <ShieldAlert size={12} />
-                              Bermasalah
-                            </span>
-                          )}
-                          {currentStatus === "Pending" && (
-                            <span className="text-xs text-muted-foreground">
-                              Menunggu KMP
-                            </span>
-                          )}
-                        </Td>
-                      </Tr>
-                      {isActive && currentStatus === "Remitted" && (
-                        <RemittanceActionPanel
-                          key={`${row.id}-panel`}
-                          row={row}
-                          onCleared={(rowId, txHash) => {
-                            onCleared(rowId, txHash);
-                            setActiveRowId(null);
-                          }}
-                          onDisputed={(rowId, txHash, reason) => {
-                            onDisputed(rowId, txHash, reason);
-                            setActiveRowId(null);
-                          }}
-                          onClose={() => setActiveRowId(null)}
-                        />
-                      )}
-                    </Fragment>
-                  );
-                })}
-              </TBody>
-            </Table>
-          </TableFrame>
-        </div>
-      ) : null}
-    </Card>
-  );
-}
-
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function ResiduRekonsiliasiPage() {
   const { t } = useI18n();
-  const metrics = useMemo(() => protocolMetrics(), []);
+  const { data: ledger, loading, error, refetch } = useApi(fetchResidu);
+  const { data: coopData } = useApi(fetchCoop);
+  const coopName = coopData?.coop?.name ?? "KMP";
 
-  const [rowStates, setRowStates] = useState<Record<string, RowState>>(
-    initRowStates,
-  );
-
-  const [expandedCoops, setExpandedCoops] = useState<Set<string>>(
-    () => new Set(["coop-0001"]), // expand Sukamaju by default
-  );
-
+  // Local overlay: rows we just wrote, until the indexer projects them.
+  const [overlays, setOverlays] = useState<Record<string, RowOverlay>>({});
+  const [activeRowId, setActiveRowId] = useState<string | null>(null);
   const [search, setSearch] = useState<string>("");
 
-  const handleCleared = useCallback(
-    (rowId: string, txHash: string) => {
-      setRowStates((prev) => {
-        const next: RowState = {
-          status: "Cleared",
-          txHash,
-          clearedAt: new Date().toISOString().slice(0, 10),
-          disputed: false,
-          disputeReason: null,
-        };
-        return { ...prev, [rowId]: next };
-      });
-    },
-    [],
-  );
-
-  const handleDisputed = useCallback(
-    (rowId: string, txHash: string, reason: string) => {
-      setRowStates((prev) => {
-        const existing = prev[rowId];
-        const next: RowState = {
-          status: "Disputed",
-          txHash,
-          clearedAt: existing?.clearedAt ?? null,
-          disputed: true,
-          disputeReason: reason,
-        };
-        return { ...prev, [rowId]: next };
-      });
-    },
-    [],
-  );
-
-  function toggleCoop(coopId: string) {
-    setExpandedCoops((prev) => {
-      const next = new Set(prev);
-      if (next.has(coopId)) next.delete(coopId);
-      else next.add(coopId);
-      return next;
+  const rows = useMemo(() => {
+    const all = ledger ?? [];
+    const q = search.trim().toLowerCase();
+    const filtered = q
+      ? all.filter(
+          (r) =>
+            r.farmerName.toLowerCase().includes(q) ||
+            String(r.agreementOnchainId).includes(q) ||
+            r.commodityCode.toLowerCase().includes(q),
+        )
+      : all;
+    return filtered.map((r) => {
+      const o = overlays[r.id];
+      return o
+        ? { ...r, status: o.status, txHash: o.txHash ?? r.txHash, clearedAt: o.clearedAt }
+        : r;
     });
+  }, [ledger, overlays, search]);
+
+  const sum = (status: ResiduStatus) =>
+    rows.filter((r) => r.status === status).reduce((s, r) => s + r.principalAmount, 0n);
+  const totalPending = sum("Pending");
+  const totalRemitted = sum("Remitted");
+  const totalCleared = sum("Cleared");
+  const disputedCount = rows.filter((r) => r.status === "Disputed").length;
+
+  function handleCleared(rowId: string, txHash: string) {
+    setOverlays((prev) => ({
+      ...prev,
+      [rowId]: {
+        status: "Cleared",
+        txHash,
+        clearedAt: new Date().toISOString().slice(0, 10),
+      },
+    }));
+    setActiveRowId(null);
+    setTimeout(() => refetch(), 6000);
   }
 
-  // Group rows by coop
-  const rowsByCoopId = useMemo(() => {
-    const map = new Map<string, OversightResiduRow[]>();
-    for (const row of OVERSIGHT_RESIDU_ROWS) {
-      if (!map.has(row.coopId)) map.set(row.coopId, []);
-      map.get(row.coopId)?.push(row);
-    }
-    return map;
-  }, []);
-
-  // Filter coops by search
-  const filteredCoopIds = useMemo(() => {
-    const coopIds = [...new Set(OVERSIGHT_RESIDU_ROWS.map((r) => r.coopId))];
-    if (!search.trim()) return coopIds;
-    const q = search.toLowerCase();
-    return coopIds.filter((id) => {
-      const rows = rowsByCoopId.get(id) ?? [];
-      const coopName = rows[0]?.coopName ?? "";
-      return (
-        coopName.toLowerCase().includes(q) ||
-        rows.some((r) => r.farmerName.toLowerCase().includes(q))
-      );
-    });
-  }, [search, rowsByCoopId]);
-
-  // Protocol residu stats
-  const totalPending = metrics.residuPending;
-  const totalRemitted = metrics.residuRemitted;
-  const totalCleared = metrics.residuCleared;
-  const frozenCoops = MOCK_COOP_PROFILES.filter((c) => c.reputation.frozen).length;
+  function handleDisputed(rowId: string, txHash: string) {
+    setOverlays((prev) => ({
+      ...prev,
+      [rowId]: { status: "Disputed", txHash, clearedAt: null },
+    }));
+    setActiveRowId(null);
+    setTimeout(() => refetch(), 6000);
+  }
 
   return (
     <div className="space-y-6">
@@ -556,10 +304,17 @@ export default function ResiduRekonsiliasiPage() {
       />
 
       <Alert tone="warning" title="Residu pokok bukan milik koperasi">
-        Ini adalah uang pokok saprotan Supplier yang dikumpulkan saat panen dan
-        disimpan sementara di kas KMP. Verifikasi setelah menerima konfirmasi bank.
-        Sengketa membekukan reputasi on-chain KMP sebagai indikator, bukan tuduhan.
+        Ini adalah uang pokok saprotan Supplier yang dikumpulkan saat panen dan disimpan sementara
+        di kas KMP. Verifikasi setelah menerima konfirmasi bank. Sengketa membekukan reputasi
+        on-chain KMP sebagai indikator, bukan tuduhan.
       </Alert>
+
+      {loading && <p className="text-sm text-muted-foreground">{t("common.loading")}</p>}
+      {error && (
+        <Alert tone="warning" title={t("common.error")}>
+          {error}
+        </Alert>
+      )}
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -585,10 +340,10 @@ export default function ResiduRekonsiliasiPage() {
           icon={<ShieldCheck size={18} />}
         />
         <StatCard
-          label="KMP Dibekukan"
-          value={String(frozenCoops)}
-          hint="Reputasi on-chain dibekukan sementara"
-          tone={frozenCoops > 0 ? "bad" : "good"}
+          label="Sengketa Berjalan"
+          value={String(disputedCount)}
+          hint="Baris residu berstatus Disputed"
+          tone={disputedCount > 0 ? "bad" : "good"}
           icon={<Lock size={18} />}
         />
       </div>
@@ -596,37 +351,117 @@ export default function ResiduRekonsiliasiPage() {
       {/* Search */}
       <input
         type="search"
-        placeholder="Cari nama koperasi atau petani..."
+        placeholder="Cari nama petani, nomor perjanjian, atau komoditas..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         className="h-10 w-full rounded-md border border-border bg-surface px-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-ring sm:max-w-sm"
       />
 
-      {/* Per-coop sections */}
-      <div className="space-y-4">
-        {filteredCoopIds.map((coopId) => {
-          const rows = rowsByCoopId.get(coopId) ?? [];
-          const coopName = rows[0]?.coopName ?? coopId;
-          return (
-            <CoopResiduSection
-              key={coopId}
-              coopId={coopId}
-              coopName={coopName}
-              rows={rows}
-              rowStates={rowStates}
-              onCleared={handleCleared}
-              onDisputed={handleDisputed}
-              expanded={expandedCoops.has(coopId)}
-              onToggle={() => toggleCoop(coopId)}
-            />
-          );
-        })}
-        {filteredCoopIds.length === 0 && (
-          <p className="py-8 text-center text-sm text-muted-foreground">
-            Tidak ada koperasi yang sesuai pencarian.
-          </p>
-        )}
-      </div>
+      {/* Ledger */}
+      <Card>
+        <CardHeader
+          title={coopName}
+          description="Semua baris residu dari perjanjian koperasi ini, langsung dari ledger on-chain."
+        />
+        <CardContent className="p-0">
+          <TableFrame className="rounded-none border-0 shadow-none">
+            <Table>
+              <THead>
+                <Th>Perjanjian</Th>
+                <Th>{t("page.kmp.perjanjian.colHeader.farmer")}</Th>
+                <Th>Pokok Supplier</Th>
+                <Th>{t("common.status")}</Th>
+                <Th>Ref Bank</Th>
+                <Th>Tgl Remit</Th>
+                <Th>Tgl Verif</Th>
+                <Th>Tx</Th>
+                <Th>{t("page.kmp.permintaan.table.col.actions")}</Th>
+              </THead>
+              <TBody>
+                {rows.length === 0 ? (
+                  <Tr>
+                    <Td colSpan={9} className="py-8 text-center text-muted-foreground">
+                      Belum ada baris residu.
+                    </Td>
+                  </Tr>
+                ) : (
+                  rows.map((row) => {
+                    const isActive = activeRowId === row.id;
+                    return (
+                      <Fragment key={row.id}>
+                        <Tr>
+                          <Td className="font-mono text-xs font-bold">
+                            #{String(row.agreementOnchainId)}
+                          </Td>
+                          <Td className="font-medium">{row.farmerName}</Td>
+                          <Td>
+                            <RupiahAmount smallest={row.principalAmount} />
+                          </Td>
+                          <Td>
+                            <ResiduStatusBadge status={row.status} />
+                          </Td>
+                          <Td className="font-mono text-xs text-muted-foreground">
+                            {row.bankRef ?? <span className="text-muted-foreground">-</span>}
+                          </Td>
+                          <Td className="tabular-nums text-muted-foreground text-xs">
+                            {row.remittedAt ? row.remittedAt.slice(0, 10) : "-"}
+                          </Td>
+                          <Td className="tabular-nums text-muted-foreground text-xs">
+                            {row.clearedAt ? row.clearedAt.slice(0, 10) : "-"}
+                          </Td>
+                          <Td>
+                            {row.txHash ? (
+                              <TxHashLink hash={row.txHash} />
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </Td>
+                          <Td>
+                            {row.status === "Remitted" && !isActive && (
+                              <Button
+                                size="sm"
+                                variant="accent"
+                                onClick={() => setActiveRowId(row.id)}
+                              >
+                                {t("common.view")}
+                              </Button>
+                            )}
+                            {row.status === "Cleared" && (
+                              <span className="flex items-center gap-1 text-xs text-emerald-700">
+                                <CheckCircle2 size={12} />
+                                {t("badge.residu.Cleared")}
+                              </span>
+                            )}
+                            {row.status === "Disputed" && (
+                              <span className="flex items-center gap-1 text-xs text-red-700">
+                                <ShieldAlert size={12} />
+                                Bermasalah
+                              </span>
+                            )}
+                            {row.status === "Pending" && (
+                              <span className="text-xs text-muted-foreground">Menunggu KMP</span>
+                            )}
+                          </Td>
+                        </Tr>
+                        {isActive && row.status === "Remitted" && (
+                          <RemittanceActionPanel
+                            key={`${row.id}-panel`}
+                            row={row}
+                            coopName={coopName}
+                            onCleared={handleCleared}
+                            onDisputed={handleDisputed}
+                            onClose={() => setActiveRowId(null)}
+                          />
+                        )}
+                      </Fragment>
+                    );
+                  })
+                )}
+              </TBody>
+            </Table>
+          </TableFrame>
+        </CardContent>
+      </Card>
 
       {/* Dual gate explainer */}
       <Card>
@@ -644,8 +479,8 @@ export default function ResiduRekonsiliasiPage() {
               <div>
                 <p className="font-medium">KMP Tandai Disetor</p>
                 <p className="text-muted-foreground">
-                  KMP memasukkan referensi bank dan menandai sudah remit. Status
-                  berubah ke Menunggu Verifikasi. Komitmen ini dikunci on-chain.
+                  KMP memasukkan referensi bank dan menandai sudah remit. Status berubah ke
+                  Menunggu Verifikasi. Komitmen ini dikunci on-chain.
                 </p>
               </div>
             </li>
@@ -656,10 +491,9 @@ export default function ResiduRekonsiliasiPage() {
               <div>
                 <p className="font-medium">Supplier Verifikasi</p>
                 <p className="text-muted-foreground">
-                  Supplier menekan Setujui Remitansi setelah mengkonfirmasi catatan
-                  bank. Status berubah ke Terverifikasi.{" "}
-                  <span className="font-mono">confirm_remittance</span> dicatat di
-                  Stellar.
+                  Supplier menekan Setujui Remitansi setelah mengkonfirmasi catatan bank. Status
+                  berubah ke Terverifikasi. <span className="font-mono">confirm_remittance</span>{" "}
+                  dicatat di Stellar.
                 </p>
               </div>
             </li>
@@ -670,10 +504,9 @@ export default function ResiduRekonsiliasiPage() {
               <div>
                 <p className="font-medium">Jika Ada Sengketa</p>
                 <p className="text-muted-foreground">
-                  Supplier dapat Ajukan Sengketa jika ada selisih. Ini hanya indikator
-                  untuk peninjauan manusia, bukan tuduhan otomatis. Reputasi on-chain
-                  KMP dibekukan sementara. Penyelesaian dilakukan di luar sistem oleh
-                  pihak berwenang.
+                  Supplier dapat Ajukan Sengketa jika ada selisih. Ini hanya indikator untuk
+                  peninjauan manusia, bukan tuduhan otomatis. Reputasi on-chain KMP dibekukan
+                  sementara. Penyelesaian dilakukan di luar sistem oleh pihak berwenang.
                 </p>
               </div>
             </li>

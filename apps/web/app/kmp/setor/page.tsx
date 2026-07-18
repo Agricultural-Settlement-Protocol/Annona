@@ -20,8 +20,7 @@ import { useMockTx } from "@/components/kmp/use-mock-tx";
 import { useTx } from "@/components/kmp/use-tx";
 import { markForceMajeure, recordDelivery, toReasonSymbol } from "@/lib/invocations";
 import { useApi } from "@/lib/use-api";
-import { classifyFlag } from "@annona/core";
-import type { Status } from "@annona/core";
+import { DEPOSIT_ELIGIBLE_STATUSES, classifyFlag } from "@annona/core";
 import {
   Alert,
   Button,
@@ -48,8 +47,10 @@ import Link from "next/link";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import { useRef, useState } from "react";
 
-/** Agreements that can receive a new deposit. */
-const DEPOSIT_ELIGIBLE: Status[] = ["Active", "PartiallyDelivered"];
+/** Agreements that can receive a new deposit — the SHARED core set (matches
+ *  the contract: only pre-gate and terminal statuses reject record_delivery,
+ *  so Delivered and Flagged still accept more deposits). */
+const DEPOSIT_ELIGIBLE = DEPOSIT_ELIGIBLE_STATUSES;
 
 /** Flag banner metadata for a given classification. No em dashes. */
 function flagMeta(flag: ReturnType<typeof classifyFlag> | null): {

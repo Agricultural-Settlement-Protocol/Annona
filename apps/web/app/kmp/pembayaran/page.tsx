@@ -20,8 +20,12 @@ import type { SearchSelectItem } from "@/components/kmp/search-select";
 import { getSupabase } from "@/lib/supabase";
 import { useApi } from "@/lib/use-api";
 import { formatKg } from "@/lib/mock-data";
-import { computeSplitSettlement, formatRupiah, gramsToKg } from "@annona/core";
-import type { Status } from "@annona/core";
+import {
+  PAYABLE_STATUSES as CORE_PAYABLE_STATUSES,
+  computeSplitSettlement,
+  formatRupiah,
+  gramsToKg,
+} from "@annona/core";
 import {
   Alert,
   Button,
@@ -44,13 +48,9 @@ import Link from "next/link";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import { useRef, useState } from "react";
 
-/** Statuses that can appear in the payment picker. Flagged included but
- *  disabled (needs review before settlement). */
-const PAYABLE_STATUSES: Status[] = [
-  "Delivered",
-  "PartiallyDelivered",
-  "Flagged",
-];
+/** Statuses that can appear in the payment picker (SHARED core set). Flagged
+ *  included but disabled (needs review before settlement). */
+const PAYABLE_STATUSES = CORE_PAYABLE_STATUSES;
 
 export default function PembayaranPage() {
   /* ── I18n ──────────────────────────────────────────────────────────────── */

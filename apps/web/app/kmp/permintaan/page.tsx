@@ -1,9 +1,11 @@
 "use client";
 
 /** Screen: Permintaan Saprotan — the bulk-request desk.
- *  KMP aggregates Created agreements into a single on-chain bulk request to
- *  Supplier. Supplier reads the same mv_bulk_request_queue; no email or Excel
- *  needed. CSV export exists as offline fallback. */
+ *  KMP aggregates Created agreements into a single bulk request to the
+ *  Supplier. This submit is deliberately OFF-CHAIN (the next on-chain event is
+ *  dispatch_supply, Supplier-signed): it persists agreement.supply_requested_at
+ *  via POST /agreements/supply-request, so the Terkirim status survives
+ *  refresh and feeds the Supplier's live dispatch queue. */
 
 import {
   type ApiAgreement,
@@ -13,10 +15,11 @@ import {
   fetchFarmers,
   fetchOverview,
   farmerMap,
+  submitSupplyRequest,
 } from "@/lib/api";
 import { PageHeader } from "@/components/kmp/page-header";
 import { TBody, THead, Table, TableFrame, Td, Th, Tr } from "@/components/kmp/table";
-import { useMockTx } from "@/components/kmp/use-mock-tx";
+import { getSupabase } from "@/lib/supabase";
 import { useApi } from "@/lib/use-api";
 import { formatRupiah } from "@annona/core";
 import {
@@ -28,7 +31,6 @@ import {
   CardHeader,
   RupiahAmount,
   StatCard,
-  TxHashLink,
 } from "@annona/ui";
 import {
   CheckCircle2,
@@ -42,7 +44,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n/use-i18n";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type SupplyRequestStatus = "Draft" | "Terkirim" | "Dikirim" | "Diterima";
 type SupplyAgreement = ApiAgreement & { inputs: ApiAgreementInput[] };
@@ -240,33 +242,36 @@ export default function PermintaanPage() {
   const countDikirim = rows.filter((r) => r.effectiveStatus === "Dikirim").length;
   const countDiterima = rows.filter((r) => r.effectiveStatus === "Diterima").length;
 
-  // Bulk submit tx
-  const txSubmit = useMockTx();
-  const prevState = useRef(txSubmit.state);
-  const [lastTxHash, setLastTxHash] = useState<string | null>(null);
+  // Bulk submit — persisted OFF-CHAIN via the API (no tx, no wallet).
+  const [submitState, setSubmitState] = useState<"idle" | "submitting" | "success">("idle");
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  useEffect(() => {
-    const prev = prevState.current;
-    prevState.current = txSubmit.state;
-    if (prev !== "success" && txSubmit.state === "success" && txSubmit.txHash) {
-      setLastTxHash(txSubmit.txHash);
-      setShowSuccess(true);
-      // Flip selected Draft rows to Terkirim
+  async function handleBulkSubmit() {
+    if (submitState !== "idle" || selectedIds.size === 0) return;
+    setShowSuccess(false);
+    setSubmitError(null);
+    setSubmitState("submitting");
+    try {
+      const {
+        data: { session },
+      } = await getSupabase().auth.getSession();
+      if (!session) throw new Error("Sesi berakhir. Silakan masuk kembali.");
+      const ids = [...selectedIds];
+      const result = await submitSupplyRequest(ids, session.access_token);
+      // Flip the persisted rows locally too, so the UI updates without refetch.
       setSubmittedIds((prev) => {
         const next = new Set(prev);
-        for (const id of selectedIds) next.add(id);
+        for (const id of result.submitted) next.add(id);
         return next;
       });
       setSelectedIds(new Set());
-      txSubmit.reset();
+      setShowSuccess(true);
+      setSubmitState("idle");
+    } catch (e) {
+      setSubmitError(e instanceof Error ? e.message : String(e));
+      setSubmitState("idle");
     }
-  }, [txSubmit.state, txSubmit.txHash, selectedIds, txSubmit]);
-
-  function handleBulkSubmit() {
-    if (txSubmit.state !== "idle" || selectedIds.size === 0) return;
-    setShowSuccess(false);
-    txSubmit.run();
   }
 
   const selectedCount = selectedIds.size;
@@ -331,12 +336,15 @@ export default function PermintaanPage() {
       </div>
 
       {/* Success alert from last bulk submit */}
-      {showSuccess && lastTxHash && (
-        <Alert tone="success" title="Permintaan gabungan tercatat di chain" className="rounded-xl">
-          Supplier melihat antrean ini di dasbor operatornya. Tidak perlu email atau berkas manual.{" "}
-          <span className="mt-1 block">
-            <TxHashLink hash={lastTxHash} />
-          </span>
+      {showSuccess && (
+        <Alert tone="success" title="Permintaan gabungan terkirim ke Supplier" className="rounded-xl">
+          Supplier melihat antrean ini di dasbor operatornya dan akan melakukan dispatch on-chain.
+          Tidak perlu email atau berkas manual.
+        </Alert>
+      )}
+      {submitError && (
+        <Alert tone="warning" title={t("common.error")} className="rounded-xl">
+          {submitError}
         </Alert>
       )}
 
@@ -501,20 +509,18 @@ export default function PermintaanPage() {
                 size="md"
                 className="w-full rounded-full bg-primary-dark hover:bg-opacity-95 text-white py-3 font-semibold shadow-sm"
                 leftIcon={<Send size={16} />}
-                disabled={selectedCount === 0 || txSubmit.state !== "idle"}
+                disabled={selectedCount === 0 || submitState !== "idle"}
                 onClick={handleBulkSubmit}
               >
-                {txSubmit.state === "signing"
-                  ? "Menandatangani..."
-                  : txSubmit.state === "submitting"
-                    ? "Mengirim ke chain..."
-                    : selectedCount > 0
-                      ? `${t("page.kmp.permintaan.send")} (${selectedCount})`
-                      : t("page.kmp.permintaan.send")}
+                {submitState === "submitting"
+                  ? "Mengirim ke Supplier..."
+                  : selectedCount > 0
+                    ? `${t("page.kmp.permintaan.send")} (${selectedCount})`
+                    : t("page.kmp.permintaan.send")}
               </Button>
               <p className="text-center text-xs text-gray-505 font-semibold leading-relaxed">
                 {selectedCount > 0
-                  ? "Permintaan dicatat di chain, langsung terlihat oleh Supplier."
+                  ? "Permintaan tersimpan dan langsung terlihat oleh Supplier."
                   : "Pilih draf pada tabel untuk mengirim permintaan gabungan."}
               </p>
             </div>

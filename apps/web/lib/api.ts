@@ -98,6 +98,8 @@ export interface ApiAgreement {
   createdAt: string;
   createTxHash: string | null;
   expectedHarvestDate: string | null;
+  /** Off-chain: when the KMP submitted this draft to the Supplier (null = Draft). */
+  supplyRequestedAt: string | null;
 }
 
 export interface ApiAgreementInput {
@@ -233,7 +235,7 @@ export interface ApiOverview {
   };
   harvestThisWeek: { rows: ApiAgreement[]; totalKg: number; totalValue: bigint };
   cashNeededThisWeek: bigint;
-  inboundSupply: ApiAgreement[];
+  inboundSupply: (ApiAgreement & { inputs: ApiAgreementInput[] })[];
   supplyRequestRows: {
     agreement: ApiAgreement & { inputs: ApiAgreementInput[] };
     farmerId: string;
@@ -421,10 +423,15 @@ export async function updateCoop(
 
 export async function fetchOverview(): Promise<ApiOverview> {
   const r = await getJSON<{
-    coopOverview: { outstandingDebt: string; activeAgreements: number; settlementRatePct: number; residuOwed: string };
+    coopOverview: {
+      outstandingDebt: string;
+      activeAgreements: number;
+      settlementRatePct: number;
+      residuOwed: string;
+    };
     harvestThisWeek: { rows: Raw<ApiAgreement>[]; totalKg: number; totalValue: string };
     cashNeededThisWeek: string;
-    inboundSupply: Raw<ApiAgreement>[];
+    inboundSupply: (Raw<ApiAgreement> & { inputs: Raw<ApiAgreementInput>[] })[];
     supplyRequestRows: {
       agreement: Raw<ApiAgreement> & { inputs: Raw<ApiAgreementInput>[] };
       farmerId: string;
@@ -445,7 +452,10 @@ export async function fetchOverview(): Promise<ApiOverview> {
       totalValue: big(r.harvestThisWeek.totalValue),
     },
     cashNeededThisWeek: big(r.cashNeededThisWeek),
-    inboundSupply: r.inboundSupply.map(parseAgreement),
+    inboundSupply: r.inboundSupply.map((row) => ({
+      ...parseAgreement(row),
+      inputs: row.inputs.map(parseInput),
+    })),
     supplyRequestRows: r.supplyRequestRows.map((row) => ({
       ...row,
       agreement: { ...parseAgreement(row.agreement), inputs: row.agreement.inputs.map(parseInput) },
@@ -610,7 +620,13 @@ export async function fetchSubsidyDistribution(): Promise<ApiSubsidyDistribution
     subsidizedAgreementCount: number;
     commercialAgreementCount: number;
     byFarmerStatus: { status: string; count: number }[];
-    hetCatalog: { id: string; name: string; priceTier: string | null; hetPrice: string | null; erdkkGated: boolean | null }[];
+    hetCatalog: {
+      id: string;
+      name: string;
+      priceTier: string | null;
+      hetPrice: string | null;
+      erdkkGated: boolean | null;
+    }[];
   }>("/subsidy/distribution");
   return {
     ...r,
@@ -650,6 +666,8 @@ export interface ApiFundingRequestRow {
   status: FundingStatus;
   proofUrl: string | null;
   createdAt: string;
+  /** Backing agreements (off-chain packet detail; rides on every list row). */
+  lines: ApiBackingLine[];
 }
 
 export interface ApiBackingLine {
@@ -714,8 +732,10 @@ export interface ApiFinancierOverview {
 }
 
 type RawFundingRow = {
-  [K in keyof ApiFundingRequestRow]: ApiFundingRequestRow[K] extends bigint ? string : ApiFundingRequestRow[K];
-};
+  [K in keyof Omit<ApiFundingRequestRow, "lines">]: ApiFundingRequestRow[K] extends bigint
+    ? string
+    : ApiFundingRequestRow[K];
+} & { lines?: Record<string, unknown>[] };
 
 function parseFundingRow(r: RawFundingRow): ApiFundingRequestRow {
   return {
@@ -725,6 +745,7 @@ function parseFundingRow(r: RawFundingRow): ApiFundingRequestRow {
     amountApproved: big(r.amountApproved),
     amountDisbursed: big(r.amountDisbursed),
     amountReconciled: big(r.amountReconciled),
+    lines: (r.lines ?? []).map(parseBackingLine),
   };
 }
 
@@ -732,8 +753,8 @@ function parseBackingLine(r: Record<string, unknown>): ApiBackingLine {
   return {
     id: String(r.id),
     agreementId: String(r.agreementId),
-    agreementOnchainId: big(String(r.agreementOnchainId)),
-    farmerName: String(r.farmerName),
+    agreementOnchainId: r.agreementOnchainId == null ? -1n : big(String(r.agreementOnchainId)),
+    farmerName: r.farmerName == null ? "" : String(r.farmerName),
     commodityCode: String(r.commodityCode),
     status: String(r.status),
     backingValue: big(String(r.backingValue)),
@@ -879,7 +900,12 @@ export interface ApiWarehouseSummary {
 export async function fetchWarehouseSummary(): Promise<ApiWarehouseSummary> {
   const r = await getJSON<{
     saprotan: ApiWarehouseSaprotan[];
-    hasilPanen: Array<{ commodityCode: string; receivedG: string; forwardedG: string; balanceG: string }>;
+    hasilPanen: Array<{
+      commodityCode: string;
+      receivedG: string;
+      forwardedG: string;
+      balanceG: string;
+    }>;
   }>("/logistics/summary");
   return {
     saprotan: r.saprotan,
@@ -977,4 +1003,127 @@ export async function receiveShipment(
       note,
     }),
   );
+}
+
+// ─── Authenticated off-chain writes (supply request + annotate) ──────────────
+
+/** POST with the caller's Supabase bearer token (KMP-only endpoints). */
+async function authPostJSON<T>(path: string, body: unknown, accessToken: string): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(body),
+  });
+  const data = (await res.json().catch(() => ({}))) as T & { error?: string };
+  if (!res.ok) {
+    throw new Error(data?.error ? `${data.error}` : `[api] POST ${path} -> ${res.status}`);
+  }
+  return data as T;
+}
+
+/** KMP submits selected Created drafts to the Supplier (off-chain step; the
+ *  next ON-chain event is dispatch_supply, Supplier-signed). Persists
+ *  agreement.supply_requested_at so the status survives refresh. */
+export async function submitSupplyRequest(
+  agreementIds: string[],
+  accessToken: string,
+): Promise<{ ok: boolean; submitted: string[] }> {
+  return authPostJSON("/agreements/supply-request", { ids: agreementIds }, accessToken);
+}
+
+/** After create_agreement confirms: persist the off-chain basket + harvest date
+ *  keyed by the tx's returned on-chain id. */
+export async function annotateAgreement(
+  input: {
+    txHash: string;
+    expectedHarvestDate?: string;
+    inputs: { catalogId: string; qty: number }[];
+  },
+  accessToken: string,
+): Promise<{ ok: boolean; onchainId: string; agreementId: string }> {
+  return authPostJSON("/agreements/annotate", input, accessToken);
+}
+
+/** After request_funding confirms: persist WHICH agreements back the advance
+ *  (funding_request_line), so the picker excludes them and the financier can
+ *  inspect the packet. */
+export async function annotateFunding(
+  input: { txHash: string; agreementIds: string[] },
+  accessToken: string,
+): Promise<{ ok: boolean; onchainId: string; fundingRequestId: string }> {
+  return authPostJSON("/financier/annotate", input, accessToken);
+}
+
+// ─── Supplier dispatch desk (live queue + history) ───────────────────────────
+
+export interface ApiDispatchQueueItem {
+  agreementId: string;
+  onchainId: bigint;
+  farmerName: string;
+  commodityCode: string;
+  coopName: string;
+  kabupaten: string;
+  basePriceSupplier: bigint;
+  inputDebt: bigint;
+  expectedVolG: bigint;
+  supplyRequestedAt: string | null;
+  items: { qty: number; lineTotalPrincipal: bigint; name: string; unitLabel: string }[];
+}
+
+export async function fetchDispatchQueue(): Promise<ApiDispatchQueueItem[]> {
+  const { items } = await getJSON<{
+    items: (Omit<
+      ApiDispatchQueueItem,
+      "onchainId" | "basePriceSupplier" | "inputDebt" | "expectedVolG" | "items"
+    > & {
+      onchainId: string;
+      basePriceSupplier: string;
+      inputDebt: string;
+      expectedVolG: string;
+      items: { qty: string; lineTotalPrincipal: string; name: string; unitLabel: string }[];
+    })[];
+  }>("/logistics/dispatch-queue");
+  return items.map((r) => ({
+    ...r,
+    onchainId: big(r.onchainId),
+    basePriceSupplier: big(r.basePriceSupplier),
+    inputDebt: big(r.inputDebt),
+    expectedVolG: big(r.expectedVolG),
+    items: r.items.map((i) => ({
+      ...i,
+      qty: Number(i.qty),
+      lineTotalPrincipal: big(i.lineTotalPrincipal),
+    })),
+  }));
+}
+
+export interface ApiDispatchHistoryItem {
+  agreementId: string;
+  onchainId: bigint;
+  farmerName: string;
+  status: Status;
+  coopName: string;
+  kabupaten: string;
+  basePriceSupplier: bigint;
+  dispatchTxHash: string | null;
+  dispatchedAt: string | null;
+  acceptedAt: string | null;
+  received: boolean;
+}
+
+export async function fetchDispatchHistory(): Promise<ApiDispatchHistoryItem[]> {
+  const { items } = await getJSON<{
+    items: (Omit<ApiDispatchHistoryItem, "onchainId" | "basePriceSupplier"> & {
+      onchainId: string;
+      basePriceSupplier: string;
+    })[];
+  }>("/logistics/dispatch-history");
+  return items.map((r) => ({
+    ...r,
+    onchainId: big(r.onchainId),
+    basePriceSupplier: big(r.basePriceSupplier),
+  }));
 }
