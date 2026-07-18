@@ -1,0 +1,13 @@
+node_modules/
+contracts/
+scripts/
+.git/
+.turbo/
+.pnpm-store/
+target/
+**/*.wasm
+*.tsbuildinfo
+data/
+playwright-report/
+blob-report/
+screenshots/
