@@ -74,11 +74,11 @@ export const PAYABLE_STATUSES: readonly Status[] = [
   "Flagged",
 ];
 
-/** Statuses with projected future value that can back an offtake-financing
- *  request. */
+/** Statuses that can back an offtake-financing request: only RUNNING
+ *  agreements (both confirmation gates fired, harvest pipeline underway).
+ *  Created/SupplyDispatched drafts have no active supply chain yet, so their
+ *  projected value is not acceptable collateral; Flagged needs review first. */
 export const FUNDING_BACKABLE_STATUSES: readonly Status[] = [
-  "Created",
-  "SupplyDispatched",
   "Active",
   "PartiallyDelivered",
   "Delivered",
