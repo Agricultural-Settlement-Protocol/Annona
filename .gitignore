@@ -45,3 +45,4 @@ screenshots/
 docs/pitch-deck/
 .next-real
 **/e2e/.results-real/
+.env*

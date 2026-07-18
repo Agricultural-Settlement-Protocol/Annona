@@ -613,35 +613,14 @@ export default function Landing() {
               <Cpu className="w-3.5 h-3.5" />
             </button>
             <button
-              onClick={() => {
-                router.push("/kmp");
-              }}
-              className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all text-gray-600 hover:bg-gray-200/30"
+              onClick={() => router.push("/auth")}
+              className="bg-primary-dark text-white px-5 py-2.5 rounded-full text-sm font-medium hover:bg-opacity-90 transition-all shadow-sm hover:shadow active:scale-95"
             >
-              Cooperative Dashboard
-              <Activity className="w-3.5 h-3.5" />
+              Sign In
             </button>
           </nav>
 
-          <div className="flex items-center gap-2 pointer-events-auto">
-            <button
-              onClick={() => {
-                router.push("/kmp");
-              }}
-              className="md:hidden px-4 py-2.5 rounded-full text-xs font-semibold border flex items-center gap-1.5 transition-all bg-gray-50 text-gray-700 border-gray-100 hover:bg-gray-100"
-            >
-              <Activity className="w-3.5 h-3.5" />
-              Dashboard
-            </button>
 
-            <button
-              onClick={() => setIsProposalOpen(true)}
-              className="bg-primary-dark text-white px-5 py-2.5 rounded-full text-sm font-medium hover:bg-opacity-90 transition-all shadow-sm hover:shadow active:scale-95"
-              id="contact-us-header-btn"
-            >
-              Apply for Partnership
-            </button>
-          </div>
         </header>
       </div>
 
@@ -2322,7 +2301,7 @@ export default function Landing() {
                     onClick={() => setIsProposalOpen(true)}
                     className="text-gray-600 hover:text-primary-dark hover:underline transition-colors text-left"
                   >
-                    Apply for Partnership
+              Sign In
                   </button>
                 </li>
                 <li>
