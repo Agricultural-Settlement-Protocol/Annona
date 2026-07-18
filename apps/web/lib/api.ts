@@ -431,9 +431,9 @@ export async function fetchOverview(): Promise<ApiOverview> {
     };
     harvestThisWeek: { rows: Raw<ApiAgreement>[]; totalKg: number; totalValue: string };
     cashNeededThisWeek: string;
-    inboundSupply: (Raw<ApiAgreement> & { inputs: Raw<ApiAgreementInput>[] })[];
+    inboundSupply: (Raw<ApiAgreement> & { inputs?: Raw<ApiAgreementInput>[] })[];
     supplyRequestRows: {
-      agreement: Raw<ApiAgreement> & { inputs: Raw<ApiAgreementInput>[] };
+      agreement: Raw<ApiAgreement> & { inputs?: Raw<ApiAgreementInput>[] };
       farmerId: string;
       farmerName: string;
       status: string;
@@ -452,13 +452,19 @@ export async function fetchOverview(): Promise<ApiOverview> {
       totalValue: big(r.harvestThisWeek.totalValue),
     },
     cashNeededThisWeek: big(r.cashNeededThisWeek),
+    // DEFENSIVE: `inputs` may be absent when the API runs an older build
+    // (deploy version skew). A missing basket must degrade to an empty list,
+    // never crash the whole dashboard.
     inboundSupply: r.inboundSupply.map((row) => ({
       ...parseAgreement(row),
-      inputs: row.inputs.map(parseInput),
+      inputs: (row.inputs ?? []).map(parseInput),
     })),
     supplyRequestRows: r.supplyRequestRows.map((row) => ({
       ...row,
-      agreement: { ...parseAgreement(row.agreement), inputs: row.agreement.inputs.map(parseInput) },
+      agreement: {
+        ...parseAgreement(row.agreement),
+        inputs: (row.agreement.inputs ?? []).map(parseInput),
+      },
     })),
   };
 }

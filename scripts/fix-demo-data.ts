@@ -131,19 +131,21 @@ console.log(
 
 // ── 4. funding_request_line ──────────────────────────────────────────────────
 
-// funding onchain id -> backing agreement onchain ids. Chosen so every OPEN
-// advance (Requested/Approved/Disbursed) consumes plausible agreements and the
-// picker exclusion has something real to bite on; #3/#5 stay FREE for the live
-// demo of a new dana request.
+// funding onchain id -> backing agreement onchain ids. Backing must be
+// agreements that were RUNNING at request time (FUNDING_BACKABLE_STATUSES:
+// Active/PartiallyDelivered/Delivered — never Created drafts), so most map to
+// now-Settled rows; overlaps only re-use backing from CLOSED requests
+// (Reconciled/Rejected), which is realistic. Agreement #5 (Active) stays FREE
+// so the live "Ajukan Dana" demo has a picker row.
 const FUNDING_BACKING: Record<string, number[]> = {
-  "0": [7],
-  "1": [1, 6],
-  "2": [8],
-  "3": [0, 4],
-  "4": [2],
-  "5": [10],
-  "6": [11],
-  "7": [12, 14],
+  "0": [7], // Requested — backed by the running PartiallyDelivered agreement
+  "1": [1], // Disbursed
+  "2": [8], // Disbursed
+  "3": [0, 4], // Reconciled (closed)
+  "4": [2], // Rejected — backed by the Flagged agreement (why it was declined)
+  "5": [13], // Approved
+  "6": [4], // Approved — re-uses #4 after request 3 reconciled
+  "7": [6, 0], // Approved — re-uses #0 after request 3 reconciled
 };
 
 const fundingRows = await db
@@ -160,14 +162,13 @@ const agreementsAll = await db
 const agreementByOnchain = new Map(agreementsAll.map((a) => [String(a.onchainId), a]));
 
 for (const f of fundingRows) {
-  const existing = await db
-    .select({ id: schema.fundingRequestLine.id })
-    .from(schema.fundingRequestLine)
-    .where(eq(schema.fundingRequestLine.fundingRequestId, f.id))
-    .limit(1);
-  if (existing.length > 0) continue; // idempotent
-
   const backing = FUNDING_BACKING[String(f.onchainId)] ?? [];
+  if (backing.length === 0) continue;
+  // Idempotent: rewrite this request's lines to match the canonical mapping
+  // (also corrects older backfills that pointed at Created drafts).
+  await db
+    .delete(schema.fundingRequestLine)
+    .where(eq(schema.fundingRequestLine.fundingRequestId, f.id));
   const lines = backing
     .map((oid) => agreementByOnchain.get(String(oid)))
     .filter((a): a is NonNullable<typeof a> => a != null)
