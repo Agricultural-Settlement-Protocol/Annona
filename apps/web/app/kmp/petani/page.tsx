@@ -14,7 +14,7 @@ import { RegistryRegisterPanel } from "@/components/kmp/registry-register-panel"
 import { TBody, THead, Table, TableFrame, Td, Th, Tr } from "@/components/kmp/table";
 import { useApi } from "@/lib/use-api";
 import { shortAddr } from "@/lib/mock-data";
-import type { Status } from "@annona/core";
+import { DEBT_ACTIVE_STATUSES, OPEN_AGREEMENT_STATUSES } from "@annona/core";
 import {
   Alert,
   Button,
@@ -34,11 +34,9 @@ import { useI18n } from "@/lib/i18n/use-i18n";
 import { Fragment, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 
-// Statuses that count toward "running debt" per farmer
-const DEBT_STATUSES: Status[] = ["Active", "PartiallyDelivered", "Delivered", "Flagged"];
-
-// Statuses that count as an "active" agreement (shown in the count pill)
-const ACTIVE_STATUSES: Status[] = ["SupplyDispatched", "Active", "PartiallyDelivered", "Delivered"];
+// SHARED core sets, so this page agrees with the beranda + overview API.
+const DEBT_STATUSES = DEBT_ACTIVE_STATUSES;
+const ACTIVE_STATUSES = OPEN_AGREEMENT_STATUSES;
 
 function farmerRunningDebt(agreements: ApiAgreement[], farmerId: string): bigint {
   return agreements
