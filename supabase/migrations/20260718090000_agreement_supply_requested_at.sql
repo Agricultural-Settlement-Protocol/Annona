@@ -1,0 +1,1 @@
+ALTER TABLE "agreement" ADD COLUMN "supply_requested_at" timestamp with time zone;

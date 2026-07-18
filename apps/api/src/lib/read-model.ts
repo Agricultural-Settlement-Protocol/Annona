@@ -113,6 +113,7 @@ function selectAgreements(db: Db) {
       flag: schema.agreement.flag,
       residuStatus: schema.agreement.residuStatus,
       expectedHarvestDate: schema.agreement.expectedHarvestDate,
+      supplyRequestedAt: schema.agreement.supplyRequestedAt,
       createdAt: schema.agreement.createdAt,
       farmerName: schema.farmer.name,
     })
@@ -154,6 +155,8 @@ export interface EnrichedAgreement {
   createdAt: Date;
   createTxHash: string | null;
   expectedHarvestDate: string | null;
+  /** Off-chain: when the KMP submitted this draft to the Supplier (null = Draft). */
+  supplyRequestedAt: Date | null;
 }
 
 function enrich(
@@ -193,6 +196,7 @@ function enrich(
     createdAt: a.createdAt,
     createTxHash: createTx ?? null,
     expectedHarvestDate: a.expectedHarvestDate,
+    supplyRequestedAt: a.supplyRequestedAt,
   };
 }
 

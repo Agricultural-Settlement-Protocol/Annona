@@ -328,6 +328,12 @@ export const agreement = pgTable(
     /** v4.0: set when a funding request backs this agreement (nullable). */
     financierId: uuid("financier_id").references(() => financier.id),
 
+    /** Off-chain-only: when the KMP submitted this Created agreement to the
+     *  Supplier via "Kirim Permintaan Gabungan". There is deliberately NO
+     *  contract fn for this step (the next on-chain event is dispatch_supply,
+     *  Supplier-signed), so the request state lives here. Null = still Draft. */
+    supplyRequestedAt: timestamp("supply_requested_at", { withTimezone: true }),
+
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
