@@ -8,7 +8,10 @@
  *      A logistik dispatch auto-reduces the harvest balance here. */
 
 import {
+  type ApiAgreementInput,
+  type ApiCatalogItem,
   type ApiWarehouseSummary,
+  fetchCatalog,
   fetchOverview,
   fetchWarehouseSummary,
 } from "@/lib/api";
@@ -56,14 +59,16 @@ function commodityLabel(code: string): string {
 function InboundCard({
   agreement,
   farmerName,
+  catalogById,
   isAnyProcessing,
   onAccept,
   state,
   isDone,
   doneTxHash,
 }: {
-  agreement: ApiAgreement;
+  agreement: ApiAgreement & { inputs: ApiAgreementInput[] };
   farmerName: string;
+  catalogById: Map<string, ApiCatalogItem>;
   isAnyProcessing: boolean;
   onAccept: () => void;
   state: TxState;
@@ -123,6 +128,31 @@ function InboundCard({
               <span className="text-gray-900">{formatKg(agreement.expectedVolKg)}</span>
             </div>
           </div>
+          {agreement.inputs.length > 0 && (
+            <div className="mt-4 space-y-1.5 rounded-xl border border-gray-100 bg-white/70 px-4 py-3">
+              <p className="text-xs font-bold text-gray-500 uppercase">Rincian Saprotan</p>
+              {agreement.inputs.map((inp) => {
+                const item = catalogById.get(inp.catalogId);
+                return (
+                  <div
+                    key={inp.id}
+                    className="flex items-center justify-between gap-3 text-sm"
+                  >
+                    <span className="text-gray-800 font-medium">
+                      {item?.name ?? inp.catalogId}
+                      <span className="ml-1.5 text-xs text-gray-400">
+                        {inp.qty} {item?.unitLabel ?? "unit"}
+                      </span>
+                    </span>
+                    <RupiahAmount
+                      smallest={inp.lineTotalPrincipal}
+                      className="text-sm tabular-nums font-semibold text-gray-900"
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          )}
           <p className="mt-2.5 text-xs text-gray-400 font-semibold">
             Tanggal pengiriman Supplier: {agreement.createdAt}
           </p>
@@ -165,7 +195,12 @@ function InboundCard({
 export default function GudangPage() {
   const { t } = useI18n();
   const { data: overview } = useApi(fetchOverview);
+  const { data: catalog } = useApi(fetchCatalog);
   const inbound = overview?.inboundSupply ?? [];
+  const catalogById = useMemo(
+    () => new Map((catalog ?? []).map((c) => [c.id, c])),
+    [catalog],
+  );
 
   // One tx instance at a time; track which card is processing and which are done.
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -268,6 +303,7 @@ export default function GudangPage() {
                 key={a.id}
                 agreement={a}
                 farmerName={a.farmerName}
+                catalogById={catalogById}
                 isAnyProcessing={isAnyProcessing}
                 onAccept={() => handleAccept(a.id, a.onchainId)}
                 state={activeId === a.id ? txAccept.state : "idle"}

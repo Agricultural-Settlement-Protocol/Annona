@@ -6,25 +6,30 @@
  * directly. No SWR/react-query for the MVP — add later for caching, not needed
  * to render the demo.
  */
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export interface ApiState<T> {
   data: T | undefined;
   loading: boolean;
   error: string | undefined;
+  /** Re-run the fetcher (e.g. after a write, so the page reflects the DB). */
+  refetch: () => void;
 }
 
 /**
  * Run an async fetcher on mount (and when `deps` change). Returns
- * `{ data, loading, error }`. Guards against setState-after-unmount.
+ * `{ data, loading, error, refetch }`. Guards against setState-after-unmount.
  */
 export function useApi<T>(fetcher: () => Promise<T>, deps: readonly unknown[] = []): ApiState<T> {
-  const [state, setState] = useState<ApiState<T>>({
+  const [version, setVersion] = useState(0);
+  const refetch = useCallback(() => setVersion((v) => v + 1), []);
+  const [state, setState] = useState<Omit<ApiState<T>, "refetch">>({
     data: undefined,
     loading: true,
     error: undefined,
   });
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `fetcher` is intentionally excluded (callers pass inline closures; `deps` is the identity) and `version` is the refetch trigger.
   useEffect(() => {
     let alive = true;
     setState((s) => ({ ...s, loading: true, error: undefined }));
@@ -45,7 +50,7 @@ export function useApi<T>(fetcher: () => Promise<T>, deps: readonly unknown[] = 
       alive = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
+  }, [...deps, version]);
 
-  return state;
+  return { ...state, refetch };
 }
